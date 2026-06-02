@@ -1,0 +1,215 @@
+import { prisma } from "./client";
+import {
+  parseSectionConfig,
+  megaMenuSchema,
+  popupConfigSchema,
+  campaignPayloadSchema,
+} from "./schemas/index";
+import type { SectionTypeKey } from "./schemas/index";
+
+type CampaignStatus = "SCHEDULED" | "ACTIVE" | "ENDED" | "PAUSED";
+
+export { prisma } from "./client";
+export * from "./schemas/index";
+
+/**
+ * Fetch a published page layout with its sections in order. Returns null if the
+ * page does not exist or is not published.
+ */
+export async function getPublishedPage(slug: string) {
+  const page = await prisma.pageLayout.findFirst({
+    where: { slug, status: "PUBLISHED" },
+    include: { sections: { orderBy: { position: "asc" } } },
+  });
+  if (!page) return null;
+  return page;
+}
+
+/** Fetch a nav menu with its items as a nested tree, ordered by position. */
+export async function getNavMenu(key: string) {
+  const menu = await prisma.navMenu.findUnique({
+    where: { key },
+    include: {
+      items: {
+        where: { parentId: null },
+        orderBy: { position: "asc" },
+        include: { children: { orderBy: { position: "asc" } } },
+      },
+    },
+  });
+  return menu;
+}
+
+/** The single active popup eligible to show right now (by schedule). */
+export async function getActivePopup(now: Date) {
+  return prisma.popup.findFirst({
+    where: {
+      active: true,
+      AND: [
+        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+/** Upsert a guest lead (abandoned info/cart) for remarketing. */
+export async function captureGuestLead(input: {
+  email?: string;
+  phone?: string;
+  capturedFields?: Record<string, unknown>;
+  cartId?: string;
+  source?: string;
+}) {
+  // Prefer updating an existing lead for the same cart, else by email.
+  const existing = input.cartId
+    ? await prisma.guestLead.findFirst({ where: { cartId: input.cartId } })
+    : input.email
+      ? await prisma.guestLead.findFirst({ where: { email: input.email } })
+      : null;
+
+  const data = {
+    email: input.email ?? null,
+    phone: input.phone ?? null,
+    capturedFields: (input.capturedFields ?? {}) as object,
+    cartId: input.cartId ?? null,
+    source: input.source ?? null,
+  };
+
+  return existing
+    ? prisma.guestLead.update({ where: { id: existing.id }, data })
+    : prisma.guestLead.create({ data });
+}
+
+/**
+ * Validate then persist a section's config. Throws ZodError if invalid — the
+ * admin layer should surface this to the editor.
+ */
+export async function upsertSectionConfig(
+  sectionId: string,
+  type: SectionTypeKey,
+  config: unknown,
+) {
+  const valid = parseSectionConfig(type, config);
+  return prisma.section.update({
+    where: { id: sectionId },
+    data: { config: valid as object },
+  });
+}
+
+/** Update a section's config, looking up its type for validation. */
+export async function updateSection(sectionId: string, config: unknown) {
+  const section = await prisma.section.findUnique({ where: { id: sectionId } });
+  if (!section) throw new Error("Section not found");
+  return upsertSectionConfig(sectionId, section.type as SectionTypeKey, config);
+}
+
+/** Persist a new section order for a page (array index becomes position). */
+export async function reorderSections(orderedIds: string[]) {
+  await prisma.$transaction(
+    orderedIds.map((id, i) => prisma.section.update({ where: { id }, data: { position: i } })),
+  );
+}
+
+/** Update a popup's content (validated) plus its activation/schedule. */
+export async function updatePopup(
+  id: string,
+  input: {
+    name?: string;
+    active?: boolean;
+    trigger?: "TIMER" | "SCROLL" | "EXIT_INTENT" | "IMMEDIATE";
+    config?: unknown;
+    startsAt?: Date | null;
+    endsAt?: Date | null;
+  },
+) {
+  const data: Record<string, unknown> = {};
+  if (input.name !== undefined) data.name = input.name;
+  if (input.active !== undefined) data.active = input.active;
+  if (input.trigger !== undefined) data.trigger = input.trigger;
+  if (input.startsAt !== undefined) data.startsAt = input.startsAt;
+  if (input.endsAt !== undefined) data.endsAt = input.endsAt;
+  if (input.config !== undefined) data.config = popupConfigSchema.parse(input.config) as object;
+  return prisma.popup.update({ where: { id }, data });
+}
+
+/**
+ * Replace all items of a nav menu with a new flat list (top-level items only;
+ * mega-menu payloads validated). Used by the admin navigation editor.
+ */
+export async function replaceNavItems(
+  key: string,
+  items: { label: string; href: string; megaMenu?: unknown }[],
+) {
+  const menu = await prisma.navMenu.findUnique({ where: { key } });
+  if (!menu) throw new Error("Menu not found");
+  const prepared = items.map((it, i) => ({
+    label: it.label,
+    href: it.href,
+    position: i,
+    megaMenu: it.megaMenu ? (megaMenuSchema.parse(it.megaMenu) as object) : undefined,
+  }));
+  await prisma.$transaction([
+    prisma.navItem.deleteMany({ where: { menuId: menu.id } }),
+    ...prepared.map((it) => prisma.navItem.create({ data: { ...it, menuId: menu.id } })),
+  ]);
+}
+
+// --- Campaigns ("runs") -----------------------------------------------------
+
+export async function listCampaigns() {
+  return prisma.campaign.findMany({ orderBy: { startsAt: "desc" } });
+}
+
+export async function createCampaign(input: {
+  name: string;
+  status: CampaignStatus;
+  startsAt: Date;
+  endsAt?: Date | null;
+  payload?: unknown;
+}) {
+  return prisma.campaign.create({
+    data: {
+      name: input.name,
+      status: input.status,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt ?? null,
+      payload: campaignPayloadSchema.parse(input.payload ?? {}) as object,
+    },
+  });
+}
+
+export async function updateCampaign(
+  id: string,
+  input: {
+    name?: string;
+    status?: CampaignStatus;
+    startsAt?: Date;
+    endsAt?: Date | null;
+    payload?: unknown;
+  },
+) {
+  const data: Record<string, unknown> = {};
+  if (input.name !== undefined) data.name = input.name;
+  if (input.status !== undefined) data.status = input.status;
+  if (input.startsAt !== undefined) data.startsAt = input.startsAt;
+  if (input.endsAt !== undefined) data.endsAt = input.endsAt;
+  if (input.payload !== undefined) data.payload = campaignPayloadSchema.parse(input.payload) as object;
+  return prisma.campaign.update({ where: { id }, data });
+}
+
+export async function deleteCampaign(id: string) {
+  return prisma.campaign.delete({ where: { id } });
+}
+
+/** Paginated guest leads (newest first). */
+export async function listGuestLeads(opts: { skip?: number; take?: number } = {}) {
+  const take = Math.min(opts.take ?? 25, 100);
+  const skip = opts.skip ?? 0;
+  const [items, total] = await Promise.all([
+    prisma.guestLead.findMany({ orderBy: { createdAt: "desc" }, skip, take }),
+    prisma.guestLead.count(),
+  ]);
+  return { items, total, skip, take };
+}
