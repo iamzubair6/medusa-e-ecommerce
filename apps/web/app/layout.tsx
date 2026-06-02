@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, Hanken_Grotesk } from "next/font/google";
+import { Archivo } from "next/font/google";
 import "@ecom/ui/styles.css";
 import { Providers } from "./providers";
 
-// Editorial display serif (characterful, high-contrast) + refined grotesque body.
-const display = Fraunces({
+// Clean, bold neo-grotesque — Fashion-Nova-style commercial look (one family,
+// heavy weights for promo headers).
+const archivo = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "900"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-sans",
   display: "swap",
 });
-const sans = Hanken_Grotesk({
+const display = Archivo({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-sans",
+  weight: ["700", "800", "900"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable}`}>
+    <html lang="en" className={`${archivo.variable} ${display.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>
