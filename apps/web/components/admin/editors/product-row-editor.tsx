@@ -1,0 +1,98 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Button } from "@ecom/ui";
+import { productRowConfigSchema, type ProductRowConfig } from "@ecom/cms";
+import { TextField, SelectField } from "../fields";
+import { useSaveSection } from "../use-save-section";
+
+interface Form {
+  heading: string;
+  subheading: string;
+  sourceKind: "newest" | "bestsellers" | "collection" | "ids";
+  collectionHandle: string;
+  productIds: string;
+  limit: number;
+  layout: "carousel" | "grid";
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+export function ProductRowEditor({ sectionId, config }: { sectionId: string; config: ProductRowConfig }) {
+  const { register, handleSubmit, watch } = useForm<Form>({
+    defaultValues: {
+      heading: config.heading,
+      subheading: config.subheading ?? "",
+      sourceKind: config.source.kind,
+      collectionHandle: config.source.kind === "collection" ? config.source.handle : "",
+      productIds: config.source.kind === "ids" ? config.source.ids.join(", ") : "",
+      limit: config.limit,
+      layout: config.layout,
+      ctaLabel: config.cta?.label ?? "",
+      ctaHref: config.cta?.href ?? "",
+    },
+  });
+  const kind = watch("sourceKind");
+  const save = useSaveSection(sectionId);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = (f: Form) => {
+    setError(null);
+    const source =
+      f.sourceKind === "collection"
+        ? { kind: "collection" as const, handle: f.collectionHandle }
+        : f.sourceKind === "ids"
+          ? { kind: "ids" as const, ids: f.productIds.split(",").map((s) => s.trim()).filter(Boolean) }
+          : { kind: f.sourceKind };
+    const parsed = productRowConfigSchema.safeParse({
+      heading: f.heading,
+      subheading: f.subheading || undefined,
+      source,
+      limit: Number(f.limit),
+      layout: f.layout,
+      cta: f.ctaLabel.trim() ? { label: f.ctaLabel, href: f.ctaHref || "#" } : undefined,
+    });
+    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Invalid");
+    save.mutate(parsed.data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <TextField label="Heading" {...register("heading")} />
+      <TextField label="Subheading (optional)" {...register("subheading")} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField label="Product source" {...register("sourceKind")}>
+          <option value="newest">Newest</option>
+          <option value="bestsellers">Best sellers</option>
+          <option value="collection">Collection</option>
+          <option value="ids">Specific products</option>
+        </SelectField>
+        <SelectField label="Layout" {...register("layout")}>
+          <option value="carousel">Carousel</option>
+          <option value="grid">Grid</option>
+        </SelectField>
+      </div>
+      {kind === "collection" && (
+        <TextField label="Collection ID / handle" {...register("collectionHandle")} />
+      )}
+      {kind === "ids" && (
+        <TextField label="Product IDs (comma-separated)" {...register("productIds")} />
+      )}
+      <TextField label="Max products" type="number" className="max-w-48" {...register("limit")} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="CTA label (optional)" {...register("ctaLabel")} />
+        <TextField label="CTA link" {...register("ctaHref")} />
+      </div>
+      <div className="flex items-center gap-3">
+        <Button type="submit" variant="gold" loading={save.isPending}>
+          Save
+        </Button>
+        {save.isSuccess && <span className="text-sm text-gold">Saved</span>}
+        {(error || save.isError) && (
+          <span className="text-sm text-destructive">{error ?? (save.error as Error)?.message}</span>
+        )}
+      </div>
+    </form>
+  );
+}
