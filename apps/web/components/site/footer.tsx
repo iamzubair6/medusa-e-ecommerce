@@ -12,7 +12,7 @@ export function Footer() {
     <footer className="mt-12 border-t border-border bg-ink text-primary-foreground">
       <Container className="grid grid-cols-2 gap-8 py-12 md:grid-cols-4">
         <div className="col-span-2 md:col-span-1">
-          <span className="font-display text-2xl font-medium">Maison</span>
+          <span className="font-display text-2xl font-black uppercase tracking-tight">MAISON</span>
           <p className="mt-3 max-w-xs text-sm text-white/60">
             Considered design. Premium materials. Made to last.
           </p>

@@ -10,7 +10,7 @@ import type { Cta, HeroConfig } from "@ecom/cms";
 /** Renders a video OR carousel hero based on `config.mode`. Editorial overlay. */
 export function Hero({ config }: { config: HeroConfig }) {
   return (
-    <section className="grain relative h-[88vh] min-h-[600px] w-full overflow-hidden bg-ink text-[hsl(40_33%_94%)]">
+    <section className="relative h-[82vh] min-h-[560px] w-full overflow-hidden bg-black text-white">
       {config.mode === "video" ? <HeroVideo config={config} /> : <HeroCarousel config={config} />}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
       <Overlay config={config} />
@@ -51,7 +51,7 @@ function Overlay({ config }: { config: HeroConfig }) {
         )}
 
         {/* Headline — staggered word reveal with overflow mask */}
-        <h1 className="max-w-4xl font-display text-[clamp(2.75rem,8vw,6.5rem)] font-medium leading-[0.95] tracking-[-0.02em]">
+        <h1 className="max-w-4xl font-display text-[clamp(2.75rem,8vw,6rem)] font-black uppercase leading-[0.9] tracking-[-0.02em]">
           {words.map((word, i) => (
             <span key={i} className="mr-[0.25em] inline-block overflow-hidden align-bottom">
               <motion.span
