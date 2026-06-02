@@ -3,70 +3,69 @@
 @tailwind utilities;
 
 /**
- * "Maison" — editorial luxury design tokens.
- * Warm bone/parchment canvas · warm near-black ink · claret accent · brass detail.
+ * Fashion-Nova-style design tokens — clean white, black, and a red sale accent.
+ * Bold grotesque type, square corners, high-contrast commercial look.
  * HSL channels (no hsl() wrapper) so Tailwind can apply alpha. Runtime-themeable.
  */
 @layer base {
   :root {
-    --ink: 24 14% 12%; /* warm near-black */
-    --ink-soft: 28 8% 32%;
-    /* "gold" token name kept for compatibility — now a refined BRASS hairline tone */
-    --gold: 35 32% 50%;
-    --gold-soft: 35 40% 70%;
-    /* signature claret/burgundy accent */
-    --claret: 356 46% 32%;
+    --ink: 0 0% 7%;
+    --ink-soft: 0 0% 28%;
+    /* "gold" token name kept for compatibility — now the RED sale accent */
+    --gold: 348 96% 45%;
+    --gold-soft: 348 90% 60%;
+    --claret: 348 96% 45%;
 
-    --background: 40 33% 94%; /* bone / parchment */
-    --foreground: 24 14% 12%;
+    --background: 0 0% 100%; /* white */
+    --foreground: 0 0% 7%; /* near-black */
 
-    --muted: 38 24% 88%;
-    --muted-foreground: 30 9% 38%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
 
-    --card: 42 42% 97%;
-    --card-foreground: 24 14% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
 
-    --primary: 24 14% 12%; /* ink */
-    --primary-foreground: 40 33% 96%;
+    --primary: 0 0% 0%; /* black */
+    --primary-foreground: 0 0% 100%;
 
-    --accent: 356 46% 32%; /* claret */
-    --accent-foreground: 40 33% 96%;
+    --accent: 348 96% 45%; /* sale red */
+    --accent-foreground: 0 0% 100%;
 
-    --border: 36 20% 83%;
-    --input: 36 20% 83%;
-    --ring: 356 46% 36%;
+    --border: 0 0% 88%;
+    --input: 0 0% 84%;
+    --ring: 0 0% 0%;
 
-    --destructive: 2 62% 42%;
-    --destructive-foreground: 40 33% 96%;
+    --destructive: 348 96% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.25rem; /* sharp, editorial */
+    --radius: 0.125rem; /* near-square */
   }
 
   .dark {
-    --ink: 40 28% 90%;
-    --ink-soft: 36 12% 70%;
-    --gold: 35 40% 58%;
-    --gold-soft: 35 46% 70%;
-    --claret: 356 54% 54%;
+    --ink: 0 0% 96%;
+    --ink-soft: 0 0% 72%;
+    --gold: 348 96% 56%;
+    --gold-soft: 348 90% 66%;
+    --claret: 348 96% 56%;
 
-    --background: 26 18% 8%; /* espresso */
-    --foreground: 40 28% 90%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
 
-    --muted: 26 12% 16%;
-    --muted-foreground: 36 10% 62%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 64%;
 
-    --card: 26 16% 11%;
-    --card-foreground: 40 28% 90%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 96%;
 
-    --primary: 40 28% 92%;
-    --primary-foreground: 26 18% 9%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
 
-    --accent: 356 54% 52%;
-    --accent-foreground: 40 33% 96%;
+    --accent: 348 96% 56%;
+    --accent-foreground: 0 0% 100%;
 
-    --border: 30 10% 22%;
-    --input: 30 10% 22%;
-    --ring: 356 54% 56%;
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 100%;
   }
 
   * {
@@ -94,18 +93,16 @@
 }
 
 @layer components {
-  /* Hairline divider in brass — fine luxury detail */
   .rule-brass {
-    @apply h-px w-full;
-    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.6), transparent);
+    @apply h-px w-full bg-border;
   }
-  /* Animated underline for editorial links */
+  /* animated underline for links */
   .link-underline {
     background-image: linear-gradient(currentColor, currentColor);
     background-size: 0% 1px;
     background-repeat: no-repeat;
     background-position: 0 100%;
-    transition: background-size 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background-size 0.25s ease;
   }
   .link-underline:hover {
     background-size: 100% 1px;
@@ -113,13 +110,12 @@
 }
 
 @layer utilities {
-  /* subtle paper grain for atmosphere on dark/hero sections */
   .grain::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.05;
+    opacity: 0.04;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   .skeleton {
