@@ -1,98 +1,89 @@
-# Brand — E-Commerce + CMS
+# Maison — Headless Fashion E-Commerce + CMS
 
-Scalable, animated fashion storefront with a custom CMS. Monorepo: **bun workspaces**
-(`apps/web` + `packages/*`). `apps/medusa` is separate (npm + Node 20).
+A modern, headless e-commerce platform with a custom content management system.
+A motion-rich storefront where everything — the hero, navigation, product sections,
+popups, and campaigns — is composed by admins from a CMS, backed by a dedicated
+commerce engine for products, carts, checkout, orders, and fulfillment.
 
-- **`apps/web`** — Next.js (App Router) storefront + custom admin + CMS API.
-- **`apps/medusa`** — Medusa.js commerce backend (Node 20). _(Phase 0 — pending)_
-- **`packages/ui`** — design system (tokens, motion, primitives).
-- **`packages/cms`** — Prisma schema + Zod validators + CMS domain services.
-- **`packages/config`** — shared tsconfig + Tailwind preset.
+## Features
 
-See [`docs/PLAN.md`](docs/PLAN.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Storefront**
+- Editorial, animated landing page fully driven by the CMS (dynamic nav + mega-menu,
+  video/carousel hero, product rows, category grids, editorial blocks, banners).
+- Product listing with sort & pagination, and rich product detail pages with
+  variant selection and similar-product suggestions.
+- Cart and **guest checkout** (no account required), with address → shipping → payment.
+- Promo codes / discounts and a public **parcel tracker** (order number + email).
+- Promotional popups with timed / scroll / exit-intent triggers and email capture.
 
-## Prerequisites
-- **bun 1.3+** (package manager + task runner for `apps/web` + `packages/*`).
-- **Node 20 LTS** (Medusa support window — repo `.nvmrc` pins 20). `apps/web` also runs on newer Node.
-- **PostgreSQL 14+** (running). Redis not required (Medusa uses in-memory modules in dev).
+**Admin / CMS**
+- Compose pages from reorderable content blocks, each with a dedicated editor.
+- Manage navigation & mega-menus, promotional popups, and scheduled campaigns.
+- Capture and review guest leads (abandoned carts / newsletter sign-ups).
+- Full commerce administration (products, pricing, inventory, orders, fulfillment).
 
-## Setup
+## Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Storefront & Admin | Next.js (App Router), TypeScript, Tailwind CSS, Radix UI, Framer Motion |
+| Commerce engine | Medusa.js |
+| Content / CMS data | Prisma + PostgreSQL |
+| Tooling | bun workspaces, Zod, TanStack Query, React Hook Form |
+
+## Architecture
+
+A monorepo with a clear split between **content** (CMS) and **commerce** (Medusa),
+sharing a single PostgreSQL instance.
+
+```
+apps/
+  web/        Next.js storefront + custom admin + CMS API
+  medusa/     Medusa commerce backend (products, carts, orders, fulfillment)
+packages/
+  ui/         Design system (tokens, primitives, motion)
+  cms/        Prisma schema, Zod validators, CMS domain services
+  config/     Shared TypeScript & Tailwind configuration
+```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full system design.
+
+## Getting started
+
+**Prerequisites:** [bun](https://bun.sh) 1.3+, Node.js 20 LTS (for the Medusa
+backend), and PostgreSQL 14+.
+
 ```bash
+# 1. Install dependencies
 bun install
 
-# 1. Create the database + cms schema
+# 2. Create the database
 createdb ecom
 psql -d ecom -c "CREATE SCHEMA IF NOT EXISTS cms;"
 
-# 2. Env: copy and adjust connection strings / role
-cp .env.example .env
-#   packages/cms/.env -> CMS_DATABASE_URL   (e.g. postgres://<user>@localhost:5432/ecom?schema=cms)
-#   apps/web/.env     -> CMS_DATABASE_URL, NEXT_PUBLIC_* (Medusa empty = placeholder products)
+# 3. Configure environment
+cp .env.example .env   # then fill in connection strings & keys
 
-# 3. Push schema + seed initial home page / nav / popup
+# 4. Set up the CMS schema and seed content
 bun run --filter @ecom/cms db:push
 bun run --filter @ecom/cms db:seed
 
-# 4. Run the storefront
-bun run dev      # http://localhost:3000 (this machine: use -p 3200, 3000 is taken)
+# 5. Run the storefront (http://localhost:3000)
+bun run dev
 ```
 
-## Medusa backend (`apps/medusa`)
-NOT part of the bun workspace — manages its own deps (**npm**) and **requires Node 20**.
-The actual backend is at `apps/medusa/apps/backend` (`@dtc/backend`). It uses a
-dedicated `medusa` database on the same Postgres instance.
+The Medusa backend lives in `apps/medusa` and runs separately on Node 20 — see
+[`apps/medusa/README.md`](apps/medusa/README.md). The storefront works with
+placeholder products until the backend is connected.
+
+## Scripts
 
 ```bash
-# one-time: ensure Node 20 is active for this app
-brew install node@20            # already installed on this machine
-export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
-
-# run the backend (admin + store API on http://localhost:9000)
-cd apps/medusa/apps/backend && npm run dev
-```
-- Admin UI: `http://localhost:9000/app` (first run: use the invite link printed by
-  the scaffold, user `admin@medusa-test.com`).
-- The storefront's `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is the seeded
-  "Default Publishable API Key" (in the `medusa` DB `api_key` table). When the
-  backend is down, the storefront automatically falls back to placeholder products.
-
-## Checks (run before committing)
-```bash
-bun run typecheck     # all workspace packages — strict TS, zero errors
-bun run build         # production build of apps/web
+bun run dev         # start the storefront in development
+bun run build       # production build
+bun run typecheck   # type-check all workspace packages
 ```
 
-## What works now (Phases 0–4)
-- CMS-driven home page: dynamic navbar (+ mega-menu), animated hero with
-  **video|carousel** conditional render, product rows, category grid, editorial,
-  banner, marquee — all composed from the database.
-- **PLP**: `/products`, `/collections/[handle]`, `/c/[handle]` with sort + pagination.
-- **PDP**: `/products/[handle]` — gallery, variant selection, quantity, similar
-  products, JSON-LD. (Add-to-bag is a stub until Phase 2 cart.)
-- **Custom admin** (`/admin`, password = `ADMIN_PASSWORD`): edit hero, navbar,
-  page sections (reorder + per-type editors), popups; view guest leads. Saves
-  validate via Zod and revalidate the live store.
-- **Cart + guest checkout** (Phase 2): Medusa-backed cart (drawer + `/cart`),
-  guest checkout (`/checkout`: address → shipping → place order → confirmation)
-  using Medusa's manual payment provider. Cart id in an httpOnly cookie, all
-  proxied via Next API routes.
-- Promotional popup with timer/scroll/exit-intent triggers + email capture.
-- **Guest-lead capture**: `POST /api/leads` (popup/newsletter) and the checkout
-  address step both upsert leads → visible in `/admin/leads`.
-- **Parcel tracker** (`/track`, Phase 3): public order lookup by number + email
-  (rate-limited, no-leak) with an Ordered→Packed→Shipped→Delivered timeline and
-  tracking links. Server-side via a Medusa admin secret API key
-  (`MEDUSA_ADMIN_API_KEY`, generated by the script below). Fulfillment/shipments
-  are created in Medusa admin (`:9000/app`).
-- **Promotions** (Phase 4): promo-code input in cart drawer/page & checkout
-  (`WELCOME10` = 10% off), discount reflected in totals. Reproduce the sample with
-  `cd apps/medusa/apps/backend && npx medusa exec ./src/scripts/seed-promotions.ts`.
-- **Campaigns admin** (`/admin/campaigns`): schedule promo runs (status, dates,
-  code, banner note) — CRUD over the Campaign model.
-- Products come from Medusa when configured; otherwise placeholder products keep
-  the storefront fully renderable.
+## License
 
-## Next (see ROADMAP)
-Phase 5 image search, Phase 6 hardening; plus follow-ups: automated campaign
-activation, Stripe payment provider, customer accounts, order emails.
+Proprietary — all rights reserved.
