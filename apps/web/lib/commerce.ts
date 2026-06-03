@@ -429,6 +429,21 @@ function hash(s: string): number {
   return h;
 }
 
+/** Minimal product records for building the visual-search index. */
+export async function fetchProductsForIndex(
+  limit = 100,
+): Promise<{ productId: string; handle: string; title: string; thumbnail: string; price: string }[]> {
+  const regionId = await getRegionId();
+  const region = regionId ? `&region_id=${regionId}` : "";
+  const data = (await medusaFetch(`/store/products?limit=${limit}&${CARD_FIELDS}${region}`, [
+    "commerce:products",
+  ])) as { products?: MedusaProduct[] } | null;
+  return (data?.products ?? []).map((p, i) => {
+    const c = mapCard(p, i);
+    return { productId: c.id, handle: c.handle, title: c.title, thumbnail: c.thumbnail, price: c.price };
+  });
+}
+
 /** Similar products for the PDP (placeholder until image search lands). */
 export async function fetchSimilarProducts(handle: string, limit = 4): Promise<StoreProduct[]> {
   if (medusaEnabled()) {
