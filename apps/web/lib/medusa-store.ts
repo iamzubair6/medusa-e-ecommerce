@@ -63,9 +63,9 @@ interface RawCart {
 }
 
 function fmt(amount: number | undefined, currency: string): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(
-    amount ?? 0,
-  );
+  const cur = currency.toUpperCase();
+  if (cur === "BDT") return `৳${Math.round(amount ?? 0).toLocaleString("en-US")}`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format(amount ?? 0);
 }
 
 function mapCart(cart: RawCart): CartView {
@@ -166,7 +166,7 @@ export async function listShippingOptions(id: string): Promise<ShippingOptionVie
   const data = await api<{ shipping_options: { id: string; name: string; amount?: number }[] }>(
     `/store/shipping-options?cart_id=${id}`,
   );
-  return data.shipping_options.map((o) => ({ id: o.id, name: o.name, amount: fmt(o.amount, "eur") }));
+  return data.shipping_options.map((o) => ({ id: o.id, name: o.name, amount: fmt(o.amount, "bdt") }));
 }
 
 export async function applyPromotion(id: string, code: string): Promise<CartView> {

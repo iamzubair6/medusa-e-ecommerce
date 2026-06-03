@@ -64,10 +64,13 @@ const ORDER_FIELDS = [
 ].join(",");
 
 function mapTracking(o: RawOrder): OrderTracking {
-  const fmt = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: (o.currency_code ?? "usd").toUpperCase(),
-  });
+  const cur = (o.currency_code ?? "usd").toUpperCase();
+  const fmt = {
+    format: (amount: number) =>
+      cur === "BDT"
+        ? `৳${Math.round(amount).toLocaleString("en-US")}`
+        : new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format(amount),
+  };
   const fulfillments: TrackingFulfillment[] = (o.fulfillments ?? []).map((f) => ({
     packedAt: f.packed_at ?? undefined,
     shippedAt: f.shipped_at ?? undefined,
