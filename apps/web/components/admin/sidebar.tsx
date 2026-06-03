@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, Navigation, Megaphone, Rocket, Users, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, Navigation, Megaphone, Rocket, ScanSearch, Users, LogOut, ExternalLink } from "lucide-react";
 import { cn } from "@ecom/ui";
 
 const items = [
@@ -11,6 +11,7 @@ const items = [
   { href: "/admin/navigation", label: "Navigation", icon: Navigation, exact: false },
   { href: "/admin/popups", label: "Popups", icon: Megaphone, exact: false },
   { href: "/admin/campaigns", label: "Campaigns", icon: Rocket, exact: false },
+  { href: "/admin/visual-search", label: "Visual Search", icon: ScanSearch, exact: false },
   { href: "/admin/leads", label: "Guest Leads", icon: Users, exact: false },
 ] as const;
 

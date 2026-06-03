@@ -9,6 +9,8 @@ import { Container } from "@ecom/ui";
 import type { Announcement, MegaMenu } from "@ecom/cms";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
+import { useVisualSearch } from "@/lib/visual-search-context";
 
 export interface NavLink {
   label: string;
@@ -35,6 +37,7 @@ export function Navbar({ links, announcement }: NavbarProps) {
   const [openMega, setOpenMega] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
+  const { openUpload } = useVisualSearch();
   const message = announcement?.active ? announcement.message : "FREE SHIPPING ON ORDERS OVER $75";
 
   return (
@@ -93,7 +96,12 @@ export function Navbar({ links, announcement }: NavbarProps) {
                   aria-label="Search"
                   className="w-40 bg-transparent text-sm outline-none lg:w-52"
                 />
-                <button type="button" aria-label="Search by image" className="cursor-pointer text-muted-foreground hover:text-foreground">
+                <button
+                  type="button"
+                  aria-label="Search by image"
+                  onClick={openUpload}
+                  className="cursor-pointer text-muted-foreground hover:text-accent"
+                >
                   <Camera className="h-4 w-4" />
                 </button>
               </form>
@@ -148,6 +156,7 @@ export function Navbar({ links, announcement }: NavbarProps) {
       </AnimatePresence>
 
       <CartDrawer />
+      <ShopSimilarModal />
     </header>
   );
 }

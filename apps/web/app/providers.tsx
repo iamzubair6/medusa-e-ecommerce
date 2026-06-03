@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CartUIProvider } from "@/lib/cart-context";
+import { VisualSearchProvider } from "@/lib/visual-search-context";
 
 /** Client-side providers (TanStack Query + cart UI state). */
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -16,7 +17,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
-      <CartUIProvider>{children}</CartUIProvider>
+      <CartUIProvider>
+        <VisualSearchProvider>{children}</VisualSearchProvider>
+      </CartUIProvider>
     </QueryClientProvider>
   );
 }

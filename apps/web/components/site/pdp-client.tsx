@@ -22,14 +22,9 @@ import { Button, cn } from "@ecom/ui";
 import type { StoreProductDetail } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
+import { useVisualSearch } from "@/lib/visual-search-context";
 
-export function PdpClient({
-  product,
-  onShopSimilar,
-}: {
-  product: StoreProductDetail;
-  onShopSimilar?: () => void;
-}) {
+export function PdpClient({ product }: { product: StoreProductDetail }) {
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
   const [size, setSize] = useState<string | null>(null);
@@ -38,6 +33,7 @@ export function PdpClient({
 
   const { addItem } = useCart();
   const { openCart } = useCartUI();
+  const { openSimilar } = useVisualSearch();
 
   const color = product.colors[colorIdx] ?? product.colors[0]!;
   const images = color.images.length ? color.images : product.images;
@@ -215,15 +211,13 @@ export function PdpClient({
           <span className="flex items-center gap-2">
             <Truck className="h-4 w-4" /> Standard delivery in 3–5 days · Free shipping over ৳2,000
           </span>
-          {onShopSimilar && (
-            <button
-              type="button"
-              onClick={onShopSimilar}
-              className="flex w-fit cursor-pointer items-center gap-1.5 text-foreground underline-offset-4 hover:underline"
-            >
-              <Sparkles className="h-4 w-4" /> Shop Similar
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => openSimilar(product.id, images[imageIdx] ?? product.thumbnail)}
+            className="flex w-fit cursor-pointer items-center gap-1.5 text-foreground underline-offset-4 hover:underline"
+          >
+            <Sparkles className="h-4 w-4" /> Shop Similar
+          </button>
         </div>
 
         <Accordions description={product.description} />
