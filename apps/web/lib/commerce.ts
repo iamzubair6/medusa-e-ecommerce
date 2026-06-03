@@ -161,35 +161,30 @@ function cardPricing(p: MedusaProduct): { price: string; original?: string } {
   return { price: typeof amount === "number" ? money(amount, cur) : "—" };
 }
 
+/**
+ * Build per-color cards from the ACTUAL variants (source of truth for which
+ * color/size combos exist), enriched with metadata (swatch, images, stock).
+ * Deleting a variant in Medusa removes that size/color from the storefront.
+ */
 function buildCardColors(p: MedusaProduct): CardColor[] {
-  const vIndex = variantIndex(p);
   const meta = p.metadata ?? {};
   const allImages = (p.images ?? []).map((im) => im.url);
+  const byColor = variantsByColor(p);
 
-  if (meta.colorImages && Object.keys(meta.colorImages).length) {
-    return Object.keys(meta.colorImages).map((name) => {
-      const stockMap = meta.sizeStock?.[name] ?? {};
-      const sizes: StoreSizeOption[] = Object.entries(stockMap).map(([size, stock]) => ({
-        size,
-        stock,
-        lowStock: stock > 0 && stock <= LOW_STOCK,
-        variantId: vIndex.get(`${name}|${size}`),
-      }));
-      const imgs = meta.colorImages![name] ?? [];
-      return {
-        name,
-        swatch: meta.swatches?.[name] ?? "#cccccc",
-        thumbnail: imgs[0] ?? allImages[0] ?? p.thumbnail ?? "",
-        sizes,
-      };
+  return [...byColor.keys()].map((name) => {
+    const stockMap = meta.sizeStock?.[name] ?? {};
+    const sizes: StoreSizeOption[] = (byColor.get(name) ?? []).map((v) => {
+      const stock = stockMap[v.size] ?? 50;
+      return { size: v.size, stock, lowStock: stock > 0 && stock <= LOW_STOCK, variantId: v.variantId };
     });
-  }
-  // size-only product → single default color
-  const sizes: StoreSizeOption[] = (p.variants ?? []).map((v) => {
-    const size = (v.options ?? []).find((o) => o.option?.title === "Size")?.value ?? v.title;
-    return { size, stock: 50, lowStock: false, variantId: v.id };
+    const imgs = meta.colorImages?.[name] ?? [];
+    return {
+      name,
+      swatch: meta.swatches?.[name] ?? (name === "Default" ? "#1b1b1b" : "#cccccc"),
+      thumbnail: imgs[0] ?? allImages[0] ?? p.thumbnail ?? "",
+      sizes,
+    };
   });
-  return [{ name: "Default", swatch: "#1b1b1b", thumbnail: allImages[0] ?? p.thumbnail ?? "", sizes }];
 }
 
 function mapCard(p: MedusaProduct, i: number): StoreProduct {
@@ -208,14 +203,15 @@ function mapCard(p: MedusaProduct, i: number): StoreProduct {
   };
 }
 
-function variantIndex(p: MedusaProduct): Map<string, string> {
-  const map = new Map<string, string>();
+function variantsByColor(p: MedusaProduct): Map<string, { size: string; variantId: string }[]> {
+  const map = new Map<string, { size: string; variantId: string }[]>();
   for (const v of p.variants ?? []) {
     const opts: Record<string, string> = {};
     for (const o of v.options ?? []) if (o.option?.title) opts[o.option.title] = o.value;
-    const color = opts.Color ?? "_";
+    const color = opts.Color ?? "Default";
     const size = opts.Size ?? v.title;
-    map.set(`${color}|${size}`, v.id);
+    if (!map.has(color)) map.set(color, []);
+    map.get(color)!.push({ size, variantId: v.id });
   }
   return map;
 }
@@ -224,53 +220,29 @@ function mapDetail(p: MedusaProduct): StoreProductDetail {
   const card = mapCard(p, 0);
   const cur = currencyOf(p);
   const meta = p.metadata ?? {};
-  const vIndex = variantIndex(p);
   const allImages = (p.images ?? []).map((im) => im.url);
 
-  let colors: StoreColor[] = [];
-  if (meta.colorImages && Object.keys(meta.colorImages).length) {
-    colors = Object.keys(meta.colorImages).map((name) => {
-      const stockMap = meta.sizeStock?.[name] ?? {};
-      const sizes: StoreSizeOption[] = Object.entries(stockMap).map(([size, stock]) => ({
-        size,
-        stock,
-        lowStock: stock > 0 && stock <= LOW_STOCK,
-        variantId: vIndex.get(`${name}|${size}`),
-      }));
-      const cp = meta.colorPrices?.[name];
-      const op = meta.colorOriginalPrices?.[name];
-      return {
-        name,
-        swatch: meta.swatches?.[name] ?? "#cccccc",
-        price: cp ? money(cp, cur) : card.price,
-        originalPrice: op ? money(op, cur) : undefined,
-        images: meta.colorImages![name] ?? allImages,
-        sizes,
-      };
-    });
-  } else {
-    // No color metadata — single default color from product images + variant sizes.
-    const sizes: StoreSizeOption[] = (p.variants ?? []).map((v) => {
-      const size = (v.options ?? []).find((o) => o.option?.title === "Size")?.value ?? v.title;
-      return { size, stock: 50, lowStock: false, variantId: v.id };
-    });
-    colors = [
-      {
-        name: "Default",
-        swatch: "#1b1b1b",
-        price: card.price,
-        originalPrice: card.originalPrice,
-        images: allImages.length ? allImages : [card.thumbnail],
-        sizes,
-      },
-    ];
-  }
+  const colors: StoreColor[] = buildCardColors(p).map((cc) => {
+    const cp = meta.colorPrices?.[cc.name];
+    const op = meta.colorOriginalPrices?.[cc.name];
+    const colorImgs = meta.colorImages?.[cc.name];
+    return {
+      name: cc.name,
+      swatch: cc.swatch,
+      price: cp ? money(cp, cur) : card.price,
+      originalPrice: op ? money(op, cur) : card.originalPrice,
+      images: colorImgs?.length ? colorImgs : allImages.length ? allImages : [card.thumbnail],
+      sizes: cc.sizes,
+    };
+  });
 
   return {
     ...card,
     description: p.description ?? "",
     images: allImages.length ? allImages : [card.thumbnail],
-    colors,
+    colors: colors.length
+      ? colors
+      : [{ name: "Default", swatch: "#1b1b1b", price: card.price, images: allImages.length ? allImages : [card.thumbnail], sizes: [] }],
   };
 }
 
@@ -279,7 +251,7 @@ async function medusaFetch(path: string, tags: string[]): Promise<unknown | null
   try {
     const res = await fetch(`${BACKEND}${path}`, {
       headers: { "x-publishable-api-key": PUBLISHABLE_KEY as string },
-      next: { revalidate: 60, tags },
+      next: { revalidate: 15, tags },
     });
     if (!res.ok) return null;
     return (await res.json()) as unknown;
@@ -330,8 +302,11 @@ export async function fetchProducts(source: ProductSource, limit: number): Promi
   )) as { products?: MedusaProduct[] } | null;
   const products = data?.products ?? [];
   if (products.length === 0) return placeholderProducts(limit, source.kind);
-  return products.map(mapCard);
+  return products.map(mapCard).filter(hasPrice);
 }
+
+/** Hide products with no price in the active currency (e.g. legacy demo items). */
+const hasPrice = (p: StoreProduct) => p.price !== "—";
 
 const PLACEHOLDER_PAGES = 3;
 
@@ -362,9 +337,10 @@ export async function fetchProductList(opts: {
       `commerce:list:${seed}`,
     ])) as { products?: MedusaProduct[]; count?: number } | null;
     if (data?.products?.length) {
-      const total = data.count ?? data.products.length;
+      const mapped = data.products.map(mapCard).filter(hasPrice);
+      const total = data.count ?? mapped.length;
       return {
-        products: data.products.map(mapCard),
+        products: mapped,
         page,
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
@@ -438,10 +414,10 @@ export async function fetchProductsForIndex(
   const data = (await medusaFetch(`/store/products?limit=${limit}&${CARD_FIELDS}${region}`, [
     "commerce:products",
   ])) as { products?: MedusaProduct[] } | null;
-  return (data?.products ?? []).map((p, i) => {
-    const c = mapCard(p, i);
-    return { productId: c.id, handle: c.handle, title: c.title, thumbnail: c.thumbnail, price: c.price };
-  });
+  return (data?.products ?? [])
+    .map((p, i) => mapCard(p, i))
+    .filter(hasPrice)
+    .map((c) => ({ productId: c.id, handle: c.handle, title: c.title, thumbnail: c.thumbnail, price: c.price }));
 }
 
 /** Similar products for the PDP (placeholder until image search lands). */
@@ -453,8 +429,9 @@ export async function fetchSimilarProducts(handle: string, limit = 4): Promise<S
       `/store/products?limit=${limit + 1}&${CARD_FIELDS}${region}`,
       ["commerce:products"],
     )) as { products?: MedusaProduct[] } | null;
-    const products = (data?.products ?? []).filter((p) => p.handle !== handle).slice(0, limit);
-    if (products.length) return products.map(mapCard);
+    const products = (data?.products ?? []).filter((p) => p.handle !== handle);
+    const mapped = products.map(mapCard).filter(hasPrice).slice(0, limit);
+    if (mapped.length) return mapped;
   }
   const m = handle.match(/(\d+)$/);
   const base = m ? Number(m[1]) : Math.abs(hash(handle));
