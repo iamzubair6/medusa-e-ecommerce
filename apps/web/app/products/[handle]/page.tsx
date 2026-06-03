@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Reveal } from "@ecom/ui";
+import { getReviewSummary, listReviews } from "@ecom/cms";
 import { fetchProductByHandle, fetchSimilarProducts } from "@/lib/commerce";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { PdpClient } from "@/components/site/pdp-client";
+import { ProductReviews } from "@/components/site/product-reviews";
 import { ProductGrid } from "@/components/site/product-grid";
 
 export const revalidate = 300;
@@ -28,7 +30,12 @@ export default async function ProductPage({ params }: { params: Params }) {
   const product = await fetchProductByHandle(handle);
   if (!product) notFound();
 
-  const similar = await fetchSimilarProducts(handle, 4);
+  const [similar, reviewSummary, reviewsData] = await Promise.all([
+    fetchSimilarProducts(handle, 4),
+    getReviewSummary(handle),
+    listReviews(handle, { take: 20 }),
+  ]);
+  const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
   const priceNumber = Number(product.price.replace(/[^0-9.]/g, "")) || undefined;
 
   const jsonLd = {
@@ -61,7 +68,9 @@ export default async function ProductPage({ params }: { params: Params }) {
           <span className="text-foreground">{product.title}</span>
         </nav>
 
-        <PdpClient product={product} />
+        <PdpClient product={product} reviewSummary={reviewSummary} />
+
+        <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 
         {similar.length > 0 && (
           <section className="mt-20">

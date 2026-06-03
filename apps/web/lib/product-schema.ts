@@ -3,7 +3,7 @@ import { z } from "zod";
 /** Shared validation for the product create/edit form payload. */
 export const productSchema = z.object({
   title: z.string().min(1).max(120),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(10000).optional(),
   offer: z
     .object({
       type: z.enum(["bogo", "discount", "custom"]),

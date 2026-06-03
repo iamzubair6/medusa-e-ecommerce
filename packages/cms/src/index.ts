@@ -240,6 +240,53 @@ export async function pruneProductEmbeddings(keepProductIds: string[]) {
   return prisma.productEmbedding.deleteMany({ where: { productId: { notIn: keepProductIds } } });
 }
 
+// --- Product reviews --------------------------------------------------------
+
+export async function createReview(input: {
+  productHandle: string;
+  rating: number;
+  author: string;
+  title?: string;
+  body: string;
+}) {
+  return prisma.productReview.create({
+    data: {
+      productHandle: input.productHandle,
+      rating: Math.max(1, Math.min(5, Math.round(input.rating))),
+      author: input.author,
+      title: input.title ?? null,
+      body: input.body,
+    },
+  });
+}
+
+/** Approved reviews for a product (newest first), paginated. */
+export async function listReviews(productHandle: string, opts: { skip?: number; take?: number } = {}) {
+  const take = Math.min(opts.take ?? 20, 50);
+  const skip = opts.skip ?? 0;
+  const [items, total] = await Promise.all([
+    prisma.productReview.findMany({
+      where: { productHandle, approved: true },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.productReview.count({ where: { productHandle, approved: true } }),
+  ]);
+  return { items, total, skip, take };
+}
+
+/** Aggregate rating for a product: count + average (rounded to 1 dp). */
+export async function getReviewSummary(productHandle: string) {
+  const agg = await prisma.productReview.aggregate({
+    where: { productHandle, approved: true },
+    _count: { _all: true },
+    _avg: { rating: true },
+  });
+  const count = agg._count._all;
+  return { count, average: count ? Math.round((agg._avg.rating ?? 0) * 10) / 10 : 0 };
+}
+
 /** Paginated guest leads (newest first). */
 export async function listGuestLeads(opts: { skip?: number; take?: number } = {}) {
   const take = Math.min(opts.take ?? 25, 100);

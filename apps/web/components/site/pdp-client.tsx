@@ -25,7 +25,13 @@ import { useCartUI } from "@/lib/cart-context";
 import { useVisualSearch } from "@/lib/visual-search-context";
 import { SizeGuideModal } from "./size-guide-modal";
 
-export function PdpClient({ product }: { product: StoreProductDetail }) {
+export function PdpClient({
+  product,
+  reviewSummary,
+}: {
+  product: StoreProductDetail;
+  reviewSummary?: { count: number; average: number };
+}) {
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
   const [size, setSize] = useState<string | null>(null);
@@ -97,14 +103,22 @@ export function PdpClient({ product }: { product: StoreProductDetail }) {
               <Share2 className="h-4 w-4" /> Share
             </button>
           </div>
-          <div className="mt-1.5 flex items-center gap-1.5">
+          <a href="#reviews" className="mt-1.5 flex items-center gap-1.5">
             <span className="flex">
               {[0, 1, 2, 3, 4].map((i) => (
-                <Star key={i} className="h-3.5 w-3.5 fill-foreground text-foreground" />
+                <Star
+                  key={i}
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    i < Math.round(reviewSummary?.average ?? 0) ? "fill-foreground text-foreground" : "text-muted-foreground/40",
+                  )}
+                />
               ))}
             </span>
-            <span className="text-xs text-muted-foreground underline">(24)</span>
-          </div>
+            <span className="text-xs text-muted-foreground underline">
+              {reviewSummary && reviewSummary.count > 0 ? `${reviewSummary.average} (${reviewSummary.count})` : "Write a review"}
+            </span>
+          </a>
         </div>
 
         <div>
@@ -322,8 +336,10 @@ function Lightbox({
 const PANELS = [
   { key: "details", label: "Product Details" },
   { key: "shipping", label: "Shipping & Returns" },
-  { key: "reviews", label: "Reviews" },
 ] as const;
+
+/** Detects whether the stored description is rich HTML vs plain text. */
+const isHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 
 function Accordions({ description }: { description: string }) {
   const [open, setOpen] = useState<string | null>("details");
@@ -341,15 +357,23 @@ function Accordions({ description }: { description: string }) {
               {p.label}
               {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </button>
-            {isOpen && (
-              <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
-                {p.key === "details"
-                  ? description || "Premium materials with a considered fit."
-                  : p.key === "shipping"
-                    ? "Standard delivery in 3–5 days. Free returns within 30 days."
-                    : "No reviews yet — be the first to review this piece."}
-              </p>
-            )}
+            {isOpen &&
+              (p.key === "details" ? (
+                description && isHtml(description) ? (
+                  <div
+                    className="prose-pdp pb-4 text-sm leading-relaxed text-muted-foreground [&_a]:underline [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_h3]:text-foreground [&_li]:ml-4 [&_li]:list-disc [&_strong]:text-foreground [&_ul]:my-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1"
+                    dangerouslySetInnerHTML={{ __html: description }}
+                  />
+                ) : (
+                  <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
+                    {description || "Premium materials with a considered fit."}
+                  </p>
+                )
+              ) : (
+                <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
+                  Standard delivery in 3–5 days. Free returns within 30 days.
+                </p>
+              ))}
           </div>
         );
       })}

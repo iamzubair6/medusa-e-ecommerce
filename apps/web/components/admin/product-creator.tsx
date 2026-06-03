@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Button, Card, cn } from "@ecom/ui";
-import { TextField, TextareaField, SelectField, CheckboxField } from "./fields";
+import { TextField, SelectField, CheckboxField } from "./fields";
+import { RichTextField } from "./rich-text-field";
 import { useToast } from "./toast";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -209,7 +210,7 @@ export function ProductCreator({
     <div className="flex max-w-3xl flex-col gap-6">
       <Card className="flex flex-col gap-4 p-6">
         <TextField label="Product title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ribbed Knit Tank" />
-        <TextareaField label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <RichTextField label="Description" value={description} onChange={setDescription} />
         <div className="grid gap-4 sm:grid-cols-3">
           <SelectField label="Offer" value={offerType} onChange={(e) => setOfferType(e.target.value as typeof offerType)}>
             <option value="none">None</option>

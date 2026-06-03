@@ -207,6 +207,25 @@ model ProductEmbedding {
 }
 
 // ---------------------------------------------------------------------------
+// Reviews
+// ---------------------------------------------------------------------------
+
+/// Customer product reviews (rating + text), keyed by the Medusa product handle.
+model ProductReview {
+  id            String   @id @default(cuid())
+  productHandle String
+  rating        Int /// 1–5
+  author        String
+  title         String?
+  body          String
+  approved      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([productHandle, createdAt])
+  @@schema("cms")
+}
+
+// ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------
 
