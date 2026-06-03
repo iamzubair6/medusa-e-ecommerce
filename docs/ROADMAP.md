@@ -81,6 +81,18 @@ with on-save revalidation; PLP + PDP complete.
 - ⬜ RBAC + audit log, rate limiting, captcha on public endpoints.
 - ⬜ CI (typecheck/lint/test), staging, observability, backups.
 
+## Backlog — future enhancements (nice-to-have)  ⬜
+Captured for later; not started.
+- ⬜ **Online payments** — Stripe / bKash · Nagad · SSLCOMMERZ. See [`docs/PAYMENTS.md`](./PAYMENTS.md).
+- ⬜ **Order-confirmation emails** — email on order placed (and shipped/delivered).
+      Needs an email provider (e.g. Resend / SMTP) + `RESEND_API_KEY` or SMTP env;
+      a Medusa subscriber on `order.placed` (or a webhook from `/api/checkout/complete`)
+      renders + sends the receipt. Also useful: abandoned-cart email to captured `GuestLead`s.
+- ⬜ **Product Q&A** — customer questions + answers on the PDP. Mirror the reviews
+      build: a `ProductQuestion` (+ optional `answer`) CMS model, submit/list API,
+      a PDP "Questions" section, and an admin moderation view.
+- ⬜ Account extras: default-address selection + **checkout prefill from saved address**.
+
 ---
 
 ### Current focus: **Phase 0 → Phase 1**
