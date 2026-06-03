@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Archivo } from "next/font/google";
+import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import "@ecom/ui/styles.css";
 import { Providers } from "./providers";
 
-// Clean, bold neo-grotesque — Fashion-Nova-style commercial look (one family,
-// heavy weights for promo headers).
-const archivo = Archivo({
+// Maison type: editorial display serif + refined grotesque body (owner-approved).
+const display = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-sans",
+  weight: ["400", "500", "600", "700", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
   display: "swap",
 });
-const display = Archivo({
+const archivo = Hanken_Grotesk({
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
-  variable: "--font-display",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans",
   display: "swap",
 });
 

@@ -8,12 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // black primary (Fashion-Nova style)
-        solid: "bg-primary text-primary-foreground hover:opacity-90",
-        // red sale accent
-        accent: "bg-accent text-accent-foreground hover:opacity-90",
-        gold: "bg-accent text-accent-foreground hover:opacity-90", // legacy alias → red
-        outline: "border border-foreground text-foreground hover:bg-foreground hover:text-background",
+        // ink fill that warms to claret on hover
+        solid: "bg-primary text-primary-foreground hover:bg-accent",
+        // signature claret
+        accent: "bg-accent text-accent-foreground hover:brightness-110",
+        gold: "bg-accent text-accent-foreground hover:brightness-110", // legacy alias → claret
+        outline: "border border-foreground/40 text-foreground hover:bg-foreground hover:text-background",
         ghost: "text-foreground hover:bg-foreground/5",
         link: "px-0 text-foreground link-underline rounded-none",
       },
