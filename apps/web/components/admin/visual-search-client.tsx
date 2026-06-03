@@ -16,8 +16,27 @@ export function VisualSearchClient() {
   const [products, setProducts] = useState<IndexProduct[]>([]);
   const [indexed, setIndexed] = useState<number>(0);
   const [busy, setBusy] = useState(false);
+  const [serverBusy, setServerBusy] = useState(false);
+  const [serverResult, setServerResult] = useState<{ indexed: number; failed: number } | null>(null);
   const [progress, setProgress] = useState<{ done: number; failed: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const serverReindex = async () => {
+    setServerBusy(true);
+    setError(null);
+    setServerResult(null);
+    try {
+      const res = await fetch("/api/admin/visual-search/reindex", { method: "POST" });
+      const data = (await res.json()) as { indexed?: number; failed?: number; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Server reindex failed");
+      setServerResult({ indexed: data.indexed ?? 0, failed: data.failed ?? 0 });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setServerBusy(false);
+    }
+  };
 
   const load = () =>
     fetch("/api/admin/visual-search/products")
@@ -68,14 +87,23 @@ export function VisualSearchClient() {
           <Stat label="Coverage" value={`${products.length ? Math.round((indexed / products.length) * 100) : 0}%`} />
         </div>
         <p className="text-sm text-muted-foreground">
-          Reindexing loads each product image in your browser, computes a visual fingerprint, and stores it for the
-          &ldquo;Shop Similar&rdquo; search. Images on hosts without CORS are skipped.
+          Build the &ldquo;Shop Similar&rdquo; index. <strong className="text-foreground">Server reindex</strong> runs entirely
+          on the server (no browser needed). <strong className="text-foreground">Browser reindex</strong> computes fingerprints
+          in this tab (skips images on hosts without CORS).
         </p>
-        <div className="flex items-center gap-3">
-          <Button variant="gold" loading={busy} onClick={reindex} disabled={products.length === 0}>
-            Reindex visual search
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="gold" loading={serverBusy} onClick={serverReindex} disabled={busy}>
+            Server reindex
           </Button>
-          {progress && (
+          <Button variant="outline" loading={busy} onClick={reindex} disabled={products.length === 0 || serverBusy}>
+            Browser reindex
+          </Button>
+          {serverResult && (
+            <span className="text-sm text-muted-foreground">
+              {serverResult.indexed} indexed{serverResult.failed ? `, ${serverResult.failed} skipped` : ""}
+            </span>
+          )}
+          {progress && !serverResult && (
             <span className="text-sm text-muted-foreground">
               {progress.done} embedded{progress.failed ? `, ${progress.failed} skipped` : ""}
             </span>
