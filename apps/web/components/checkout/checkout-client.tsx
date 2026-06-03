@@ -45,6 +45,7 @@ export function CheckoutClient() {
   const [step, setStep] = useState<Step>("address");
   const [options, setOptions] = useState<ShippingOptionView[]>([]);
   const [selectedOption, setSelectedOption] = useState<string>("");
+  const [payMethod, setPayMethod] = useState<"cod" | "card">("cod");
   const setCart = (c: CartView | null) => qc.setQueryData(["cart"], c);
 
   const {
@@ -100,7 +101,11 @@ export function CheckoutClient() {
   // Step 3 — place the order.
   const placeOrder = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/checkout/complete", { method: "POST" });
+      const res = await fetch("/api/checkout/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: payMethod }),
+      });
       const data = (await res.json()) as {
         order?: { displayId: number; email: string; total: string };
         error?: string;
@@ -114,6 +119,7 @@ export function CheckoutClient() {
         order: String(order.displayId),
         email: order.email,
         total: order.total,
+        method: payMethod,
       });
       router.push(`/checkout/success?${params.toString()}`);
     },
@@ -217,16 +223,42 @@ export function CheckoutClient() {
           )}
         </Card>
 
-        {/* Step 3: review + place order */}
+        {/* Step 3: payment + place order */}
         <Card className={cn("p-6", step !== "review" && "opacity-50")}>
-          <StepHeader n={3} title="Review & pay" done={false} />
+          <StepHeader n={3} title="Payment" done={false} />
           {step === "review" && (
             <div className="mt-4 flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">
-                Payment uses Medusa&apos;s manual provider (test mode) — no card is charged.
-              </p>
+              <div className="flex flex-col gap-2">
+                <label
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-md border p-4",
+                    payMethod === "cod" ? "border-foreground" : "border-border",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="pay"
+                    checked={payMethod === "cod"}
+                    onChange={() => setPayMethod("cod")}
+                    className="mt-0.5 accent-[hsl(var(--accent))]"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold">Cash on Delivery</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Pay in cash when your order is delivered.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-not-allowed items-start gap-3 rounded-md border border-border p-4 opacity-50">
+                  <input type="radio" name="pay" disabled className="mt-0.5" />
+                  <span>
+                    <span className="block text-sm font-semibold">Card / Online Payment</span>
+                    <span className="block text-xs text-muted-foreground">Coming soon (Stripe).</span>
+                  </span>
+                </label>
+              </div>
               <Button type="button" variant="gold" size="lg" loading={placeOrder.isPending} onClick={() => placeOrder.mutate()} className="w-fit">
-                Place order
+                Place Order {payMethod === "cod" ? "(Cash on Delivery)" : ""}
               </Button>
               {placeOrder.isError && (
                 <p className="text-sm text-destructive">{(placeOrder.error as Error).message}</p>

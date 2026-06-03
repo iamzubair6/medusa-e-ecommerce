@@ -10,9 +10,10 @@ export const metadata: Metadata = { title: "Order Confirmed" };
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; email?: string; total?: string }>;
+  searchParams: Promise<{ order?: string; email?: string; total?: string; method?: string }>;
 }) {
-  const { order, email, total } = await searchParams;
+  const { order, email, total, method } = await searchParams;
+  const payLabel = method === "card" ? "Card / Online" : "Cash on Delivery";
 
   return (
     <main>
@@ -42,6 +43,10 @@ export default async function CheckoutSuccessPage({
                   <span className="font-semibold">{total}</span>
                 </div>
               )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment</span>
+                <span className="font-medium">{payLabel}</span>
+              </div>
             </div>
           )}
           <Link href="/products" className={`mt-8 ${buttonVariants({ variant: "solid" })}`}>
