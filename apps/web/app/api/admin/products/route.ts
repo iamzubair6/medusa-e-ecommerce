@@ -13,6 +13,7 @@ export const productSchema = z.object({
       percent: z.number().int().min(1).max(90).optional(),
     })
     .optional(),
+  categoryIds: z.array(z.string().min(1)).max(20).optional(),
   colors: z
     .array(
       z.object({

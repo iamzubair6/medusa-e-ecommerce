@@ -166,6 +166,20 @@ export interface NewProductInput {
   description?: string;
   colors: NewProductColor[];
   offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+  categoryIds?: string[];
+}
+
+export interface AdminCategoryOption {
+  id: string;
+  name: string;
+}
+
+/** Active product categories for the product form's category picker. */
+export async function listCategories(): Promise<AdminCategoryOption[]> {
+  const data = await adminFetch<{ product_categories?: { id: string; name: string }[] }>(
+    "/admin/product-categories?fields=id,name&limit=100",
+  );
+  return (data?.product_categories ?? []).map((c) => ({ id: c.id, name: c.name }));
 }
 
 /** Variant key used to reconcile colour×size combinations across edits. */
@@ -221,6 +235,7 @@ export async function createProduct(input: NewProductInput): Promise<{ id: strin
     ],
     variants,
     ...(salesChannelId ? { sales_channels: [{ id: salesChannelId }] } : {}),
+    ...(input.categoryIds?.length ? { category_ids: input.categoryIds } : {}),
     metadata: buildMetadata(input),
   });
   return product;
@@ -243,6 +258,7 @@ interface RawAdminProduct {
   metadata?: Record<string, unknown> | null;
   options?: { id: string; title: string }[];
   variants?: RawAdminVariant[];
+  categories?: { id: string }[];
 }
 
 export interface AdminProductListItem {
@@ -283,7 +299,7 @@ export interface ProductFormData extends NewProductInput {
 /** Reconstruct the product-creator form shape from variants (truth) + metadata (enrichment). */
 export async function getProductForEdit(id: string): Promise<ProductFormData | null> {
   const fields =
-    "id,title,handle,description,status,thumbnail,metadata,*options,*variants,*variants.prices,*variants.options";
+    "id,title,handle,description,status,thumbnail,metadata,*options,*variants,*variants.prices,*variants.options,categories.id";
   const data = await adminFetch<{ product?: RawAdminProduct }>(
     `/admin/products/${id}?fields=${encodeURIComponent(fields)}`,
   );
@@ -339,6 +355,7 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     description: p.description ?? "",
     offer: meta.offer,
     colors,
+    categoryIds: (p.categories ?? []).map((c) => c.id),
   };
 }
 
@@ -414,6 +431,7 @@ export async function updateProduct(id: string, input: NewProductInput): Promise
     description: input.description ?? "",
     ...(images[0] ? { thumbnail: images[0] } : {}),
     images: images.map((url) => ({ url })),
+    ...(input.categoryIds ? { category_ids: input.categoryIds } : {}),
     metadata: buildMetadata(input),
   });
 }

@@ -35,6 +35,7 @@ export interface ProductInitial {
   title: string;
   description?: string;
   offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+  categoryIds?: string[];
   colors: {
     name: string;
     swatch: string;
@@ -43,6 +44,11 @@ export interface ProductInitial {
     images: string[];
     sizes: { size: string; stock: number }[];
   }[];
+}
+
+export interface CategoryOption {
+  id: string;
+  name: string;
 }
 
 const toFormColor = (c: ProductInitial["colors"][number]): FormColor => ({
@@ -55,7 +61,13 @@ const toFormColor = (c: ProductInitial["colors"][number]): FormColor => ({
   uploading: false,
 });
 
-export function ProductCreator({ initial }: { initial?: ProductInitial }) {
+export function ProductCreator({
+  initial,
+  categories = [],
+}: {
+  initial?: ProductInitial;
+  categories?: CategoryOption[];
+}) {
   const router = useRouter();
   const editing = Boolean(initial);
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -63,11 +75,15 @@ export function ProductCreator({ initial }: { initial?: ProductInitial }) {
   const [offerType, setOfferType] = useState<"none" | "bogo" | "discount">(initial?.offer?.type ?? "none");
   const [offerLabel, setOfferLabel] = useState(initial?.offer?.label ?? "");
   const [offerPercent, setOfferPercent] = useState(initial?.offer?.percent ? String(initial.offer.percent) : "");
+  const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
   const [colors, setColors] = useState<FormColor[]>(
     initial ? initial.colors.map(toFormColor) : [emptyColor()],
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const toggleCategory = (id: string) =>
+    setCategoryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const patchColor = (i: number, patch: Partial<FormColor>) =>
     setColors((cs) => cs.map((c, k) => (k === i ? { ...c, ...patch } : c)));
@@ -117,6 +133,7 @@ export function ProductCreator({ initial }: { initial?: ProductInitial }) {
     const payload = {
       title,
       description,
+      categoryIds,
       offer:
         offerType === "none"
           ? undefined
@@ -175,6 +192,30 @@ export function ProductCreator({ initial }: { initial?: ProductInitial }) {
             <TextField label="Percent" type="number" value={offerPercent} onChange={(e) => setOfferPercent(e.target.value)} placeholder="25" />
           )}
         </div>
+        {categories.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Categories</span>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => {
+                const on = categoryIds.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => toggleCategory(cat.id)}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      on ? "border-foreground bg-foreground text-background" : "border-border text-foreground/70 hover:border-foreground",
+                    )}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">Controls which category page(s) the product appears on.</p>
+          </div>
+        )}
       </Card>
 
       {colors.map((c, i) => (

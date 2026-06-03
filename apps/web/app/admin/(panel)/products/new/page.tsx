@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { listCategories } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
 import { ProductCreator } from "@/components/admin/product-creator";
 
 export const dynamic = "force-dynamic";
 
-export default function NewProductPage() {
+export default async function NewProductPage() {
+  const categories = await listCategories();
   return (
     <>
       <AdminHeader
@@ -18,7 +20,7 @@ export default function NewProductPage() {
         }
       />
       <div className="p-8">
-        <ProductCreator />
+        <ProductCreator categories={categories} />
       </div>
     </>
   );

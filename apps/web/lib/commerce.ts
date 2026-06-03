@@ -260,6 +260,24 @@ async function medusaFetch(path: string, tags: string[]): Promise<unknown | null
   }
 }
 
+/** Resolve a category handle → id (cached). Returns undefined when not found. */
+export const getCategoryId = cache(async (handle: string): Promise<string | undefined> => {
+  const data = (await medusaFetch(
+    `/store/product-categories?handle=${encodeURIComponent(handle)}&fields=id,handle`,
+    [`commerce:category:${handle}`],
+  )) as { product_categories?: { id: string }[] } | null;
+  return data?.product_categories?.[0]?.id;
+});
+
+/** Resolve a collection handle → id (cached). Returns undefined when not found. */
+export const getCollectionId = cache(async (handle: string): Promise<string | undefined> => {
+  const data = (await medusaFetch(
+    `/store/collections?handle=${encodeURIComponent(handle)}&fields=id,handle`,
+    [`commerce:collection:${handle}`],
+  )) as { collections?: { id: string }[] } | null;
+  return data?.collections?.[0]?.id;
+});
+
 /** Store region — prefers the BDT (Bangladesh) region. */
 export const getRegionId = cache(async (): Promise<string | undefined> => {
   const data = (await medusaFetch("/store/regions", ["commerce:regions"])) as
@@ -312,6 +330,8 @@ const PLACEHOLDER_PAGES = 3;
 
 export async function fetchProductList(opts: {
   handle?: string;
+  /** "category" or "collection" filters by that taxonomy; omitted = all products. */
+  kind?: "category" | "collection";
   page?: number;
   limit?: number;
   sort?: ProductSort;
@@ -332,6 +352,15 @@ export async function fetchProductList(opts: {
     );
     const regionId = await getRegionId();
     if (regionId) params.set("region_id", regionId);
+    // Scope to a category/collection when requested (handle resolved to an id).
+    if (opts.kind && opts.handle) {
+      const id =
+        opts.kind === "category"
+          ? await getCategoryId(opts.handle)
+          : await getCollectionId(opts.handle);
+      if (id) params.append(opts.kind === "category" ? "category_id[]" : "collection_id[]", id);
+      else return { products: [], page, total: 0, totalPages: 1 }; // unknown taxonomy → empty
+    }
     const data = (await medusaFetch(`/store/products?${params.toString()}&${CARD_FIELDS}`, [
       "commerce:products",
       `commerce:list:${seed}`,
@@ -346,6 +375,8 @@ export async function fetchProductList(opts: {
         totalPages: Math.max(1, Math.ceil(total / limit)),
       };
     }
+    // A real (filtered) category/collection with no products shows empty — not demo fillers.
+    if (opts.kind) return { products: [], page, total: 0, totalPages: 1 };
   }
 
   const total = limit * PLACEHOLDER_PAGES;

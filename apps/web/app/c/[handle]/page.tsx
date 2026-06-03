@@ -22,7 +22,7 @@ export default async function CategoryPage({
 }) {
   const { handle } = await params;
   const { sort, page } = parseListingParams(await searchParams);
-  const result = await fetchProductList({ handle, page, sort });
+  const result = await fetchProductList({ handle, kind: "category", page, sort });
   return (
     <main>
       <ListingView
