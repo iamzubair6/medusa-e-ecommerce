@@ -122,7 +122,7 @@ interface MedusaVariant {
   id: string;
   title: string;
   options?: { value: string; option?: { title?: string } }[];
-  calculated_price?: { calculated_amount?: number; currency_code?: string };
+  calculated_price?: { calculated_amount?: number; original_amount?: number; currency_code?: string };
 }
 interface ProductMeta {
   swatches?: Record<string, string>;
@@ -148,17 +148,60 @@ function currencyOf(p: MedusaProduct): string {
   return (p.variants?.[0]?.calculated_price?.currency_code ?? "bdt").toUpperCase();
 }
 
+/**
+ * Live per-color pricing from the variants' calculated_price — this is the
+ * source of truth because it reflects active sales / price lists. Each color
+ * maps to its lowest variant price (amount) + the list price (original).
+ */
+function variantColorPricing(p: MedusaProduct): Map<string, { amount: number; original?: number }> {
+  const map = new Map<string, { amount: number; original?: number }>();
+  for (const v of p.variants ?? []) {
+    const opts: Record<string, string> = {};
+    for (const o of v.options ?? []) if (o.option?.title) opts[o.option.title] = o.value;
+    const color = opts.Color ?? "Default";
+    const amount = v.calculated_price?.calculated_amount;
+    if (typeof amount !== "number") continue;
+    const original = v.calculated_price?.original_amount;
+    const cur = map.get(color);
+    if (!cur || amount < cur.amount) map.set(color, { amount, original });
+  }
+  return map;
+}
+
+/** Per-color price string + compare-at, preferring live price over metadata. */
+function colorPrice(
+  p: MedusaProduct,
+  color: string,
+  live: Map<string, { amount: number; original?: number }>,
+  cur: string,
+): { price: string; original?: string } {
+  const l = live.get(color);
+  const metaPrice = p.metadata?.colorPrices?.[color];
+  const metaOriginal = p.metadata?.colorOriginalPrices?.[color];
+  const amount = l?.amount ?? metaPrice;
+  if (typeof amount !== "number") return { price: "—" };
+  // On-sale (price list) wins; else fall back to the manual compare-at price.
+  const onSale = typeof l?.original === "number" && l.original > l.amount;
+  const original = onSale ? l!.original : metaOriginal;
+  return { price: money(amount, cur), original: original ? money(original, cur) : undefined };
+}
+
 /** Lowest-priced color for card display, with its original price. */
 function cardPricing(p: MedusaProduct): { price: string; original?: string } {
   const cur = currencyOf(p);
+  const live = variantColorPricing(p);
+  if (live.size) {
+    const minColor = [...live.entries()].reduce((a, b) => (b[1].amount < a[1].amount ? b : a))[0];
+    return colorPrice(p, minColor, live, cur);
+  }
+  // No live prices — fall back to metadata, then dash.
   const colorPrices = p.metadata?.colorPrices;
   if (colorPrices && Object.keys(colorPrices).length) {
     const [minColor, minPrice] = Object.entries(colorPrices).reduce((a, b) => (b[1] < a[1] ? b : a));
     const orig = p.metadata?.colorOriginalPrices?.[minColor];
     return { price: money(minPrice, cur), original: orig ? money(orig, cur) : undefined };
   }
-  const amount = p.variants?.[0]?.calculated_price?.calculated_amount;
-  return { price: typeof amount === "number" ? money(amount, cur) : "—" };
+  return { price: "—" };
 }
 
 /**
@@ -222,15 +265,15 @@ function mapDetail(p: MedusaProduct): StoreProductDetail {
   const meta = p.metadata ?? {};
   const allImages = (p.images ?? []).map((im) => im.url);
 
+  const live = variantColorPricing(p);
   const colors: StoreColor[] = buildCardColors(p).map((cc) => {
-    const cp = meta.colorPrices?.[cc.name];
-    const op = meta.colorOriginalPrices?.[cc.name];
+    const { price, original } = colorPrice(p, cc.name, live, cur);
     const colorImgs = meta.colorImages?.[cc.name];
     return {
       name: cc.name,
       swatch: cc.swatch,
-      price: cp ? money(cp, cur) : card.price,
-      originalPrice: op ? money(op, cur) : card.originalPrice,
+      price: price !== "—" ? price : card.price,
+      originalPrice: original ?? (price === "—" ? card.originalPrice : undefined),
       images: colorImgs?.length ? colorImgs : allImages.length ? allImages : [card.thumbnail],
       sizes: cc.sizes,
     };
