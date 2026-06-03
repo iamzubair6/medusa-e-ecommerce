@@ -654,3 +654,75 @@ export async function setPromotionStatus(id: string, status: "active" | "inactiv
 export async function deletePromotion(id: string): Promise<void> {
   await adminDelete(`/admin/promotions/${id}`);
 }
+
+// --- Customers --------------------------------------------------------------
+
+interface RawCustomer {
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  created_at: string;
+  orders?: { id: string }[];
+}
+
+export interface AdminCustomerRow {
+  id: string;
+  email: string;
+  name: string;
+  orders: number;
+  createdAt: string;
+}
+
+export async function listCustomers(limit = 100): Promise<AdminCustomerRow[]> {
+  const fields = "id,email,first_name,last_name,created_at,orders.id";
+  const data = await adminFetch<{ customers?: RawCustomer[] }>(
+    `/admin/customers?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}`,
+  );
+  return (data?.customers ?? []).map((c) => ({
+    id: c.id,
+    email: c.email,
+    name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—",
+    orders: (c.orders ?? []).length,
+    createdAt: c.created_at,
+  }));
+}
+
+// --- Dashboard stats --------------------------------------------------------
+
+export interface AdminDashboardStats {
+  revenue: string;
+  orders: number;
+  products: number;
+  customers: number;
+  pendingFulfilment: number;
+}
+
+async function countResource(path: string): Promise<number> {
+  const data = await adminFetch<{ count?: number }>(path);
+  return data?.count ?? 0;
+}
+
+export async function getDashboardStats(): Promise<AdminDashboardStats> {
+  const ordersData = await adminFetch<{
+    orders?: { total: number; currency_code: string; fulfillment_status: string }[];
+    count?: number;
+  }>("/admin/orders?fields=total,currency_code,fulfillment_status&limit=1000&order=-created_at");
+  const orders = ordersData?.orders ?? [];
+  const revenue = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
+  const currency = orders[0]?.currency_code ?? "bdt";
+  const pendingFulfilment = orders.filter((o) => o.fulfillment_status === "not_fulfilled").length;
+
+  const [products, customers] = await Promise.all([
+    countResource("/admin/products?fields=id&limit=1"),
+    countResource("/admin/customers?fields=id&limit=1"),
+  ]);
+
+  return {
+    revenue: money(revenue, currency),
+    orders: ordersData?.count ?? orders.length,
+    products,
+    customers,
+    pendingFulfilment,
+  };
+}
