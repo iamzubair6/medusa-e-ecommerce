@@ -271,12 +271,15 @@ export interface AdminProductListItem {
 }
 
 /** All products (any status) for the admin list — bypasses the storefront price filter. */
-export async function listAdminProducts(limit = 100): Promise<AdminProductListItem[]> {
+export async function listAdminProducts(
+  limit = 24,
+  offset = 0,
+): Promise<{ products: AdminProductListItem[]; count: number }> {
   const fields = "id,title,handle,status,thumbnail,*variants.prices";
-  const data = await adminFetch<{ products?: RawAdminProduct[] }>(
-    `/admin/products?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}`,
+  const data = await adminFetch<{ products?: RawAdminProduct[]; count?: number }>(
+    `/admin/products?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}&offset=${offset}`,
   );
-  return (data?.products ?? []).map((p) => {
+  const products = (data?.products ?? []).map((p) => {
     const amounts = (p.variants ?? [])
       .map((v) => v.prices?.find((pr) => pr.currency_code === "bdt")?.amount)
       .filter((a): a is number => typeof a === "number");
@@ -289,6 +292,7 @@ export async function listAdminProducts(limit = 100): Promise<AdminProductListIt
       price: amounts.length ? money(Math.min(...amounts), "bdt") : "—",
     };
   });
+  return { products, count: data?.count ?? products.length };
 }
 
 export interface ProductFormData extends NewProductInput {
@@ -712,18 +716,81 @@ export interface AdminCustomerRow {
   createdAt: string;
 }
 
-export async function listCustomers(limit = 100): Promise<AdminCustomerRow[]> {
+export async function listCustomers(
+  limit = 24,
+  offset = 0,
+): Promise<{ customers: AdminCustomerRow[]; count: number }> {
   const fields = "id,email,first_name,last_name,created_at,orders.id";
-  const data = await adminFetch<{ customers?: RawCustomer[] }>(
-    `/admin/customers?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}`,
+  const data = await adminFetch<{ customers?: RawCustomer[]; count?: number }>(
+    `/admin/customers?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}&offset=${offset}`,
   );
-  return (data?.customers ?? []).map((c) => ({
+  const customers = (data?.customers ?? []).map((c) => ({
     id: c.id,
     email: c.email,
     name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—",
     orders: (c.orders ?? []).length,
     createdAt: c.created_at,
   }));
+  return { customers, count: data?.count ?? customers.length };
+}
+
+export interface AdminCustomerDetail {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  createdAt: string;
+  orders: {
+    id: string;
+    displayId: number;
+    total: string;
+    createdAt: string;
+    fulfillmentStatus: string;
+    paymentStatus: string;
+  }[];
+}
+
+export async function getCustomerDetail(id: string): Promise<AdminCustomerDetail | null> {
+  const fields =
+    "id,email,first_name,last_name,phone,created_at,orders.id,orders.display_id,orders.total,orders.currency_code,orders.created_at,orders.fulfillment_status,orders.payment_status";
+  const data = await adminFetch<{
+    customer?: {
+      id: string;
+      email: string;
+      first_name?: string | null;
+      last_name?: string | null;
+      created_at: string;
+      phone?: string | null;
+      orders?: {
+        id: string;
+        display_id: number;
+        total: number;
+        currency_code: string;
+        created_at: string;
+        fulfillment_status: string;
+        payment_status: string;
+      }[];
+    };
+  }>(`/admin/customers/${id}?fields=${encodeURIComponent(fields)}`);
+  const c = data?.customer;
+  if (!c) return null;
+  return {
+    id: c.id,
+    email: c.email,
+    name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—",
+    phone: c.phone ?? undefined,
+    createdAt: c.created_at,
+    orders: (c.orders ?? [])
+      .map((o) => ({
+        id: o.id,
+        displayId: o.display_id,
+        total: money(o.total, o.currency_code),
+        createdAt: o.created_at,
+        fulfillmentStatus: o.fulfillment_status,
+        paymentStatus: o.payment_status,
+      }))
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+  };
 }
 
 // --- Dashboard stats --------------------------------------------------------

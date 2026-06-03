@@ -4,11 +4,18 @@ import { Plus, Pencil } from "lucide-react";
 import { Badge, buttonVariants, Card } from "@ecom/ui";
 import { listAdminProducts } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 24;
 
-export default async function AdminProductsPage() {
-  const products = await listAdminProducts(100);
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const page = Math.max(1, Number((await searchParams).page) || 1);
+  const { products, count } = await listAdminProducts(PAGE_SIZE, (page - 1) * PAGE_SIZE);
 
   return (
     <>
@@ -49,6 +56,7 @@ export default async function AdminProductsPage() {
             ))}
           </div>
         )}
+        <Pagination page={page} pageSize={PAGE_SIZE} total={count} basePath="/admin/products" />
       </div>
     </>
   );
