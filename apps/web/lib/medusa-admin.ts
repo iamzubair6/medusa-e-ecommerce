@@ -764,6 +764,79 @@ export async function deletePromotion(id: string): Promise<void> {
   await adminDelete(`/admin/promotions/${id}`);
 }
 
+// --- Price lists (sales / overrides) ----------------------------------------
+
+export interface AdminPriceListRow {
+  id: string;
+  title: string;
+  type: string; // sale | override
+  status: string;
+  prices: number;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export async function listPriceLists(): Promise<AdminPriceListRow[]> {
+  const data = await adminFetch<{
+    price_lists?: { id: string; title: string; type: string; status: string; starts_at?: string | null; ends_at?: string | null; prices?: { id: string }[] }[];
+  }>("/admin/price-lists?fields=id,title,type,status,starts_at,ends_at,prices.id&limit=100");
+  return (data?.price_lists ?? []).map((p) => ({
+    id: p.id,
+    title: p.title,
+    type: p.type,
+    status: p.status,
+    prices: (p.prices ?? []).length,
+    startsAt: p.starts_at ?? undefined,
+    endsAt: p.ends_at ?? undefined,
+  }));
+}
+
+export interface NewPriceListInput {
+  title: string;
+  percentOff: number;
+  appliesTo: "all" | "category" | "collection";
+  targetId?: string;
+  startsAt?: string; // ISO
+  endsAt?: string; // ISO
+}
+
+/** Create a sale: computes discounted BDT prices for every matching variant. */
+export async function createPriceList(input: NewPriceListInput): Promise<{ id: string }> {
+  const params = new URLSearchParams({ limit: "200", fields: "id,variants.id,variants.prices.amount,variants.prices.currency_code" });
+  if (input.appliesTo === "category" && input.targetId) params.append("category_id[]", input.targetId);
+  if (input.appliesTo === "collection" && input.targetId) params.append("collection_id[]", input.targetId);
+  const data = await adminFetch<{
+    products?: { variants?: { id: string; prices?: { amount: number; currency_code: string }[] }[] }[];
+  }>(`/admin/products?${params.toString()}`);
+
+  const factor = 1 - input.percentOff / 100;
+  const prices: { amount: number; currency_code: string; variant_id: string }[] = [];
+  for (const p of data?.products ?? []) {
+    for (const v of p.variants ?? []) {
+      const bdt = v.prices?.find((pr) => pr.currency_code === "bdt")?.amount;
+      if (typeof bdt === "number") {
+        prices.push({ variant_id: v.id, currency_code: "bdt", amount: Math.max(1, Math.round(bdt * factor)) });
+      }
+    }
+  }
+  if (!prices.length) throw new Error("No priced products matched this selection.");
+
+  const { price_list } = await adminPost<{ price_list: { id: string } }>("/admin/price-lists", {
+    title: input.title,
+    description: `${input.percentOff}% off — ${input.appliesTo}`,
+    type: "sale",
+    status: "active",
+    ...(input.startsAt ? { starts_at: input.startsAt } : {}),
+    ...(input.endsAt ? { ends_at: input.endsAt } : {}),
+    prices,
+  });
+  return price_list;
+}
+
+export async function deletePriceList(id: string): Promise<void> {
+  await adminDelete(`/admin/price-lists/${id}`);
+}
+
 // --- Customers --------------------------------------------------------------
 
 interface RawCustomer {
