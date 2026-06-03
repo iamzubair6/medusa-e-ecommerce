@@ -182,6 +182,14 @@ export async function listCategories(): Promise<AdminCategoryOption[]> {
   return (data?.product_categories ?? []).map((c) => ({ id: c.id, name: c.name }));
 }
 
+/** Product collections (for promotion/price-list targeting). */
+export async function listCollections(): Promise<AdminCategoryOption[]> {
+  const data = await adminFetch<{ collections?: { id: string; title: string }[] }>(
+    "/admin/collections?fields=id,title&limit=100",
+  );
+  return (data?.collections ?? []).map((c) => ({ id: c.id, name: c.title }));
+}
+
 /** Variant key used to reconcile colour×size combinations across edits. */
 const variantKey = (size: string, color: string) => `${size}::${color}`;
 const variantSku = (handle: string, color: string, size: string) =>
@@ -635,10 +643,14 @@ interface RawPromotion {
   code: string;
   status: string;
   type: string;
+  is_automatic?: boolean;
   application_method?: {
     type?: string; // "percentage" | "fixed"
     value?: number;
     currency_code?: string;
+    target_type?: string; // "order" | "items" | "shipping_methods"
+    max_quantity?: number | null;
+    buy_rules_min_quantity?: number | null;
   } | null;
 }
 
@@ -646,46 +658,101 @@ export interface AdminPromotionRow {
   id: string;
   code: string;
   status: string;
-  type: string;
-  valueType: string; // percentage | fixed
-  display: string; // "10%" | "৳100 off"
+  automatic: boolean;
+  kind: string; // human label: "Order", "Items", "Free shipping", "Buy X get Y"
+  display: string; // "10%" | "৳100 off" | "Free shipping" | "Buy 1 get 1"
 }
 
 export async function listPromotions(): Promise<AdminPromotionRow[]> {
-  const fields = "id,code,status,type,*application_method";
+  const fields = "id,code,status,type,is_automatic,*application_method";
   const data = await adminFetch<{ promotions?: RawPromotion[] }>(
     `/admin/promotions?fields=${encodeURIComponent(fields)}&limit=100`,
   );
   return (data?.promotions ?? []).map((p) => {
     const am = p.application_method;
-    const valueType = am?.type ?? "percentage";
-    const display =
-      valueType === "percentage"
-        ? `${am?.value ?? 0}%`
-        : `${money(am?.value, am?.currency_code ?? "bdt")} off`;
-    return { id: p.id, code: p.code, status: p.status, type: p.type, valueType, display };
+    let kind = "Order";
+    let display: string;
+    if (p.type === "buyget") {
+      kind = "Buy X get Y";
+      display = `Buy ${am?.buy_rules_min_quantity ?? 1} get ${am?.max_quantity ?? 1} free`;
+    } else if (am?.target_type === "shipping_methods") {
+      kind = "Free shipping";
+      display = "Free shipping";
+    } else {
+      kind = am?.target_type === "items" ? "Items" : "Order";
+      display =
+        am?.type === "percentage"
+          ? `${am?.value ?? 0}% off`
+          : `${money(am?.value, am?.currency_code ?? "bdt")} off`;
+    }
+    return { id: p.id, code: p.code, status: p.status, automatic: Boolean(p.is_automatic), kind, display };
   });
 }
 
 export interface NewPromotionInput {
   code: string;
-  valueType: "percentage" | "fixed";
-  value: number;
+  automatic?: boolean;
+  method: "percentage" | "fixed" | "free_shipping" | "buyget";
+  value?: number; // percent or ৳ amount (ignored for free_shipping/buyget)
+  appliesTo: "order" | "category" | "collection";
+  targetId?: string; // category/collection id when appliesTo != order
+  buyQuantity?: number; // buyget
+  getQuantity?: number; // buyget
 }
 
+const targetAttr = (appliesTo: "category" | "collection") =>
+  appliesTo === "category" ? "items.product.categories.id" : "items.product.collection_id";
+
+/** Create a standard / free-shipping / BOGO promotion (enforced at checkout). */
 export async function createPromotion(input: NewPromotionInput): Promise<{ id: string }> {
-  const { promotion } = await adminPost<{ promotion: { id: string } }>("/admin/promotions", {
-    code: input.code,
-    status: "active",
-    type: "standard",
-    application_method: {
-      type: input.valueType,
-      value: input.value,
-      target_type: "order",
-      allocation: "across",
-      ...(input.valueType === "fixed" ? { currency_code: "bdt" } : {}),
-    },
-  });
+  const base = { code: input.code, status: "active", is_automatic: Boolean(input.automatic) };
+  const rules =
+    input.appliesTo !== "order" && input.targetId
+      ? [{ attribute: targetAttr(input.appliesTo), operator: "in", values: [input.targetId] }]
+      : [];
+
+  let body: Record<string, unknown>;
+  if (input.method === "free_shipping") {
+    body = {
+      ...base,
+      type: "standard",
+      application_method: { type: "percentage", value: 100, target_type: "shipping_methods", allocation: "across" },
+    };
+  } else if (input.method === "buyget") {
+    // BOGO requires a target (category/collection) to define the "buy" and "get" set.
+    body = {
+      ...base,
+      type: "buyget",
+      application_method: {
+        type: "percentage",
+        value: 100,
+        target_type: "items",
+        allocation: "each",
+        max_quantity: input.getQuantity ?? 1,
+        apply_to_quantity: input.getQuantity ?? 1,
+        buy_rules_min_quantity: input.buyQuantity ?? 1,
+        target_rules: rules,
+      },
+      rules: [],
+      buy_rules: rules,
+    };
+  } else {
+    const onOrder = input.appliesTo === "order";
+    body = {
+      ...base,
+      type: "standard",
+      application_method: {
+        type: input.method,
+        value: input.value ?? 0,
+        target_type: onOrder ? "order" : "items",
+        allocation: "across",
+        ...(input.method === "fixed" ? { currency_code: "bdt" } : {}),
+        ...(onOrder ? {} : { target_rules: rules }),
+      },
+    };
+  }
+
+  const { promotion } = await adminPost<{ promotion: { id: string } }>("/admin/promotions", body);
   return promotion;
 }
 
