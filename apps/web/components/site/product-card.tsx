@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Zap } from "lucide-react";
@@ -8,12 +9,16 @@ import type { StoreProduct } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
 
-/** Fashion-Nova-style card: image + BOGO pill, hover quick-add size panel, then
- *  title, sale price, and swatch dots. */
+/** Fashion-Nova-style card: image + BOGO pill, hover quick-add panel, sale price,
+ *  and selectable color swatches that swap the image + sizes. */
 export function ProductCard({ product }: { product: StoreProduct }) {
   const { addItem } = useCart();
   const { openCart } = useCartUI();
-  const sizes = (product.quickAdd ?? []).filter((s) => s.variantId);
+  const colors = product.cardColors ?? [];
+  const [ci, setCi] = useState(0);
+  const active = colors[ci];
+  const thumbnail = active?.thumbnail || product.thumbnail;
+  const sizes = (active?.sizes ?? []).filter((s) => s.variantId);
 
   const quickAdd = (variantId: string) =>
     addItem.mutate({ variantId, quantity: 1 }, { onSuccess: () => openCart() });
@@ -23,7 +28,7 @@ export function ProductCard({ product }: { product: StoreProduct }) {
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
         <Link href={`/products/${product.handle}`} className="block h-full w-full">
           <Image
-            src={product.thumbnail}
+            src={thumbnail}
             alt={product.title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -37,10 +42,11 @@ export function ProductCard({ product }: { product: StoreProduct }) {
           </span>
         )}
 
-        {/* hover quick-add panel (solid, slides over image bottom) */}
         {sizes.length > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-background p-3 opacity-0 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] transition-all duration-300 ease-fluid group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
-            <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.14em]">Add to Bag</p>
+            <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.14em]">
+              Add to Bag{active && colors.length > 1 ? ` · ${active.name}` : ""}
+            </p>
             <div className="grid grid-cols-5 gap-1.5">
               {sizes.map((s) => (
                 <button
@@ -80,10 +86,26 @@ export function ProductCard({ product }: { product: StoreProduct }) {
             {product.offer.label}
           </p>
         )}
-        {product.swatches && product.swatches.length > 0 && (
-          <div className="mt-1.5 flex gap-1">
-            {product.swatches.slice(0, 5).map((hex, i) => (
-              <span key={i} className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: hex }} />
+
+        {/* selectable color swatches */}
+        {colors.length > 1 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {colors.map((c, i) => (
+              <button
+                key={c.name}
+                type="button"
+                aria-label={c.name}
+                title={c.name}
+                aria-pressed={i === ci}
+                onMouseEnter={() => setCi(i)}
+                onClick={() => setCi(i)}
+                className={cn(
+                  "h-4 w-4 cursor-pointer rounded-full border p-px transition",
+                  i === ci ? "border-foreground" : "border-border hover:border-foreground/60",
+                )}
+              >
+                <span className="block h-full w-full rounded-full" style={{ backgroundColor: c.swatch }} />
+              </button>
             ))}
           </div>
         )}

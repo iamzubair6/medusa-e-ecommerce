@@ -25,11 +25,17 @@ export interface StoreProduct {
   thumbnail: string;
   price: string;
   originalPrice?: string;
-  swatches?: string[];
   offer?: StoreOffer;
   badge?: string;
-  /** first color's sizes for the card quick-shop overlay */
-  quickAdd?: StoreSizeOption[];
+  /** selectable colors for the card (swatch, image, quick-add sizes) */
+  cardColors?: CardColor[];
+}
+
+export interface CardColor {
+  name: string;
+  swatch: string;
+  thumbnail: string;
+  sizes: StoreSizeOption[];
 }
 
 export interface StoreSizeOption {
@@ -155,43 +161,50 @@ function cardPricing(p: MedusaProduct): { price: string; original?: string } {
   return { price: typeof amount === "number" ? money(amount, cur) : "—" };
 }
 
-function buildQuickAdd(p: MedusaProduct): StoreSizeOption[] {
+function buildCardColors(p: MedusaProduct): CardColor[] {
   const vIndex = variantIndex(p);
   const meta = p.metadata ?? {};
-  const firstColor =
-    (meta.sizeStock && Object.keys(meta.sizeStock)[0]) ??
-    (p.variants ?? [])
-      .flatMap((v) => (v.options ?? []).filter((o) => o.option?.title === "Color").map((o) => o.value))[0];
+  const allImages = (p.images ?? []).map((im) => im.url);
 
-  if (firstColor && meta.sizeStock?.[firstColor]) {
-    return Object.entries(meta.sizeStock[firstColor]).map(([size, stock]) => ({
-      size,
-      stock,
-      lowStock: stock > 0 && stock <= LOW_STOCK,
-      variantId: vIndex.get(`${firstColor}|${size}`),
-    }));
+  if (meta.colorImages && Object.keys(meta.colorImages).length) {
+    return Object.keys(meta.colorImages).map((name) => {
+      const stockMap = meta.sizeStock?.[name] ?? {};
+      const sizes: StoreSizeOption[] = Object.entries(stockMap).map(([size, stock]) => ({
+        size,
+        stock,
+        lowStock: stock > 0 && stock <= LOW_STOCK,
+        variantId: vIndex.get(`${name}|${size}`),
+      }));
+      const imgs = meta.colorImages![name] ?? [];
+      return {
+        name,
+        swatch: meta.swatches?.[name] ?? "#cccccc",
+        thumbnail: imgs[0] ?? allImages[0] ?? p.thumbnail ?? "",
+        sizes,
+      };
+    });
   }
-  // size-only products
-  return (p.variants ?? []).map((v) => {
+  // size-only product → single default color
+  const sizes: StoreSizeOption[] = (p.variants ?? []).map((v) => {
     const size = (v.options ?? []).find((o) => o.option?.title === "Size")?.value ?? v.title;
     return { size, stock: 50, lowStock: false, variantId: v.id };
   });
+  return [{ name: "Default", swatch: "#1b1b1b", thumbnail: allImages[0] ?? p.thumbnail ?? "", sizes }];
 }
 
 function mapCard(p: MedusaProduct, i: number): StoreProduct {
   const { price, original } = cardPricing(p);
-  const swatches = p.metadata?.swatches ? Object.values(p.metadata.swatches) : undefined;
+  const cardColors = buildCardColors(p);
   return {
     id: p.id,
     title: p.title,
     handle: p.handle,
-    thumbnail: p.thumbnail || p.images?.[0]?.url || img(i),
+    thumbnail: p.thumbnail || cardColors[0]?.thumbnail || p.images?.[0]?.url || img(i),
     price,
     originalPrice: original,
-    swatches,
     offer: p.metadata?.offer,
     badge: p.metadata?.offer?.label,
-    quickAdd: buildQuickAdd(p),
+    cardColors,
   };
 }
 
