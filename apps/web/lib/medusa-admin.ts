@@ -1,7 +1,9 @@
 import "server-only";
 import type { OrderTracking, TrackingFulfillment } from "./tracking-types";
+import type { AdminOrderSummary, AdminOrderDetail } from "./admin-types";
 
 export type { OrderTracking } from "./tracking-types";
+export type { AdminOrderSummary, AdminOrderDetail } from "./admin-types";
 
 /**
  * Server-only Medusa Admin API client. Uses a secret API key (Basic auth) and
@@ -213,4 +215,154 @@ export async function uploadFiles(form: FormData): Promise<string[]> {
   if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
   const data = (await res.json()) as { files?: { url: string }[] };
   return (data.files ?? []).map((f) => f.url);
+}
+
+// --- Orders -----------------------------------------------------------------
+
+function money(amount: number | undefined, currency?: string): string {
+  const cur = (currency ?? "bdt").toUpperCase();
+  if (cur === "BDT") return `৳${Math.round(amount ?? 0).toLocaleString("en-US")}`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format(amount ?? 0);
+}
+
+interface RawOrderListItem {
+  id: string;
+  display_id: number;
+  email: string;
+  currency_code: string;
+  total: number;
+  payment_status: string;
+  fulfillment_status: string;
+  created_at: string;
+  metadata?: { payment_method?: string } | null;
+  items?: { id: string }[];
+}
+
+export async function listOrders(
+  limit = 50,
+  offset = 0,
+): Promise<{ orders: AdminOrderSummary[]; count: number }> {
+  const fields =
+    "id,display_id,email,currency_code,total,payment_status,fulfillment_status,created_at,metadata,items.id";
+  const data = await adminFetch<{ orders?: RawOrderListItem[]; count?: number }>(
+    `/admin/orders?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}&offset=${offset}`,
+  );
+  const orders = (data?.orders ?? []).map((o) => ({
+    id: o.id,
+    displayId: o.display_id,
+    email: o.email,
+    total: money(o.total, o.currency_code),
+    createdAt: o.created_at,
+    paymentStatus: o.payment_status,
+    fulfillmentStatus: o.fulfillment_status,
+    paymentMethod: o.metadata?.payment_method,
+    itemCount: (o.items ?? []).length,
+  }));
+  return { orders, count: data?.count ?? orders.length };
+}
+
+interface RawOrderFull extends RawOrderListItem {
+  subtotal?: number;
+  shipping_total?: number;
+  items?: {
+    id: string;
+    title?: string;
+    product_title?: string;
+    variant_title?: string;
+    quantity: number;
+    total?: number;
+    thumbnail?: string | null;
+  }[];
+  shipping_address?: {
+    first_name?: string;
+    last_name?: string;
+    address_1?: string;
+    city?: string;
+    postal_code?: string;
+    country_code?: string;
+    phone?: string;
+  } | null;
+  fulfillments?: {
+    id: string;
+    shipped_at?: string | null;
+    labels?: { tracking_number?: string | null }[];
+  }[];
+}
+
+export async function getOrderDetail(id: string): Promise<AdminOrderDetail | null> {
+  const fields =
+    "id,display_id,email,currency_code,total,subtotal,shipping_total,payment_status,fulfillment_status,created_at,metadata,*items,*shipping_address,*fulfillments,*fulfillments.labels";
+  const data = await adminFetch<{ order?: RawOrderFull }>(
+    `/admin/orders/${id}?fields=${encodeURIComponent(fields)}`,
+  );
+  const o = data?.order;
+  if (!o) return null;
+  const cur = o.currency_code;
+  return {
+    id: o.id,
+    displayId: o.display_id,
+    email: o.email,
+    total: money(o.total, cur),
+    subtotal: money(o.subtotal, cur),
+    shippingTotal: money(o.shipping_total, cur),
+    createdAt: o.created_at,
+    paymentStatus: o.payment_status,
+    fulfillmentStatus: o.fulfillment_status,
+    paymentMethod: o.metadata?.payment_method,
+    itemCount: (o.items ?? []).length,
+    items: (o.items ?? []).map((i) => ({
+      id: i.id,
+      title: i.product_title ?? i.title ?? "Item",
+      variant: i.variant_title ?? undefined,
+      quantity: i.quantity,
+      total: money(i.total, cur),
+      thumbnail: i.thumbnail ?? undefined,
+    })),
+    address: o.shipping_address
+      ? {
+          name: `${o.shipping_address.first_name ?? ""} ${o.shipping_address.last_name ?? ""}`.trim(),
+          line1: o.shipping_address.address_1 ?? undefined,
+          city: o.shipping_address.city ?? undefined,
+          postalCode: o.shipping_address.postal_code ?? undefined,
+          country: o.shipping_address.country_code?.toUpperCase(),
+          phone: o.shipping_address.phone ?? undefined,
+        }
+      : undefined,
+    fulfillments: (o.fulfillments ?? []).map((f) => ({
+      id: f.id,
+      shippedAt: f.shipped_at ?? undefined,
+      trackingNumbers: (f.labels ?? []).map((l) => l.tracking_number).filter((t): t is string => !!t),
+    })),
+    fulfilled: o.fulfillment_status !== "not_fulfilled",
+  };
+}
+
+async function orderLineItems(id: string): Promise<{ id: string; quantity: number }[]> {
+  const data = await adminFetch<{ order?: { items?: { id: string; quantity: number }[] } }>(
+    `/admin/orders/${id}?fields=items.id,items.quantity`,
+  );
+  return (data?.order?.items ?? []).map((i) => ({ id: i.id, quantity: i.quantity }));
+}
+
+/** Create a fulfillment for all items in the order. */
+export async function fulfillOrder(id: string): Promise<void> {
+  const items = await orderLineItems(id);
+  await adminPost(`/admin/orders/${id}/fulfillments`, { items });
+}
+
+/** Mark a fulfillment shipped with a tracking number. */
+export async function shipOrder(id: string, trackingNumber: string, trackingUrl?: string): Promise<void> {
+  const detail = await getOrderDetail(id);
+  const fulfillment = detail?.fulfillments[0];
+  if (!fulfillment) throw new Error("Create a fulfillment first.");
+  const items = await orderLineItems(id);
+  await adminPost(`/admin/orders/${id}/fulfillments/${fulfillment.id}/shipments`, {
+    items,
+    labels: [{ tracking_number: trackingNumber, tracking_url: trackingUrl ?? "", label_url: "" }],
+  });
+}
+
+export async function countOrders(): Promise<number> {
+  const data = await adminFetch<{ count?: number }>("/admin/orders?fields=id&limit=1");
+  return data?.count ?? 0;
 }

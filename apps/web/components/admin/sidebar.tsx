@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, Navigation, Megaphone, Rocket, ScanSearch, ShoppingBag, Users, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, Navigation, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, UserRound, Users, LogOut, ExternalLink } from "lucide-react";
 import { cn } from "@ecom/ui";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/orders", label: "Orders", icon: Receipt, exact: false },
   { href: "/admin/products", label: "Products", icon: ShoppingBag, exact: false },
+  { href: "/admin/discounts", label: "Discounts", icon: Tag, exact: false },
+  { href: "/admin/customers", label: "Customers", icon: UserRound, exact: false },
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate, exact: false },
   { href: "/admin/navigation", label: "Navigation", icon: Navigation, exact: false },
   { href: "/admin/popups", label: "Popups", icon: Megaphone, exact: false },
