@@ -808,6 +808,48 @@ async function countResource(path: string): Promise<number> {
   return data?.count ?? 0;
 }
 
+export interface DailyPoint {
+  label: string; // e.g. "Jun 3"
+  revenue: number; // BDT (raw, for bar height)
+  revenueDisplay: string; // "৳1,290"
+  orders: number;
+}
+
+/** Per-day revenue + order counts for the last `days` days (store currency only). */
+export async function getDashboardSeries(days = 14): Promise<DailyPoint[]> {
+  const data = await adminFetch<{
+    orders?: { total: number; currency_code: string; created_at: string }[];
+  }>("/admin/orders?fields=total,currency_code,created_at&limit=1000&order=-created_at");
+  const orders = (data?.orders ?? []).filter((o) => o.currency_code === STORE_CURRENCY);
+
+  const buckets: DailyPoint[] = [];
+  const byKey = new Map<string, DailyPoint>();
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const point: DailyPoint = {
+      label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      revenue: 0,
+      revenueDisplay: money(0, STORE_CURRENCY),
+      orders: 0,
+    };
+    byKey.set(key, point);
+    buckets.push(point);
+  }
+  for (const o of orders) {
+    const key = o.created_at.slice(0, 10);
+    const point = byKey.get(key);
+    if (point) {
+      point.revenue += o.total ?? 0;
+      point.orders += 1;
+    }
+  }
+  for (const p of buckets) p.revenueDisplay = money(p.revenue, STORE_CURRENCY);
+  return buckets;
+}
+
 export async function getDashboardStats(): Promise<AdminDashboardStats> {
   const ordersData = await adminFetch<{
     orders?: { total: number; currency_code: string; fulfillment_status: string }[];

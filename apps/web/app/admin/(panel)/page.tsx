@@ -2,8 +2,9 @@ import Link from "next/link";
 import { prisma } from "@ecom/cms";
 import { Card, CardContent } from "@ecom/ui";
 import { Banknote, Receipt, ShoppingBag, UserRound, Truck } from "lucide-react";
-import { getDashboardStats } from "@/lib/medusa-admin";
+import { getDashboardStats, getDashboardSeries } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
+import { BarChart } from "@/components/admin/bar-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,13 @@ async function getContentStats() {
 }
 
 export default async function AdminDashboard() {
-  const [commerce, content] = await Promise.all([getDashboardStats(), getContentStats()]);
+  const [commerce, content, series] = await Promise.all([
+    getDashboardStats(),
+    getContentStats(),
+    getDashboardSeries(14),
+  ]);
+  const revenueTotal = series.reduce((s, p) => s + p.revenue, 0);
+  const ordersTotal = series.reduce((s, p) => s + p.orders, 0);
 
   const commerceCards = [
     { label: "Revenue", value: commerce.revenue, href: "/admin/orders", icon: Banknote },
@@ -56,6 +63,24 @@ export default async function AdminDashboard() {
                 </Link>
               );
             })}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Last 14 days</h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <BarChart
+              title="Revenue"
+              total={`৳${revenueTotal.toLocaleString("en-US")}`}
+              bars={series.map((p) => ({ label: p.label, value: p.revenue, display: p.revenueDisplay }))}
+              accent="bg-accent"
+            />
+            <BarChart
+              title="Orders"
+              total={String(ordersTotal)}
+              bars={series.map((p) => ({ label: p.label, value: p.orders, display: `${p.orders} orders` }))}
+              accent="bg-gold"
+            />
           </div>
         </section>
 
