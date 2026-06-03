@@ -75,6 +75,8 @@ with on-save revalidation; PLP + PDP complete.
       the PDP button. Admin **Visual Search → Reindex**.
 
 ## Phase 6 — Hardening & launch  ⬜
+- ⬜ **Online payments** (cards via Stripe and/or bKash·Nagad·SSLCOMMERZ for BD) —
+      COD is live today; see [`docs/PAYMENTS.md`](./PAYMENTS.md) for the plan.
 - ⬜ SEO (JSON-LD, sitemaps, metadata), analytics, Core Web Vitals pass.
 - ⬜ RBAC + audit log, rate limiting, captcha on public endpoints.
 - ⬜ CI (typecheck/lint/test), staging, observability, backups.
