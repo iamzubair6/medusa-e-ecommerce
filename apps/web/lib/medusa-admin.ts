@@ -585,3 +585,72 @@ export async function countOrders(): Promise<number> {
   const data = await adminFetch<{ count?: number }>("/admin/orders?fields=id&limit=1");
   return data?.count ?? 0;
 }
+
+// --- Promotions / discounts -------------------------------------------------
+
+interface RawPromotion {
+  id: string;
+  code: string;
+  status: string;
+  type: string;
+  application_method?: {
+    type?: string; // "percentage" | "fixed"
+    value?: number;
+    currency_code?: string;
+  } | null;
+}
+
+export interface AdminPromotionRow {
+  id: string;
+  code: string;
+  status: string;
+  type: string;
+  valueType: string; // percentage | fixed
+  display: string; // "10%" | "৳100 off"
+}
+
+export async function listPromotions(): Promise<AdminPromotionRow[]> {
+  const fields = "id,code,status,type,*application_method";
+  const data = await adminFetch<{ promotions?: RawPromotion[] }>(
+    `/admin/promotions?fields=${encodeURIComponent(fields)}&limit=100`,
+  );
+  return (data?.promotions ?? []).map((p) => {
+    const am = p.application_method;
+    const valueType = am?.type ?? "percentage";
+    const display =
+      valueType === "percentage"
+        ? `${am?.value ?? 0}%`
+        : `${money(am?.value, am?.currency_code ?? "bdt")} off`;
+    return { id: p.id, code: p.code, status: p.status, type: p.type, valueType, display };
+  });
+}
+
+export interface NewPromotionInput {
+  code: string;
+  valueType: "percentage" | "fixed";
+  value: number;
+}
+
+export async function createPromotion(input: NewPromotionInput): Promise<{ id: string }> {
+  const { promotion } = await adminPost<{ promotion: { id: string } }>("/admin/promotions", {
+    code: input.code,
+    status: "active",
+    type: "standard",
+    application_method: {
+      type: input.valueType,
+      value: input.value,
+      target_type: "order",
+      allocation: "across",
+      ...(input.valueType === "fixed" ? { currency_code: "bdt" } : {}),
+    },
+  });
+  return promotion;
+}
+
+export async function setPromotionStatus(id: string, status: "active" | "inactive"): Promise<void> {
+  await adminPost(`/admin/promotions/${id}`, { status });
+}
+
+export async function deletePromotion(id: string): Promise<void> {
+  await adminDelete(`/admin/promotions/${id}`);
+}
