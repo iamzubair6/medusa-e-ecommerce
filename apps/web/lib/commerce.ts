@@ -2,36 +2,57 @@ import "server-only";
 import { cache } from "react";
 import type { ProductSource } from "@ecom/cms";
 
-/** Normalized product shape the storefront renders in cards/rows. */
+const LOW_STOCK = 5;
+
+/** Money formatter — Taka (৳) with no decimals; Intl for other currencies. */
+function money(amount: number, currency = "BDT"): string {
+  const cur = currency.toUpperCase();
+  if (cur === "BDT") return `৳${Math.round(amount).toLocaleString("en-US")}`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format(amount);
+}
+
+export interface StoreOffer {
+  type: "bogo" | "discount";
+  label: string;
+  percent?: number;
+}
+
+/** Normalized product for cards/rows. */
 export interface StoreProduct {
   id: string;
   title: string;
   handle: string;
   thumbnail: string;
-  /** formatted price, e.g. "$48.00" */
   price: string;
+  originalPrice?: string;
+  swatches?: string[];
+  offer?: StoreOffer;
   badge?: string;
+  /** first color's sizes for the card quick-shop overlay */
+  quickAdd?: StoreSizeOption[];
 }
 
-export interface ProductOption {
-  title: string;
-  values: string[];
+export interface StoreSizeOption {
+  size: string;
+  stock: number;
+  lowStock: boolean;
+  variantId?: string;
 }
 
-export interface StoreVariant {
-  id: string;
-  title: string;
+export interface StoreColor {
+  name: string;
+  swatch: string;
   price: string;
-  /** option title -> selected value */
-  options: Record<string, string>;
+  originalPrice?: string;
+  images: string[];
+  sizes: StoreSizeOption[];
 }
 
-/** Full product for the detail page. */
+/** Full product for the detail page (variant/color aware). */
 export interface StoreProductDetail extends StoreProduct {
-  images: string[];
   description: string;
-  options: ProductOption[];
-  variants: StoreVariant[];
+  images: string[];
+  colors: StoreColor[];
 }
 
 export interface ProductListResult {
@@ -72,18 +93,15 @@ const NAMES = [
 const img = (i: number, w = 600, h = 750) =>
   `https://images.unsplash.com/photo-${PLACEHOLDER_IMAGES[i % PLACEHOLDER_IMAGES.length]!}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
 
-const priceOf = (i: number) => 38 + ((i * 13) % 80);
-const fmt = (amount: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+const priceOf = (i: number) => 800 + ((i * 130) % 1600); // BDT-ish placeholder prices
 
-/** A single deterministic placeholder product by global index + seed. */
 function placeholderProduct(i: number, seed: string): StoreProduct {
   return {
     id: `${seed}-${i}`,
     title: NAMES[i % NAMES.length]!,
     handle: `${seed}-${i}`,
     thumbnail: img(i),
-    price: fmt(priceOf(i)),
+    price: money(priceOf(i)),
     badge: i % 5 === 0 ? "New" : undefined,
   };
 }
@@ -92,8 +110,22 @@ function placeholderProducts(limit: number, seed = "p", offset = 0): StoreProduc
   return Array.from({ length: limit }, (_, k) => placeholderProduct(offset + k, seed));
 }
 
-// --- Medusa mapping ---------------------------------------------------------
+// --- Medusa types -----------------------------------------------------------
 
+interface MedusaVariant {
+  id: string;
+  title: string;
+  options?: { value: string; option?: { title?: string } }[];
+  calculated_price?: { calculated_amount?: number; currency_code?: string };
+}
+interface ProductMeta {
+  swatches?: Record<string, string>;
+  colorImages?: Record<string, string[]>;
+  colorPrices?: Record<string, number>;
+  colorOriginalPrices?: Record<string, number>;
+  sizeStock?: Record<string, Record<string, number>>;
+  offer?: StoreOffer;
+}
 interface MedusaProduct {
   id: string;
   title: string;
@@ -102,27 +134,130 @@ interface MedusaProduct {
   description?: string | null;
   images?: { url: string }[];
   options?: { title: string; values?: { value: string }[] }[];
-  variants?: {
-    id: string;
-    title: string;
-    options?: { option?: { title?: string }; value: string }[];
-    calculated_price?: { calculated_amount?: number; currency_code?: string };
-  }[];
+  variants?: MedusaVariant[];
+  metadata?: ProductMeta | null;
+}
+
+function currencyOf(p: MedusaProduct): string {
+  return (p.variants?.[0]?.calculated_price?.currency_code ?? "bdt").toUpperCase();
+}
+
+/** Lowest-priced color for card display, with its original price. */
+function cardPricing(p: MedusaProduct): { price: string; original?: string } {
+  const cur = currencyOf(p);
+  const colorPrices = p.metadata?.colorPrices;
+  if (colorPrices && Object.keys(colorPrices).length) {
+    const [minColor, minPrice] = Object.entries(colorPrices).reduce((a, b) => (b[1] < a[1] ? b : a));
+    const orig = p.metadata?.colorOriginalPrices?.[minColor];
+    return { price: money(minPrice, cur), original: orig ? money(orig, cur) : undefined };
+  }
+  const amount = p.variants?.[0]?.calculated_price?.calculated_amount;
+  return { price: typeof amount === "number" ? money(amount, cur) : "—" };
+}
+
+function buildQuickAdd(p: MedusaProduct): StoreSizeOption[] {
+  const vIndex = variantIndex(p);
+  const meta = p.metadata ?? {};
+  const firstColor =
+    (meta.sizeStock && Object.keys(meta.sizeStock)[0]) ??
+    (p.variants ?? [])
+      .flatMap((v) => (v.options ?? []).filter((o) => o.option?.title === "Color").map((o) => o.value))[0];
+
+  if (firstColor && meta.sizeStock?.[firstColor]) {
+    return Object.entries(meta.sizeStock[firstColor]).map(([size, stock]) => ({
+      size,
+      stock,
+      lowStock: stock > 0 && stock <= LOW_STOCK,
+      variantId: vIndex.get(`${firstColor}|${size}`),
+    }));
+  }
+  // size-only products
+  return (p.variants ?? []).map((v) => {
+    const size = (v.options ?? []).find((o) => o.option?.title === "Size")?.value ?? v.title;
+    return { size, stock: 50, lowStock: false, variantId: v.id };
+  });
 }
 
 function mapCard(p: MedusaProduct, i: number): StoreProduct {
-  const price = p.variants?.[0]?.calculated_price;
-  const amount = price?.calculated_amount;
-  const currency = (price?.currency_code ?? "usd").toUpperCase();
+  const { price, original } = cardPricing(p);
+  const swatches = p.metadata?.swatches ? Object.values(p.metadata.swatches) : undefined;
   return {
     id: p.id,
     title: p.title,
     handle: p.handle,
     thumbnail: p.thumbnail || p.images?.[0]?.url || img(i),
-    price:
-      typeof amount === "number"
-        ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount)
-        : "—",
+    price,
+    originalPrice: original,
+    swatches,
+    offer: p.metadata?.offer,
+    badge: p.metadata?.offer?.label,
+    quickAdd: buildQuickAdd(p),
+  };
+}
+
+function variantIndex(p: MedusaProduct): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const v of p.variants ?? []) {
+    const opts: Record<string, string> = {};
+    for (const o of v.options ?? []) if (o.option?.title) opts[o.option.title] = o.value;
+    const color = opts.Color ?? "_";
+    const size = opts.Size ?? v.title;
+    map.set(`${color}|${size}`, v.id);
+  }
+  return map;
+}
+
+function mapDetail(p: MedusaProduct): StoreProductDetail {
+  const card = mapCard(p, 0);
+  const cur = currencyOf(p);
+  const meta = p.metadata ?? {};
+  const vIndex = variantIndex(p);
+  const allImages = (p.images ?? []).map((im) => im.url);
+
+  let colors: StoreColor[] = [];
+  if (meta.colorImages && Object.keys(meta.colorImages).length) {
+    colors = Object.keys(meta.colorImages).map((name) => {
+      const stockMap = meta.sizeStock?.[name] ?? {};
+      const sizes: StoreSizeOption[] = Object.entries(stockMap).map(([size, stock]) => ({
+        size,
+        stock,
+        lowStock: stock > 0 && stock <= LOW_STOCK,
+        variantId: vIndex.get(`${name}|${size}`),
+      }));
+      const cp = meta.colorPrices?.[name];
+      const op = meta.colorOriginalPrices?.[name];
+      return {
+        name,
+        swatch: meta.swatches?.[name] ?? "#cccccc",
+        price: cp ? money(cp, cur) : card.price,
+        originalPrice: op ? money(op, cur) : undefined,
+        images: meta.colorImages![name] ?? allImages,
+        sizes,
+      };
+    });
+  } else {
+    // No color metadata — single default color from product images + variant sizes.
+    const sizes: StoreSizeOption[] = (p.variants ?? []).map((v) => {
+      const size = (v.options ?? []).find((o) => o.option?.title === "Size")?.value ?? v.title;
+      return { size, stock: 50, lowStock: false, variantId: v.id };
+    });
+    colors = [
+      {
+        name: "Default",
+        swatch: "#1b1b1b",
+        price: card.price,
+        originalPrice: card.originalPrice,
+        images: allImages.length ? allImages : [card.thumbnail],
+        sizes,
+      },
+    ];
+  }
+
+  return {
+    ...card,
+    description: p.description ?? "",
+    images: allImages.length ? allImages : [card.thumbnail],
+    colors,
   };
 }
 
@@ -140,16 +275,19 @@ async function medusaFetch(path: string, tags: string[]): Promise<unknown | null
   }
 }
 
-/**
- * The store's default region id — required for Medusa to compute prices.
- * Cached per request; the underlying fetch is also cache-tagged.
- */
+/** Store region — prefers the BDT (Bangladesh) region. */
 export const getRegionId = cache(async (): Promise<string | undefined> => {
   const data = (await medusaFetch("/store/regions", ["commerce:regions"])) as
-    | { regions?: { id: string }[] }
+    | { regions?: { id: string; currency_code?: string }[] }
     | null;
-  return data?.regions?.[0]?.id;
+  const regions = data?.regions ?? [];
+  return (regions.find((r) => r.currency_code === "bdt") ?? regions[0])?.id;
 });
+
+const CARD_FIELDS =
+  "fields=title,handle,thumbnail,metadata,*images,*variants.calculated_price,*variants.options.option";
+const DETAIL_FIELDS =
+  "fields=title,handle,description,thumbnail,metadata,*images,*options,*variants.calculated_price,*variants.options.option";
 
 function sourceToQuery(source: ProductSource, limit: number): string {
   const params = new URLSearchParams({ limit: String(limit) });
@@ -170,12 +308,11 @@ function sourceToQuery(source: ProductSource, limit: number): string {
 
 // --- Public API -------------------------------------------------------------
 
-/** Products for a CMS product row. Placeholder fallback keeps rows populated. */
 export async function fetchProducts(source: ProductSource, limit: number): Promise<StoreProduct[]> {
   const regionId = await getRegionId();
   const region = regionId ? `&region_id=${regionId}` : "";
   const data = (await medusaFetch(
-    `/store/products?${sourceToQuery(source, limit)}${region}`,
+    `/store/products?${sourceToQuery(source, limit)}&${CARD_FIELDS}${region}`,
     ["commerce:products"],
   )) as { products?: MedusaProduct[] } | null;
   const products = data?.products ?? [];
@@ -183,9 +320,8 @@ export async function fetchProducts(source: ProductSource, limit: number): Promi
   return products.map(mapCard);
 }
 
-const PLACEHOLDER_PAGES = 3; // pretend the catalog has 3 pages of placeholders
+const PLACEHOLDER_PAGES = 3;
 
-/** Paginated listing for a collection/category handle. */
 export async function fetchProductList(opts: {
   handle?: string;
   page?: number;
@@ -200,11 +336,15 @@ export async function fetchProductList(opts: {
     const params = new URLSearchParams({ limit: String(limit), offset: String((page - 1) * limit) });
     params.set(
       "order",
-      opts.sort === "price-asc" ? "variants.calculated_price" : opts.sort === "price-desc" ? "-variants.calculated_price" : "-created_at",
+      opts.sort === "price-asc"
+        ? "variants.calculated_price"
+        : opts.sort === "price-desc"
+          ? "-variants.calculated_price"
+          : "-created_at",
     );
     const regionId = await getRegionId();
     if (regionId) params.set("region_id", regionId);
-    const data = (await medusaFetch(`/store/products?${params.toString()}`, [
+    const data = (await medusaFetch(`/store/products?${params.toString()}&${CARD_FIELDS}`, [
       "commerce:products",
       `commerce:list:${seed}`,
     ])) as { products?: MedusaProduct[]; count?: number } | null;
@@ -219,7 +359,6 @@ export async function fetchProductList(opts: {
     }
   }
 
-  // Placeholder fallback
   const total = limit * PLACEHOLDER_PAGES;
   const offset = (page - 1) * limit;
   let products = placeholderProducts(Math.min(limit, Math.max(0, total - offset)), seed, offset);
@@ -233,13 +372,12 @@ export async function fetchProductList(opts: {
 
 const parsePrice = (s: string) => Number(s.replace(/[^0-9.]/g, "")) || 0;
 
-/** Full product detail by handle, or null if not found. */
 export async function fetchProductByHandle(handle: string): Promise<StoreProductDetail | null> {
   if (medusaEnabled()) {
     const regionId = await getRegionId();
     const region = regionId ? `&region_id=${regionId}` : "";
     const data = (await medusaFetch(
-      `/store/products?handle=${encodeURIComponent(handle)}&fields=*variants.calculated_price,*options,*images${region}`,
+      `/store/products?handle=${encodeURIComponent(handle)}&${DETAIL_FIELDS}${region}`,
       [`commerce:product:${handle}`],
     )) as { products?: MedusaProduct[] } | null;
     const p = data?.products?.[0];
@@ -248,45 +386,27 @@ export async function fetchProductByHandle(handle: string): Promise<StoreProduct
   return placeholderDetail(handle);
 }
 
-function mapDetail(p: MedusaProduct): StoreProductDetail {
-  const card = mapCard(p, 0);
-  return {
-    ...card,
-    images: (p.images?.map((im) => im.url) ?? [card.thumbnail]).slice(0, 6),
-    description: p.description ?? "",
-    options: (p.options ?? []).map((o) => ({
-      title: o.title,
-      values: [...new Set((o.values ?? []).map((v) => v.value))],
-    })),
-    variants: (p.variants ?? []).map((v) => ({
-      id: v.id,
-      title: v.title,
-      price:
-        typeof v.calculated_price?.calculated_amount === "number"
-          ? fmt(v.calculated_price.calculated_amount)
-          : card.price,
-      options: Object.fromEntries((v.options ?? []).map((o) => [o.option?.title ?? "Option", o.value])),
-    })),
-  };
-}
-
 function placeholderDetail(handle: string): StoreProductDetail {
-  // derive a stable index from the handle suffix when present
   const m = handle.match(/(\d+)$/);
   const i = m ? Number(m[1]) : Math.abs(hash(handle)) % NAMES.length;
-  const sizes = ["XS", "S", "M", "L", "XL"];
   const base = priceOf(i);
+  const images = [img(i, 900, 1125), img(i + 1, 900, 1125), img(i + 2, 900, 1125)];
+  const sizes: StoreSizeOption[] = ["XS", "S", "M", "L", "XL"].map((size, k) => ({
+    size,
+    stock: k === 1 ? 3 : 30,
+    lowStock: k === 1,
+    variantId: `${handle}-${size}`,
+  }));
   return {
     id: handle,
     title: NAMES[i % NAMES.length]!,
     handle,
     thumbnail: img(i),
-    price: fmt(base),
-    images: [img(i, 900, 1125), img(i + 1, 900, 1125), img(i + 2, 900, 1125)],
+    price: money(base),
     description:
       "Cut from premium fabric with a considered, relaxed fit. A versatile piece designed to move with you from day to night.",
-    options: [{ title: "Size", values: sizes }],
-    variants: sizes.map((s) => ({ id: `${handle}-${s}`, title: s, price: fmt(base), options: { Size: s } })),
+    images,
+    colors: [{ name: "Default", swatch: "#1b1b1b", price: money(base), images, sizes }],
   };
 }
 
@@ -296,8 +416,18 @@ function hash(s: string): number {
   return h;
 }
 
-/** Visually/categorically similar products for the PDP. */
+/** Similar products for the PDP (placeholder until image search lands). */
 export async function fetchSimilarProducts(handle: string, limit = 4): Promise<StoreProduct[]> {
+  if (medusaEnabled()) {
+    const regionId = await getRegionId();
+    const region = regionId ? `&region_id=${regionId}` : "";
+    const data = (await medusaFetch(
+      `/store/products?limit=${limit + 1}&${CARD_FIELDS}${region}`,
+      ["commerce:products"],
+    )) as { products?: MedusaProduct[] } | null;
+    const products = (data?.products ?? []).filter((p) => p.handle !== handle).slice(0, limit);
+    if (products.length) return products.map(mapCard);
+  }
   const m = handle.match(/(\d+)$/);
   const base = m ? Number(m[1]) : Math.abs(hash(handle));
   return Array.from({ length: limit }, (_, k) => placeholderProduct(base + k + 1, "sim"));
