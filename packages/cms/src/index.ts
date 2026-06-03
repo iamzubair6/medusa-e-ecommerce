@@ -203,6 +203,38 @@ export async function deleteCampaign(id: string) {
   return prisma.campaign.delete({ where: { id } });
 }
 
+// --- Visual search embeddings ----------------------------------------------
+
+export interface EmbeddingInput {
+  productId: string;
+  handle: string;
+  title: string;
+  thumbnail: string;
+  price: string;
+  dim: number;
+  vector: number[];
+}
+
+export async function upsertProductEmbedding(input: EmbeddingInput) {
+  return prisma.productEmbedding.upsert({
+    where: { productId: input.productId },
+    create: input,
+    update: { ...input },
+  });
+}
+
+export async function listProductEmbeddings() {
+  return prisma.productEmbedding.findMany();
+}
+
+export async function getProductEmbedding(productId: string) {
+  return prisma.productEmbedding.findUnique({ where: { productId } });
+}
+
+export async function countProductEmbeddings() {
+  return prisma.productEmbedding.count();
+}
+
 /** Paginated guest leads (newest first). */
 export async function listGuestLeads(opts: { skip?: number; take?: number } = {}) {
   const take = Math.min(opts.take ?? 25, 100);

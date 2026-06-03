@@ -187,6 +187,26 @@ enum MediaType {
 }
 
 // ---------------------------------------------------------------------------
+// Visual search (image embeddings for "Shop Similar")
+// ---------------------------------------------------------------------------
+
+/// A product image feature vector for visual-similarity search. Vectors are
+/// computed locally (sharp) and ranked by cosine similarity in the app.
+model ProductEmbedding {
+  id        String   @id @default(cuid())
+  productId String   @unique
+  handle    String
+  title     String
+  thumbnail String
+  price     String
+  dim       Int
+  vector    Float[]
+  updatedAt DateTime @updatedAt
+
+  @@schema("cms")
+}
+
+// ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------
 
