@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, Navigation, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, UserRound, Users, Settings, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, Navigation, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, Settings, LogOut, ExternalLink } from "lucide-react";
 import { cn } from "@ecom/ui";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/orders", label: "Orders", icon: Receipt, exact: false },
   { href: "/admin/products", label: "Products", icon: ShoppingBag, exact: false },
+  { href: "/admin/categories", label: "Categories", icon: FolderTree, exact: false },
   { href: "/admin/discounts", label: "Discounts", icon: Tag, exact: false },
   { href: "/admin/price-lists", label: "Sales", icon: TicketPercent, exact: false },
   { href: "/admin/customers", label: "Customers", icon: UserRound, exact: false },

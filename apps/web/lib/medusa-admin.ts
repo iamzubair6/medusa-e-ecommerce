@@ -225,6 +225,79 @@ export async function listCollections(): Promise<AdminCategoryOption[]> {
   return (data?.collections ?? []).map((c) => ({ id: c.id, name: c.title }));
 }
 
+// --- Category & collection management ---------------------------------------
+
+export interface AdminCategoryFull {
+  id: string;
+  name: string;
+  handle: string;
+  isActive: boolean;
+  products: number;
+}
+export interface AdminCollectionFull {
+  id: string;
+  title: string;
+  handle: string;
+  products: number;
+}
+
+export async function listCategoriesFull(): Promise<AdminCategoryFull[]> {
+  const data = await adminFetch<{
+    product_categories?: { id: string; name: string; handle: string; is_active?: boolean; products?: { id: string }[] }[];
+  }>("/admin/product-categories?fields=id,name,handle,is_active,products.id&limit=200");
+  return (data?.product_categories ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    handle: c.handle,
+    isActive: c.is_active !== false,
+    products: (c.products ?? []).length,
+  }));
+}
+
+export async function createCategory(name: string): Promise<{ id: string }> {
+  const { product_category } = await adminPost<{ product_category: { id: string } }>("/admin/product-categories", {
+    name,
+    is_active: true,
+  });
+  return product_category;
+}
+
+export async function updateCategory(id: string, patch: { name?: string; isActive?: boolean }): Promise<void> {
+  await adminPost(`/admin/product-categories/${id}`, {
+    ...(patch.name !== undefined ? { name: patch.name } : {}),
+    ...(patch.isActive !== undefined ? { is_active: patch.isActive } : {}),
+  });
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  await adminDelete(`/admin/product-categories/${id}`);
+}
+
+export async function listCollectionsFull(): Promise<AdminCollectionFull[]> {
+  const data = await adminFetch<{
+    collections?: { id: string; title: string; handle: string; products?: { id: string }[] }[];
+  }>("/admin/collections?fields=id,title,handle,products.id&limit=200");
+  return (data?.collections ?? []).map((c) => ({
+    id: c.id,
+    title: c.title,
+    handle: c.handle,
+    products: (c.products ?? []).length,
+  }));
+}
+
+export async function createCollection(title: string): Promise<{ id: string }> {
+  const { collection } = await adminPost<{ collection: { id: string } }>("/admin/collections", { title });
+  return collection;
+}
+
+export async function updateCollection(id: string, title: string): Promise<void> {
+  await adminPost(`/admin/collections/${id}`, { title });
+}
+
+export async function deleteCollection(id: string): Promise<void> {
+  await adminDelete(`/admin/collections/${id}`);
+}
+
 /** Variant key used to reconcile colour×size combinations across edits. */
 const variantKey = (size: string, color: string) => `${size}::${color}`;
 const variantSku = (handle: string, color: string, size: string) =>
