@@ -67,9 +67,12 @@ with on-save revalidation; PLP + PDP complete.
 
 **Exit (mostly met):** admin schedules campaigns; shoppers redeem promo codes.
 
-## Phase 5 — Image search  ⬜
-- ⬜ pgvector enabled; product image embeddings (CLIP) pipeline.
-- ⬜ Upload-to-search UI + ranked visual results.
+## Phase 5 — Image search  ✅
+- ✅ Local visual-similarity: browser-canvas image embeddings (16×16 RGB), stored
+      in Postgres, cosine-ranked server-side. (pgvector deferred — brew bottle is
+      PG17/18, server is PG14; swappable later. CLIP = future upgrade for semantic.)
+- ✅ "Shop Similar" modal (upload + ranked results), wired to the navbar camera and
+      the PDP button. Admin **Visual Search → Reindex**.
 
 ## Phase 6 — Hardening & launch  ⬜
 - ⬜ SEO (JSON-LD, sitemaps, metadata), analytics, Core Web Vitals pass.
