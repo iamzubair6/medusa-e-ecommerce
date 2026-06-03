@@ -1,0 +1,81 @@
+# Full stack on one server: Postgres + Medusa + storefront (+ optional Caddy HTTPS).
+# Configure via a .env file in this directory (see .env.docker.example).
+#
+#   No domain (test by IP):   docker compose up -d --build
+#   With domains (HTTPS):     docker compose --profile tls up -d --build
+#
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-medusa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medusa}
+      POSTGRES_DB: ${POSTGRES_DB:-ecom}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-cms.sql:/docker-entrypoint-initdb.d/init-cms.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medusa} -d ${POSTGRES_DB:-ecom}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  medusa:
+    build:
+      context: ./apps/medusa/apps/backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa}@db:5432/${POSTGRES_DB:-ecom}
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      STORE_CORS: ${STORE_CORS}
+      ADMIN_CORS: ${ADMIN_CORS}
+      AUTH_CORS: ${AUTH_CORS}
+    ports:
+      - "9000:9000" # direct access for the no-domain/test case
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - medusa
+    environment:
+      CMS_DATABASE_URL: postgres://${POSTGRES_USER:-medusa}:${POSTGRES_PASSWORD:-medusa}@db:5432/${POSTGRES_DB:-ecom}?schema=cms
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${MEDUSA_BACKEND_URL}
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${MEDUSA_PUBLISHABLE_KEY}
+      MEDUSA_ADMIN_API_KEY: ${MEDUSA_ADMIN_API_KEY}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
+    ports:
+      - "3000:3000" # direct access for the no-domain/test case
+
+  # Optional reverse proxy with automatic HTTPS — enable with `--profile tls`.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["tls"]
+    depends_on:
+      - web
+      - medusa
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

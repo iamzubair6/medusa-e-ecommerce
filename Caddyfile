@@ -1,0 +1,9 @@
+# Automatic HTTPS reverse proxy (used with `docker compose --profile tls`).
+# Set DOMAIN and API_DOMAIN in your .env to real domains pointing at this server.
+{$DOMAIN} {
+	reverse_proxy web:3000
+}
+
+{$API_DOMAIN} {
+	reverse_proxy medusa:9000
+}

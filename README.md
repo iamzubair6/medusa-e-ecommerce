@@ -53,6 +53,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full system design.
 - [Admin Guide](docs/ADMIN_GUIDE.md) — using the Medusa + CMS admin panels.
 - [Product & Pricing Guide](docs/PRODUCT_GUIDE.md) — adding products with prices, colors, sizes, stock, offers.
 - [Deployment Guide](docs/DEPLOYMENT.md) — free showcase deploy (Vercel + Render + Neon).
+- [Docker Deploy](docs/DEPLOY_DOCKER.md) — whole stack on one server (Oracle free / VPS) via Docker Compose.
 - [Architecture](docs/ARCHITECTURE.md) · [Plan](docs/PLAN.md) · [Roadmap](docs/ROADMAP.md)
 
 ## Getting started
