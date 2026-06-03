@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { upsertProductEmbedding } from "@ecom/cms";
+import { pruneProductEmbeddings, upsertProductEmbedding } from "@ecom/cms";
 import { EMBED_DIM } from "@/lib/embedding-client";
 
 const schema = z.object({
@@ -30,5 +30,7 @@ export async function POST(request: Request) {
     await upsertProductEmbedding({ ...item, dim: EMBED_DIM });
     count += 1;
   }
+  // Drop embeddings for products that are no longer indexed (removed/unpriced).
+  await pruneProductEmbeddings(parsed.data.items.map((i) => i.productId));
   return NextResponse.json({ ok: true, indexed: count });
 }

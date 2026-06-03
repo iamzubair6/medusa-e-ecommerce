@@ -235,6 +235,11 @@ export async function countProductEmbeddings() {
   return prisma.productEmbedding.count();
 }
 
+/** Remove embeddings for products no longer in the index (e.g. unpriced/removed). */
+export async function pruneProductEmbeddings(keepProductIds: string[]) {
+  return prisma.productEmbedding.deleteMany({ where: { productId: { notIn: keepProductIds } } });
+}
+
 /** Paginated guest leads (newest first). */
 export async function listGuestLeads(opts: { skip?: number; take?: number } = {}) {
   const take = Math.min(opts.take ?? 25, 100);
