@@ -136,6 +136,19 @@ export function ProductCreator({
       if (c.images.length === 0) return setError(`Color ${c.name || i + 1}: add at least one image.`);
       if (Object.keys(c.sizes).length === 0) return setError(`Color ${c.name || i + 1}: pick at least one size.`);
     }
+    // Auto-derive the discount % from the deepest colour markdown if not typed in.
+    const autoPercent = (() => {
+      const pcts = colors
+        .map((c) => {
+          const o = Number(c.originalPrice);
+          const p = Number(c.price);
+          return o > 0 && p > 0 && o > p ? Math.round(((o - p) / o) * 100) : 0;
+        })
+        .filter(Boolean);
+      return pcts.length ? Math.max(...pcts) : undefined;
+    })();
+    const discountPercent = offerPercent ? Number(offerPercent) : autoPercent;
+
     const payload = {
       title,
       description,
@@ -147,8 +160,16 @@ export function ProductCreator({
           ? undefined
           : {
               type: offerType,
-              label: offerLabel || (offerType === "bogo" ? "BUY 1 GET 1 FREE" : offerType === "custom" ? "NEW" : "SALE"),
-              ...(offerType === "discount" && offerPercent ? { percent: Number(offerPercent) } : {}),
+              label:
+                offerLabel ||
+                (offerType === "bogo"
+                  ? "BUY 1 GET 1 FREE"
+                  : offerType === "custom"
+                    ? "NEW"
+                    : discountPercent
+                      ? `${discountPercent}% OFF`
+                      : "SALE"),
+              ...(offerType === "discount" && discountPercent ? { percent: discountPercent } : {}),
             },
       colors: colors.map((c) => ({
         name: c.name,
@@ -255,6 +276,19 @@ export function ProductCreator({
             <TextField label="Price (৳)" type="number" value={c.price} onChange={(e) => patchColor(i, { price: e.target.value })} placeholder="200" />
             <TextField label="Original price (৳, optional → shows sale)" type="number" value={c.originalPrice} onChange={(e) => patchColor(i, { originalPrice: e.target.value })} placeholder="250" />
           </div>
+          {(() => {
+            const price = Number(c.price);
+            const orig = Number(c.originalPrice);
+            if (orig > 0 && price > 0 && orig > price) {
+              const pct = Math.round(((orig - price) / orig) * 100);
+              return (
+                <p className="-mt-1 text-xs font-medium text-accent">
+                  −{pct}% off · saves ৳{(orig - price).toLocaleString("en-US")} (auto-calculated)
+                </p>
+              );
+            }
+            return null;
+          })()}
 
           {/* sizes */}
           <div className="flex flex-col gap-2">

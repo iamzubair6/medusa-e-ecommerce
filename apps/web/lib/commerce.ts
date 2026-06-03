@@ -25,6 +25,8 @@ export interface StoreProduct {
   thumbnail: string;
   price: string;
   originalPrice?: string;
+  /** % off when on sale (price < original), for an auto "-X%" pill */
+  discountPercent?: number;
   offer?: StoreOffer;
   badge?: string;
   /** selectable colors for the card (swatch, image, quick-add sizes) */
@@ -168,13 +170,13 @@ function variantColorPricing(p: MedusaProduct): Map<string, { amount: number; or
   return map;
 }
 
-/** Per-color price string + compare-at, preferring live price over metadata. */
+/** Per-color price string + compare-at + discount %, preferring live price over metadata. */
 function colorPrice(
   p: MedusaProduct,
   color: string,
   live: Map<string, { amount: number; original?: number }>,
   cur: string,
-): { price: string; original?: string } {
+): { price: string; original?: string; discountPercent?: number } {
   const l = live.get(color);
   const metaPrice = p.metadata?.colorPrices?.[color];
   const metaOriginal = p.metadata?.colorOriginalPrices?.[color];
@@ -182,12 +184,20 @@ function colorPrice(
   if (typeof amount !== "number") return { price: "—" };
   // On-sale (price list) wins; else fall back to the manual compare-at price.
   const onSale = typeof l?.original === "number" && l.original > l.amount;
-  const original = onSale ? l!.original : metaOriginal;
-  return { price: money(amount, cur), original: original ? money(original, cur) : undefined };
+  const originalNum = onSale ? l!.original! : metaOriginal;
+  const discountPercent =
+    typeof originalNum === "number" && originalNum > amount
+      ? Math.round(((originalNum - amount) / originalNum) * 100)
+      : undefined;
+  return {
+    price: money(amount, cur),
+    original: originalNum ? money(originalNum, cur) : undefined,
+    discountPercent,
+  };
 }
 
-/** Lowest-priced color for card display, with its original price. */
-function cardPricing(p: MedusaProduct): { price: string; original?: string } {
+/** Lowest-priced color for card display, with its original price + discount %. */
+function cardPricing(p: MedusaProduct): { price: string; original?: string; discountPercent?: number } {
   const cur = currencyOf(p);
   const live = variantColorPricing(p);
   if (live.size) {
@@ -199,7 +209,8 @@ function cardPricing(p: MedusaProduct): { price: string; original?: string } {
   if (colorPrices && Object.keys(colorPrices).length) {
     const [minColor, minPrice] = Object.entries(colorPrices).reduce((a, b) => (b[1] < a[1] ? b : a));
     const orig = p.metadata?.colorOriginalPrices?.[minColor];
-    return { price: money(minPrice, cur), original: orig ? money(orig, cur) : undefined };
+    const discountPercent = orig && orig > minPrice ? Math.round(((orig - minPrice) / orig) * 100) : undefined;
+    return { price: money(minPrice, cur), original: orig ? money(orig, cur) : undefined, discountPercent };
   }
   return { price: "—" };
 }
@@ -231,7 +242,7 @@ function buildCardColors(p: MedusaProduct): CardColor[] {
 }
 
 function mapCard(p: MedusaProduct, i: number): StoreProduct {
-  const { price, original } = cardPricing(p);
+  const { price, original, discountPercent } = cardPricing(p);
   const cardColors = buildCardColors(p);
   return {
     id: p.id,
@@ -240,8 +251,10 @@ function mapCard(p: MedusaProduct, i: number): StoreProduct {
     thumbnail: p.thumbnail || cardColors[0]?.thumbnail || p.images?.[0]?.url || img(i),
     price,
     originalPrice: original,
+    discountPercent,
     offer: p.metadata?.offer,
-    badge: p.metadata?.offer?.label,
+    // Prefer an explicit offer label; otherwise auto "-X%" when on sale.
+    badge: p.metadata?.offer?.label ?? (discountPercent ? `-${discountPercent}%` : undefined),
     cardColors,
   };
 }
