@@ -3,22 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Zap } from "lucide-react";
+import { Heart, Zap } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { StoreProduct } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 
 /** Fashion-Nova-style card: image + BOGO pill, hover quick-add panel, sale price,
  *  and selectable color swatches that swap the image + sizes. */
 export function ProductCard({ product }: { product: StoreProduct }) {
   const { addItem } = useCart();
   const { openCart } = useCartUI();
+  const { has, toggle } = useWishlist();
   const colors = product.cardColors ?? [];
   const [ci, setCi] = useState(0);
   const active = colors[ci];
   const thumbnail = active?.thumbnail || product.thumbnail;
   const sizes = (active?.sizes ?? []).filter((s) => s.variantId);
+  const wished = has(product.handle);
 
   const quickAdd = (variantId: string) =>
     addItem.mutate({ variantId, quantity: 1 }, { onSuccess: () => openCart() });
@@ -41,6 +44,16 @@ export function ProductCard({ product }: { product: StoreProduct }) {
             {product.badge}
           </span>
         )}
+
+        <button
+          type="button"
+          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={wished}
+          onClick={() => toggle({ handle: product.handle, title: product.title, thumbnail: product.thumbnail, price: product.price })}
+          className="absolute right-2 top-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-background/80 backdrop-blur transition-colors hover:bg-background"
+        >
+          <Heart className={cn("h-4 w-4 transition-colors", wished ? "fill-accent text-accent" : "text-foreground")} />
+        </button>
 
         {sizes.length > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-background p-3 opacity-0 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] transition-all duration-300 ease-fluid group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">

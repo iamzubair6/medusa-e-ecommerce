@@ -11,6 +11,7 @@ import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
 import { useVisualSearch } from "@/lib/visual-search-context";
+import { useWishlist } from "@/lib/wishlist-context";
 
 export interface NavLink {
   label: string;
@@ -38,6 +39,7 @@ export function Navbar({ links, announcement }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
   const { openUpload } = useVisualSearch();
+  const { count: wishlistCount } = useWishlist();
   const message = announcement?.active ? announcement.message : "FREE SHIPPING ON ORDERS OVER $75";
 
   return (
@@ -111,8 +113,13 @@ export function Navbar({ links, announcement }: NavbarProps) {
               <Link href="/account" aria-label="Account" className="p-2 transition-colors hover:text-accent">
                 <User className="h-5 w-5" />
               </Link>
-              <Link href="/account" aria-label="Wishlist" className="hidden p-2 transition-colors hover:text-accent sm:block">
+              <Link href="/wishlist" aria-label="Wishlist" className="relative hidden p-2 transition-colors hover:text-accent sm:block">
                 <Heart className="h-5 w-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[0.55rem] font-bold text-accent-foreground">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
               <CartButton />
             </div>

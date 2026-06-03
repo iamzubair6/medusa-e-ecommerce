@@ -23,6 +23,7 @@ import type { StoreProductDetail } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
 import { useVisualSearch } from "@/lib/visual-search-context";
+import { useWishlist } from "@/lib/wishlist-context";
 import { SizeGuideModal } from "./size-guide-modal";
 
 export function PdpClient({
@@ -42,6 +43,8 @@ export function PdpClient({
   const { addItem } = useCart();
   const { openCart } = useCartUI();
   const { openSimilar } = useVisualSearch();
+  const { has: wishHas, toggle: toggleWishlist } = useWishlist();
+  const wished = wishHas(product.handle);
 
   const color = product.colors[colorIdx] ?? product.colors[0]!;
   const images = color.images.length ? color.images : product.images;
@@ -214,10 +217,15 @@ export function PdpClient({
           </Button>
           <button
             type="button"
-            aria-label="Add to wishlist"
-            className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border hover:border-foreground hover:text-accent"
+            aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={wished}
+            onClick={() => toggleWishlist({ handle: product.handle, title: product.title, thumbnail: product.thumbnail, price: color.price })}
+            className={cn(
+              "flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors hover:border-foreground",
+              wished ? "border-accent text-accent" : "border-border hover:text-accent",
+            )}
           >
-            <Heart className="h-5 w-5" />
+            <Heart className={cn("h-5 w-5", wished && "fill-accent")} />
           </button>
         </div>
         {addItem.isError && <p className="text-sm text-destructive">{(addItem.error as Error).message}</p>}
