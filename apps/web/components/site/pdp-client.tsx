@@ -23,6 +23,7 @@ import type { StoreProductDetail } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
 import { useVisualSearch } from "@/lib/visual-search-context";
+import { SizeGuideModal } from "./size-guide-modal";
 
 export function PdpClient({ product }: { product: StoreProductDetail }) {
   const [colorIdx, setColorIdx] = useState(0);
@@ -30,6 +31,7 @@ export function PdpClient({ product }: { product: StoreProductDetail }) {
   const [size, setSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  const [sizeGuide, setSizeGuide] = useState(false);
 
   const { addItem } = useCart();
   const { openCart } = useCartUI();
@@ -149,7 +151,7 @@ export function PdpClient({ product }: { product: StoreProductDetail }) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Size</span>
-            <button type="button" className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
+            <button type="button" onClick={() => setSizeGuide(true)} className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
               View Size Guide
             </button>
           </div>
@@ -228,6 +230,8 @@ export function PdpClient({ product }: { product: StoreProductDetail }) {
           <Lightbox images={images} index={imageIdx} setIndex={setImageIdx} onClose={() => setLightbox(false)} alt={product.title} />
         )}
       </AnimatePresence>
+
+      <SizeGuideModal open={sizeGuide} onClose={() => setSizeGuide(false)} />
     </div>
   );
 }
