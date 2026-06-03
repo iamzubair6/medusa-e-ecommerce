@@ -39,11 +39,13 @@ with on-save revalidation; PLP + PDP complete.
       Uses Medusa's manual payment provider (test). _(Stripe provider swap = follow-up.)_
 - ✅ **Guest lead capture**: checkout address step upserts a `GuestLead`
       (source `checkout`, with cart id) → shows in admin → Guest Leads.
-- ⬜ Order confirmation emails; registered customer accounts/login.
+- ✅ **Registered customer accounts**: register / login (Medusa auth, httpOnly
+      session), `/account` profile, **order history** (orders auto-linked at
+      checkout), and a **saved address book**.
+- ⬜ Order confirmation emails — moved to Backlog.
 
-**Exit (met):** a guest can buy end-to-end; abandoned guests appear in CMS leads.
-
-### Current focus: **Phase 3** (fulfillment & parcel tracking).
+**Exit (met):** a guest can buy end-to-end; abandoned guests appear in CMS leads;
+registered customers have accounts with order history.
 
 ## Phase 3 — Fulfillment & parcel tracking  ✅
 - ✅ Fulfillment statuses + tracking numbers in Medusa (created via Medusa admin
@@ -95,5 +97,12 @@ Captured for later; not started.
 
 ---
 
-### Current focus: **Phase 0 → Phase 1**
-Build the foundation, then the CMS-driven animated landing experience.
+### Status (current)
+**Phases 0–5 complete.** The storefront + COD checkout + a full **custom admin**
+(orders/fulfilment, products, categories & collections, discounts & BOGO/free-ship,
+sales/price-lists, customers, settings) are live; the catalogue is Bangladesh-focused
+(BDT, Dhaka shipping) and image-search indexed. Storefront also has reviews, wishlist,
+and customer accounts (profile, order history, saved addresses).
+
+**Next:** Phase 6 (hardening & launch) + the **Backlog** above — online payments,
+order emails, product Q&A.
