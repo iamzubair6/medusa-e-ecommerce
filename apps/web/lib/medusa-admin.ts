@@ -1130,6 +1130,29 @@ export async function getSettingsOverview(): Promise<SettingsOverview> {
   };
 }
 
+// --- Settings mutations (reasons + sales channels) --------------------------
+
+export async function createReturnReason(label: string, description?: string): Promise<void> {
+  await adminPost("/admin/return-reasons", { value: slugify(label) || `reason-${label.length}`, label, ...(description ? { description } : {}) });
+}
+export async function deleteReturnReason(id: string): Promise<void> {
+  await adminDelete(`/admin/return-reasons/${id}`);
+}
+
+export async function createRefundReason(label: string, description?: string): Promise<void> {
+  await adminPost("/admin/refund-reasons", { code: slugify(label) || `reason-${label.length}`, label, ...(description ? { description } : {}) });
+}
+export async function deleteRefundReason(id: string): Promise<void> {
+  await adminDelete(`/admin/refund-reasons/${id}`);
+}
+
+export async function updateSalesChannel(id: string, patch: { name?: string; isDisabled?: boolean }): Promise<void> {
+  await adminPost(`/admin/sales-channels/${id}`, {
+    ...(patch.name !== undefined ? { name: patch.name } : {}),
+    ...(patch.isDisabled !== undefined ? { is_disabled: patch.isDisabled } : {}),
+  });
+}
+
 // --- Dashboard stats --------------------------------------------------------
 
 export interface AdminDashboardStats {

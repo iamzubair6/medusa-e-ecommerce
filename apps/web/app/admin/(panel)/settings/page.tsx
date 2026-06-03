@@ -1,8 +1,9 @@
-import { Badge, Card } from "@ecom/ui";
-import { Globe, Receipt, Radio, Users, RotateCcw, ExternalLink } from "lucide-react";
+import { Card } from "@ecom/ui";
+import { Globe, Receipt, Users, ExternalLink } from "lucide-react";
 import { getSettingsOverview, listShippingRates } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
 import { ShippingEditor } from "@/components/admin/shipping-editor";
+import { ReasonsEditor, SalesChannelsEditor } from "@/components/admin/settings-editors";
 
 export const dynamic = "force-dynamic";
 
@@ -42,15 +43,7 @@ export default async function AdminSettingsPage() {
           )}
         </Viewer>
 
-        <Viewer icon={Radio} title="Sales channels">
-          {settings.salesChannels.map((c) => (
-            <Row
-              key={c.id}
-              left={c.name}
-              right={<Badge variant={c.enabled ? "gold" : "muted"}>{c.enabled ? "enabled" : "disabled"}</Badge>}
-            />
-          ))}
-        </Viewer>
+        <SalesChannelsEditor channels={settings.salesChannels} />
 
         <Viewer icon={Users} title="Admin users">
           {settings.users.map((u) => (
@@ -58,20 +51,7 @@ export default async function AdminSettingsPage() {
           ))}
         </Viewer>
 
-        <Viewer icon={RotateCcw} title="Return & refund reasons">
-          {settings.returnReasons.length || settings.refundReasons.length ? (
-            <>
-              {settings.returnReasons.map((r) => (
-                <Row key={r.id} left={r.label} right="return" />
-              ))}
-              {settings.refundReasons.map((r) => (
-                <Row key={r.id} left={r.label} right="refund" />
-              ))}
-            </>
-          ) : (
-            <Empty>None configured (optional for COD).</Empty>
-          )}
-        </Viewer>
+        <ReasonsEditor returnReasons={settings.returnReasons} refundReasons={settings.refundReasons} />
       </div>
     </>
   );
