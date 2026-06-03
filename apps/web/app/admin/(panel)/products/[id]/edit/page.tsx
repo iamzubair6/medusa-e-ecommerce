@@ -38,6 +38,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
             description: product.description,
             offer: product.offer,
             categoryIds: product.categoryIds,
+            tags: product.tags,
+            type: product.type,
             colors: product.colors,
           }}
         />

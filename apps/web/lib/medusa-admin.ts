@@ -167,6 +167,41 @@ export interface NewProductInput {
   colors: NewProductColor[];
   offer?: { type: "bogo" | "discount"; label: string; percent?: number };
   categoryIds?: string[];
+  tags?: string[];
+  type?: string;
+}
+
+/** Resolve free-text tag values → ids, creating any that don't exist yet. */
+async function resolveTagIds(values: string[]): Promise<string[]> {
+  const clean = [...new Set(values.map((v) => v.trim()).filter(Boolean))];
+  if (!clean.length) return [];
+  const data = await adminFetch<{ product_tags?: { id: string; value: string }[] }>(
+    "/admin/product-tags?fields=id,value&limit=1000",
+  );
+  const byValue = new Map((data?.product_tags ?? []).map((t) => [t.value.toLowerCase(), t.id]));
+  const ids: string[] = [];
+  for (const value of clean) {
+    const existing = byValue.get(value.toLowerCase());
+    if (existing) ids.push(existing);
+    else {
+      const { product_tag } = await adminPost<{ product_tag: { id: string } }>("/admin/product-tags", { value });
+      ids.push(product_tag.id);
+    }
+  }
+  return ids;
+}
+
+/** Resolve a free-text type value → id, creating it if needed. */
+async function resolveTypeId(value?: string): Promise<string | null> {
+  const v = value?.trim();
+  if (!v) return null;
+  const data = await adminFetch<{ product_types?: { id: string; value: string }[] }>(
+    "/admin/product-types?fields=id,value&limit=1000",
+  );
+  const existing = (data?.product_types ?? []).find((t) => t.value.toLowerCase() === v.toLowerCase());
+  if (existing) return existing.id;
+  const { product_type } = await adminPost<{ product_type: { id: string } }>("/admin/product-types", { value: v });
+  return product_type.id;
 }
 
 export interface AdminCategoryOption {
@@ -214,6 +249,7 @@ function buildMetadata(input: NewProductInput) {
 /** Create a Medusa product (variants + BDT prices + metadata) from the form. */
 export async function createProduct(input: NewProductInput): Promise<{ id: string; handle: string }> {
   const { salesChannelId, shippingProfileId } = await getCreateContext();
+  const [tagIds, typeId] = await Promise.all([resolveTagIds(input.tags ?? []), resolveTypeId(input.type)]);
   const handle = slugify(input.title) || `product-${Date.now()}`;
   const colorNames = input.colors.map((c) => c.name);
   const sizeSet = [...new Set(input.colors.flatMap((c) => c.sizes.map((s) => s.size)))];
@@ -244,6 +280,8 @@ export async function createProduct(input: NewProductInput): Promise<{ id: strin
     variants,
     ...(salesChannelId ? { sales_channels: [{ id: salesChannelId }] } : {}),
     ...(input.categoryIds?.length ? { category_ids: input.categoryIds } : {}),
+    ...(tagIds.length ? { tags: tagIds.map((id) => ({ id })) } : {}),
+    ...(typeId ? { type_id: typeId } : {}),
     metadata: buildMetadata(input),
   });
   return product;
@@ -267,6 +305,8 @@ interface RawAdminProduct {
   options?: { id: string; title: string }[];
   variants?: RawAdminVariant[];
   categories?: { id: string }[];
+  tags?: { value: string }[];
+  type?: { value: string } | null;
 }
 
 export interface AdminProductListItem {
@@ -311,7 +351,7 @@ export interface ProductFormData extends NewProductInput {
 /** Reconstruct the product-creator form shape from variants (truth) + metadata (enrichment). */
 export async function getProductForEdit(id: string): Promise<ProductFormData | null> {
   const fields =
-    "id,title,handle,description,status,thumbnail,metadata,*options,*variants,*variants.prices,*variants.options,categories.id";
+    "id,title,handle,description,status,thumbnail,metadata,*options,*variants,*variants.prices,*variants.options,categories.id,tags.value,type.value";
   const data = await adminFetch<{ product?: RawAdminProduct }>(
     `/admin/products/${id}?fields=${encodeURIComponent(fields)}`,
   );
@@ -368,6 +408,8 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     offer: meta.offer,
     colors,
     categoryIds: (p.categories ?? []).map((c) => c.id),
+    tags: (p.tags ?? []).map((t) => t.value),
+    type: p.type?.value,
   };
 }
 
@@ -436,14 +478,17 @@ export async function updateProduct(id: string, input: NewProductInput): Promise
     if (!desiredKeys.has(key)) await adminDelete(`/admin/products/${id}/variants/${vid}`);
   }
 
-  // 3. Update basics, images, metadata.
+  // 3. Update basics, images, metadata, tags & type.
   const images = [...new Set(input.colors.flatMap((c) => c.images))];
+  const [tagIds, typeId] = await Promise.all([resolveTagIds(input.tags ?? []), resolveTypeId(input.type)]);
   await adminPost(`/admin/products/${id}`, {
     title: input.title,
     description: input.description ?? "",
     ...(images[0] ? { thumbnail: images[0] } : {}),
     images: images.map((url) => ({ url })),
     ...(input.categoryIds ? { category_ids: input.categoryIds } : {}),
+    ...(input.tags ? { tags: tagIds.map((tid) => ({ id: tid })) } : {}),
+    ...(input.type !== undefined ? { type_id: typeId } : {}),
     metadata: buildMetadata(input),
   });
 }

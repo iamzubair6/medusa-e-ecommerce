@@ -37,6 +37,8 @@ export interface ProductInitial {
   description?: string;
   offer?: { type: "bogo" | "discount"; label: string; percent?: number };
   categoryIds?: string[];
+  tags?: string[];
+  type?: string;
   colors: {
     name: string;
     swatch: string;
@@ -78,6 +80,8 @@ export function ProductCreator({
   const [offerLabel, setOfferLabel] = useState(initial?.offer?.label ?? "");
   const [offerPercent, setOfferPercent] = useState(initial?.offer?.percent ? String(initial.offer.percent) : "");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
+  const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
+  const [type, setType] = useState(initial?.type ?? "");
   const [colors, setColors] = useState<FormColor[]>(
     initial ? initial.colors.map(toFormColor) : [emptyColor()],
   );
@@ -136,6 +140,8 @@ export function ProductCreator({
       title,
       description,
       categoryIds,
+      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+      type: type.trim() || undefined,
       offer:
         offerType === "none"
           ? undefined
@@ -220,6 +226,10 @@ export function ProductCreator({
             <p className="text-xs text-muted-foreground">Controls which category page(s) the product appears on.</p>
           </div>
         )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label="Type (optional)" value={type} onChange={(e) => setType(e.target.value)} placeholder="Clothing" />
+          <TextField label="Tags (comma-separated)" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="summer, bestseller" />
+        </div>
       </Card>
 
       {colors.map((c, i) => (
