@@ -131,6 +131,15 @@ async function adminPost<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function adminDelete(path: string): Promise<void> {
+  const res = await fetch(`${BACKEND}${path}`, {
+    method: "DELETE",
+    headers: { Authorization: `Basic ${basicAuth()}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Medusa ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 
@@ -156,24 +165,14 @@ export interface NewProductInput {
   offer?: { type: "bogo" | "discount"; label: string; percent?: number };
 }
 
-/** Create a Medusa product (variants + BDT prices + metadata) from the form. */
-export async function createProduct(input: NewProductInput): Promise<{ id: string; handle: string }> {
-  const { salesChannelId, shippingProfileId } = await getCreateContext();
-  const handle = slugify(input.title) || `product-${Date.now()}`;
-  const colorNames = input.colors.map((c) => c.name);
-  const sizeSet = [...new Set(input.colors.flatMap((c) => c.sizes.map((s) => s.size)))];
+/** Variant key used to reconcile colour×size combinations across edits. */
+const variantKey = (size: string, color: string) => `${size}::${color}`;
+const variantSku = (handle: string, color: string, size: string) =>
+  `${handle}-${color}-${size}`.toUpperCase().replace(/[^A-Z0-9-]/g, "");
 
-  const variants = input.colors.flatMap((c) =>
-    c.sizes.map((s) => ({
-      title: `${s.size} / ${c.name}`,
-      sku: `${handle}-${c.name}-${s.size}`.toUpperCase().replace(/[^A-Z0-9-]/g, ""),
-      manage_inventory: false, // always purchasable; stock display comes from metadata
-      options: { Size: s.size, Color: c.name },
-      prices: [{ amount: c.price, currency_code: "bdt" }],
-    })),
-  );
-
-  const metadata = {
+/** The metadata blob the storefront reads (swatches, per-colour images/prices/stock, offer). */
+function buildMetadata(input: NewProductInput) {
+  return {
     swatches: Object.fromEntries(input.colors.map((c) => [c.name, c.swatch])),
     colorImages: Object.fromEntries(input.colors.map((c) => [c.name, c.images])),
     colorPrices: Object.fromEntries(input.colors.map((c) => [c.name, c.price])),
@@ -185,6 +184,25 @@ export async function createProduct(input: NewProductInput): Promise<{ id: strin
     ),
     ...(input.offer ? { offer: input.offer } : {}),
   };
+}
+
+/** Create a Medusa product (variants + BDT prices + metadata) from the form. */
+export async function createProduct(input: NewProductInput): Promise<{ id: string; handle: string }> {
+  const { salesChannelId, shippingProfileId } = await getCreateContext();
+  const handle = slugify(input.title) || `product-${Date.now()}`;
+  const colorNames = input.colors.map((c) => c.name);
+  const sizeSet = [...new Set(input.colors.flatMap((c) => c.sizes.map((s) => s.size)))];
+  const images = [...new Set(input.colors.flatMap((c) => c.images))];
+
+  const variants = input.colors.flatMap((c) =>
+    c.sizes.map((s) => ({
+      title: `${s.size} / ${c.name}`,
+      sku: variantSku(handle, c.name, s.size),
+      manage_inventory: false, // always purchasable; stock display comes from metadata
+      options: { Size: s.size, Color: c.name },
+      prices: [{ amount: c.price, currency_code: "bdt" }],
+    })),
+  );
 
   const { product } = await adminPost<{ product: { id: string; handle: string } }>("/admin/products", {
     title: input.title,
@@ -192,16 +210,217 @@ export async function createProduct(input: NewProductInput): Promise<{ id: strin
     description: input.description ?? "",
     status: "published",
     ...(shippingProfileId ? { shipping_profile_id: shippingProfileId } : {}),
-    images: input.colors.flatMap((c) => c.images).map((url) => ({ url })),
+    ...(images[0] ? { thumbnail: images[0] } : {}),
+    images: images.map((url) => ({ url })),
     options: [
       { title: "Size", values: sizeSet },
       { title: "Color", values: colorNames },
     ],
     variants,
     ...(salesChannelId ? { sales_channels: [{ id: salesChannelId }] } : {}),
-    metadata,
+    metadata: buildMetadata(input),
   });
   return product;
+}
+
+// --- Product edit / delete / publish ----------------------------------------
+
+interface RawAdminVariant {
+  id: string;
+  prices?: { amount: number; currency_code: string }[];
+  options?: { option_id?: string; value: string }[];
+}
+interface RawAdminProduct {
+  id: string;
+  title: string;
+  handle: string;
+  description?: string | null;
+  status: string;
+  thumbnail?: string | null;
+  metadata?: Record<string, unknown> | null;
+  options?: { id: string; title: string }[];
+  variants?: RawAdminVariant[];
+}
+
+export interface AdminProductListItem {
+  id: string;
+  title: string;
+  handle: string;
+  status: string;
+  thumbnail?: string;
+  price: string;
+}
+
+/** All products (any status) for the admin list — bypasses the storefront price filter. */
+export async function listAdminProducts(limit = 100): Promise<AdminProductListItem[]> {
+  const fields = "id,title,handle,status,thumbnail,*variants.prices";
+  const data = await adminFetch<{ products?: RawAdminProduct[] }>(
+    `/admin/products?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}`,
+  );
+  return (data?.products ?? []).map((p) => {
+    const amounts = (p.variants ?? [])
+      .map((v) => v.prices?.find((pr) => pr.currency_code === "bdt")?.amount)
+      .filter((a): a is number => typeof a === "number");
+    return {
+      id: p.id,
+      title: p.title,
+      handle: p.handle,
+      status: p.status,
+      thumbnail: p.thumbnail ?? undefined,
+      price: amounts.length ? money(Math.min(...amounts), "bdt") : "—",
+    };
+  });
+}
+
+export interface ProductFormData extends NewProductInput {
+  id: string;
+  status: string;
+}
+
+/** Reconstruct the product-creator form shape from variants (truth) + metadata (enrichment). */
+export async function getProductForEdit(id: string): Promise<ProductFormData | null> {
+  const fields =
+    "id,title,handle,description,status,thumbnail,metadata,*options,*variants,*variants.prices,*variants.options";
+  const data = await adminFetch<{ product?: RawAdminProduct }>(
+    `/admin/products/${id}?fields=${encodeURIComponent(fields)}`,
+  );
+  const p = data?.product;
+  if (!p) return null;
+
+  const meta = (p.metadata ?? {}) as {
+    swatches?: Record<string, string>;
+    colorImages?: Record<string, string[]>;
+    colorPrices?: Record<string, number>;
+    colorOriginalPrices?: Record<string, number>;
+    sizeStock?: Record<string, Record<string, number>>;
+    offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+  };
+  const titleByOptionId = new Map((p.options ?? []).map((o) => [o.id, o.title]));
+
+  // color name -> { sizes(size->stock), price }
+  const colorOrder: string[] = [];
+  const sizesByColor = new Map<string, Map<string, number>>();
+  const priceByColor = new Map<string, number>();
+  for (const v of p.variants ?? []) {
+    let size = "";
+    let color = "";
+    for (const ov of v.options ?? []) {
+      const t = ov.option_id ? titleByOptionId.get(ov.option_id) : undefined;
+      if (t === "Size") size = ov.value;
+      else if (t === "Color") color = ov.value;
+    }
+    if (!color || !size) continue;
+    if (!sizesByColor.has(color)) {
+      sizesByColor.set(color, new Map());
+      colorOrder.push(color);
+    }
+    const stock = meta.sizeStock?.[color]?.[size] ?? 10;
+    sizesByColor.get(color)!.set(size, stock);
+    const bdt = v.prices?.find((pr) => pr.currency_code === "bdt")?.amount;
+    if (typeof bdt === "number") priceByColor.set(color, bdt);
+  }
+
+  const colors: NewProductColor[] = colorOrder.map((name) => ({
+    name,
+    swatch: meta.swatches?.[name] ?? "#1b1b1b",
+    price: priceByColor.get(name) ?? meta.colorPrices?.[name] ?? 0,
+    originalPrice: meta.colorOriginalPrices?.[name],
+    images: meta.colorImages?.[name] ?? [],
+    sizes: [...sizesByColor.get(name)!.entries()].map(([size, stock]) => ({ size, stock })),
+  }));
+
+  return {
+    id: p.id,
+    status: p.status,
+    title: p.title,
+    description: p.description ?? "",
+    offer: meta.offer,
+    colors,
+  };
+}
+
+/** Full replace of a product's variants/prices/options/images/metadata from the form. */
+export async function updateProduct(id: string, input: NewProductInput): Promise<void> {
+  const fields = "id,handle,*options,*options.values,*variants,*variants.options";
+  const data = await adminFetch<{
+    product?: {
+      handle: string;
+      options?: { id: string; title: string }[];
+      variants?: { id: string; options?: { option_id?: string; value: string }[] }[];
+    };
+  }>(`/admin/products/${id}?fields=${encodeURIComponent(fields)}`);
+  const existing = data?.product;
+  if (!existing) throw new Error("Product not found");
+
+  const handle = existing.handle;
+  const sizeSet = [...new Set(input.colors.flatMap((c) => c.sizes.map((s) => s.size)))];
+  const colorNames = input.colors.map((c) => c.name);
+  const titleByOptionId = new Map((existing.options ?? []).map((o) => [o.id, o.title]));
+  const sizeOption = existing.options?.find((o) => o.title === "Size");
+  const colorOption = existing.options?.find((o) => o.title === "Color");
+
+  // 1. Widen option value lists first so new variants can reference them.
+  if (sizeOption) await adminPost(`/admin/products/${id}/options/${sizeOption.id}`, { title: "Size", values: sizeSet });
+  if (colorOption) await adminPost(`/admin/products/${id}/options/${colorOption.id}`, { title: "Color", values: colorNames });
+
+  // 2. Reconcile variants by colour×size key.
+  const existingByKey = new Map<string, string>(); // key -> variant id
+  for (const v of existing.variants ?? []) {
+    let size = "";
+    let color = "";
+    for (const ov of v.options ?? []) {
+      const t = ov.option_id ? titleByOptionId.get(ov.option_id) : undefined;
+      if (t === "Size") size = ov.value;
+      else if (t === "Color") color = ov.value;
+    }
+    if (size && color) existingByKey.set(variantKey(size, color), v.id);
+  }
+
+  const desired = input.colors.flatMap((c) =>
+    c.sizes.map((s) => ({ size: s.size, color: c.name, price: c.price })),
+  );
+  const desiredKeys = new Set(desired.map((d) => variantKey(d.size, d.color)));
+
+  // create new + update price on existing
+  for (const d of desired) {
+    const key = variantKey(d.size, d.color);
+    const vid = existingByKey.get(key);
+    if (vid) {
+      await adminPost(`/admin/products/${id}/variants/${vid}`, {
+        prices: [{ amount: d.price, currency_code: "bdt" }],
+      });
+    } else {
+      await adminPost(`/admin/products/${id}/variants`, {
+        title: `${d.size} / ${d.color}`,
+        sku: variantSku(handle, d.color, d.size),
+        manage_inventory: false,
+        options: { Size: d.size, Color: d.color },
+        prices: [{ amount: d.price, currency_code: "bdt" }],
+      });
+    }
+  }
+  // delete variants no longer wanted
+  for (const [key, vid] of existingByKey) {
+    if (!desiredKeys.has(key)) await adminDelete(`/admin/products/${id}/variants/${vid}`);
+  }
+
+  // 3. Update basics, images, metadata.
+  const images = [...new Set(input.colors.flatMap((c) => c.images))];
+  await adminPost(`/admin/products/${id}`, {
+    title: input.title,
+    description: input.description ?? "",
+    ...(images[0] ? { thumbnail: images[0] } : {}),
+    images: images.map((url) => ({ url })),
+    metadata: buildMetadata(input),
+  });
+}
+
+export async function setProductStatus(id: string, status: "published" | "draft"): Promise<void> {
+  await adminPost(`/admin/products/${id}`, { status });
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await adminDelete(`/admin/products/${id}`);
 }
 
 /** Proxy a multipart upload to Medusa's file service; returns the hosted URLs. */

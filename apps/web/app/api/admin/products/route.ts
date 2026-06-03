@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createProduct } from "@/lib/medusa-admin";
 
-const schema = z.object({
+export const productSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(2000).optional(),
   offer: z
@@ -32,7 +32,7 @@ const schema = z.object({
 
 /** Create a product from the CMS admin form (admin-gated by middleware). */
 export async function POST(request: Request) {
-  const parsed = schema.safeParse(await request.json().catch(() => null));
+  const parsed = productSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }

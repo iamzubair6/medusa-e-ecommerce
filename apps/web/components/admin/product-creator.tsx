@@ -29,14 +29,43 @@ const emptyColor = (): FormColor => ({
   uploading: false,
 });
 
-export function ProductCreator() {
+/** Plain (server-serialisable) shape used to pre-fill the form in edit mode. */
+export interface ProductInitial {
+  id: string;
+  title: string;
+  description?: string;
+  offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+  colors: {
+    name: string;
+    swatch: string;
+    price: number;
+    originalPrice?: number;
+    images: string[];
+    sizes: { size: string; stock: number }[];
+  }[];
+}
+
+const toFormColor = (c: ProductInitial["colors"][number]): FormColor => ({
+  name: c.name,
+  swatch: c.swatch,
+  price: String(c.price),
+  originalPrice: c.originalPrice ? String(c.originalPrice) : "",
+  images: c.images,
+  sizes: Object.fromEntries(c.sizes.map((s) => [s.size, String(s.stock)])),
+  uploading: false,
+});
+
+export function ProductCreator({ initial }: { initial?: ProductInitial }) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [offerType, setOfferType] = useState<"none" | "bogo" | "discount">("none");
-  const [offerLabel, setOfferLabel] = useState("");
-  const [offerPercent, setOfferPercent] = useState("");
-  const [colors, setColors] = useState<FormColor[]>([emptyColor()]);
+  const editing = Boolean(initial);
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [offerType, setOfferType] = useState<"none" | "bogo" | "discount">(initial?.offer?.type ?? "none");
+  const [offerLabel, setOfferLabel] = useState(initial?.offer?.label ?? "");
+  const [offerPercent, setOfferPercent] = useState(initial?.offer?.percent ? String(initial.offer.percent) : "");
+  const [colors, setColors] = useState<FormColor[]>(
+    initial ? initial.colors.map(toFormColor) : [emptyColor()],
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,14 +136,17 @@ export function ProductCreator() {
     };
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = (await res.json()) as { product?: { handle: string }; error?: unknown };
-      if (!res.ok || !data.product) {
-        throw new Error(typeof data.error === "string" ? data.error : "Could not create product");
+      const res = await fetch(
+        editing ? `/api/admin/products/${initial!.id}` : "/api/admin/products",
+        {
+          method: editing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = (await res.json()) as { product?: { handle: string }; ok?: boolean; error?: unknown };
+      if (!res.ok || (!editing && !data.product)) {
+        throw new Error(typeof data.error === "string" ? data.error : "Could not save product");
       }
       router.push("/admin/products");
       router.refresh();
@@ -222,7 +254,7 @@ export function ProductCreator() {
 
       <div className="flex items-center gap-3">
         <Button type="button" variant="gold" loading={saving} onClick={submit}>
-          Create product
+          {editing ? "Save changes" : "Create product"}
         </Button>
         {error && <span className="text-sm text-destructive">{error}</span>}
       </div>
