@@ -10,7 +10,7 @@ import type { Cta, HeroConfig } from "@ecom/cms";
 /** Renders a video OR carousel hero based on `config.mode`. Editorial overlay. */
 export function Hero({ config }: { config: HeroConfig }) {
   return (
-    <section className="relative h-[82vh] min-h-[560px] w-full overflow-hidden bg-black text-white">
+    <section className="relative h-[82vh] min-h-[560px] w-full overflow-hidden bg-ink text-white">
       {config.mode === "video" ? <HeroVideo config={config} /> : <HeroCarousel config={config} />}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
       <Overlay config={config} />

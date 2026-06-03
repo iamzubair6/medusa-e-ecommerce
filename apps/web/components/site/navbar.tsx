@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Camera, ChevronRight, Heart, Menu, Search, User, X } from "lucide-react";
+import { Camera, Heart, Menu, Search, User, X } from "lucide-react";
 import { Container } from "@ecom/ui";
 import type { Announcement, MegaMenu } from "@ecom/cms";
 import { CartButton } from "@/components/cart/cart-button";
@@ -40,7 +40,7 @@ export function Navbar({ links, announcement }: NavbarProps) {
   return (
     <header className="sticky top-0 z-30 w-full bg-background">
       {/* announcement */}
-      <div className="bg-black text-center text-white">
+      <div className="bg-ink text-center text-primary-foreground">
         <Container className="py-2 text-[11px] font-bold uppercase tracking-[0.08em]">
           {message}{" "}
           <Link href={announcement?.href ?? "/products"} className="underline underline-offset-2">
@@ -115,7 +115,7 @@ export function Navbar({ links, announcement }: NavbarProps) {
       {/* category subnav with mega menus */}
       <div className="border-b border-border bg-background">
         <Container>
-          <ul className="hidden items-center gap-6 overflow-x-auto py-2.5 lg:flex">
+          <ul className="hidden flex-wrap items-center gap-6 py-2.5 lg:flex">
             {links.map((link) => (
               <li
                 key={link.label}
@@ -136,9 +136,6 @@ export function Navbar({ links, announcement }: NavbarProps) {
                 )}
               </li>
             ))}
-            <li className="ml-auto shrink-0 text-muted-foreground">
-              <ChevronRight className="h-4 w-4" />
-            </li>
           </ul>
         </Container>
       </div>
