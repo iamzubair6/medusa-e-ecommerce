@@ -17,7 +17,12 @@ export async function POST(request: Request) {
 
   try {
     let id = await getCartId();
-    if (id && !(await getCart(id))) id = undefined; // stale cookie
+    if (id) {
+      // Drop a stale cart (missing, or from a different currency/region, e.g. an
+      // old EUR cart) so the shopper always gets a fresh ৳ cart.
+      const existing = await getCart(id);
+      if (!existing || existing.currency.toLowerCase() !== "bdt") id = undefined;
+    }
     if (!id) {
       id = await createCart();
       await setCartId(id);

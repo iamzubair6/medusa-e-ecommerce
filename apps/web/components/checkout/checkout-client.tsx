@@ -13,16 +13,8 @@ import { PromoCode } from "@/components/cart/promo-code";
 import { useCart } from "@/hooks/use-cart";
 import type { CartView, ShippingOptionView } from "@/lib/cart-types";
 
-// Region (Europe) countries from the Medusa seed.
-const COUNTRIES = [
-  ["de", "Germany"],
-  ["fr", "France"],
-  ["it", "Italy"],
-  ["es", "Spain"],
-  ["se", "Sweden"],
-  ["dk", "Denmark"],
-  ["gb", "United Kingdom"],
-] as const;
+// Countries served by the Bangladesh (BDT) region.
+const COUNTRIES = [["bd", "Bangladesh"]] as const;
 
 const addressSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -54,7 +46,7 @@ export function CheckoutClient() {
     formState: { errors },
   } = useForm<AddressValues>({
     resolver: zodResolver(addressSchema),
-    defaultValues: { country_code: "de" },
+    defaultValues: { country_code: "bd" },
   });
 
   // Step 1 — save contact + address (also captures a guest lead), then load options.
