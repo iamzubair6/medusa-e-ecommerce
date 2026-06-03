@@ -99,8 +99,9 @@ Render/Neon tier + a custom domain).
 
 - **Render sleeps** when idle → first request after a nap is slow. Paid Render
   ($7/mo) keeps it awake. (Or Railway/Fly.)
-- **Payments** use Medusa's *manual* provider (no real charge). Add **Stripe** for
-  real payments when you launch.
+- **Payments**: **Cash on Delivery** works today (order is tagged `payment_method: cod`
+  and collected on delivery). Online card payment is "coming soon" — add **Stripe**
+  when you launch.
 - **Image search** is local color/composition similarity. For accurate, semantic
   results add a **CLIP** embedding service (needs a small always-on server) — wire
   it when you have one.
