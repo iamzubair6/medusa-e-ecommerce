@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { isAuthed } from "@/lib/admin-auth";
 import { AdminSidebar } from "@/components/admin/sidebar";
+import { ToastProvider } from "@/components/admin/toast";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +10,11 @@ export default async function AdminPanelLayout({ children }: { children: React.R
   if (!(await isAuthed())) redirect("/admin/login");
 
   return (
-    <div className="flex min-h-screen bg-muted/40">
-      <AdminSidebar />
-      <main className="flex-1 overflow-x-hidden">{children}</main>
-    </div>
+    <ToastProvider>
+      <div className="flex min-h-screen bg-muted/40">
+        <AdminSidebar />
+        <main className="flex-1 overflow-x-hidden">{children}</main>
+      </div>
+    </ToastProvider>
   );
 }

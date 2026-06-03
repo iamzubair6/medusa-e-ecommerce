@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Button, Card, cn } from "@ecom/ui";
 import { TextField, TextareaField, SelectField, CheckboxField } from "./fields";
+import { useToast } from "./toast";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -69,6 +70,7 @@ export function ProductCreator({
   categories?: CategoryOption[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const editing = Boolean(initial);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -165,10 +167,12 @@ export function ProductCreator({
       if (!res.ok || (!editing && !data.product)) {
         throw new Error(typeof data.error === "string" ? data.error : "Could not save product");
       }
+      toast.success(editing ? "Product updated." : "Product created.");
       router.push("/admin/products");
       router.refresh();
     } catch (e) {
       setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, Plus } from "lucide-react";
 import { Badge, Button, Card } from "@ecom/ui";
 import { TextField, SelectField } from "./fields";
+import { useToast } from "./toast";
 
 interface Promotion {
   id: string;
@@ -16,17 +17,16 @@ interface Promotion {
 
 export function DiscountManager({ promotions }: { promotions: Promotion[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [code, setCode] = useState("");
   const [valueType, setValueType] = useState<"percentage" | "fixed">("percentage");
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const create = async () => {
-    setError(null);
-    if (!code.trim()) return setError("Add a discount code.");
-    if (!value || Number(value) <= 0) return setError("Add a value.");
+    if (!code.trim()) return toast.error("Add a discount code.");
+    if (!value || Number(value) <= 0) return toast.error("Add a value.");
     setSaving(true);
     try {
       const res = await fetch("/api/admin/promotions", {
@@ -36,40 +36,45 @@ export function DiscountManager({ promotions }: { promotions: Promotion[] }) {
       });
       const data = (await res.json()) as { error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not create discount");
+      toast.success(`Discount ${code.toUpperCase()} created.`);
       setCode("");
       setValue("");
       router.refresh();
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setSaving(false);
     }
   };
 
-  const act = async (id: string, init: RequestInit) => {
+  const act = async (id: string, init: RequestInit, done: string) => {
     setBusyId(id);
-    setError(null);
     try {
       const res = await fetch(`/api/admin/promotions/${id}`, init);
       if (!res.ok) throw new Error("Action failed");
+      toast.success(done);
       router.refresh();
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setBusyId(null);
     }
   };
 
   const toggle = (p: Promotion) =>
-    act(p.id, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: p.status === "active" ? "inactive" : "active" }),
-    });
+    act(
+      p.id,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: p.status === "active" ? "inactive" : "active" }),
+      },
+      p.status === "active" ? `${p.code} disabled.` : `${p.code} enabled.`,
+    );
 
   const remove = (p: Promotion) => {
     if (!confirm(`Delete discount ${p.code}?`)) return;
-    act(p.id, { method: "DELETE" });
+    act(p.id, { method: "DELETE" }, `${p.code} deleted.`);
   };
 
   return (
@@ -94,7 +99,6 @@ export function DiscountManager({ promotions }: { promotions: Promotion[] }) {
           <Button variant="gold" loading={saving} onClick={create} className="w-fit">
             <Plus className="h-4 w-4" /> Create code
           </Button>
-          {error && <span className="text-sm text-destructive">{error}</span>}
         </div>
         <p className="text-xs text-muted-foreground">Customers enter the code at checkout. Applies across the order total.</p>
       </Card>

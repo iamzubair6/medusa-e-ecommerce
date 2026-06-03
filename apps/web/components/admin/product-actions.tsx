@@ -4,16 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Trash2 } from "lucide-react";
 import { Button } from "@ecom/ui";
+import { useToast } from "./toast";
 
 export function ProductActions({ id, status }: { id: string; status: string }) {
   const router = useRouter();
+  const toast = useToast();
   const [busy, setBusy] = useState<"status" | "delete" | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const published = status === "published";
 
   const toggle = async () => {
     setBusy("status");
-    setError(null);
     try {
       const res = await fetch(`/api/admin/products/${id}`, {
         method: "PATCH",
@@ -21,9 +21,10 @@ export function ProductActions({ id, status }: { id: string; status: string }) {
         body: JSON.stringify({ status: published ? "draft" : "published" }),
       });
       if (!res.ok) throw new Error("Could not update status");
+      toast.success(published ? "Product unpublished." : "Product published.");
       router.refresh();
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setBusy(null);
     }
@@ -32,21 +33,20 @@ export function ProductActions({ id, status }: { id: string; status: string }) {
   const remove = async () => {
     if (!confirm("Delete this product permanently? This cannot be undone.")) return;
     setBusy("delete");
-    setError(null);
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Could not delete product");
+      toast.success("Product deleted.");
       router.push("/admin/products");
       router.refresh();
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
       setBusy(null);
     }
   };
 
   return (
     <div className="flex items-center gap-2">
-      {error && <span className="text-sm text-destructive">{error}</span>}
       <Button variant="outline" size="sm" loading={busy === "status"} onClick={toggle}>
         {published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         {published ? "Unpublish" : "Publish"}
