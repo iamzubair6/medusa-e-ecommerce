@@ -168,6 +168,95 @@ export async function isLoggedIn(): Promise<boolean> {
   return (await getToken()) !== null;
 }
 
+// --- Saved addresses --------------------------------------------------------
+
+export interface Address {
+  id: string;
+  firstName: string;
+  lastName: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  postalCode: string;
+  phone?: string;
+  countryCode: string;
+}
+export interface AddressInput {
+  firstName: string;
+  lastName: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  postalCode: string;
+  phone?: string;
+  countryCode?: string;
+}
+
+interface RawAddress {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  address_1?: string;
+  address_2?: string;
+  city?: string;
+  postal_code?: string;
+  phone?: string;
+  country_code?: string;
+}
+
+const mapAddress = (a: RawAddress): Address => ({
+  id: a.id,
+  firstName: a.first_name ?? "",
+  lastName: a.last_name ?? "",
+  address1: a.address_1 ?? "",
+  address2: a.address_2 ?? undefined,
+  city: a.city ?? "",
+  postalCode: a.postal_code ?? "",
+  phone: a.phone ?? undefined,
+  countryCode: (a.country_code ?? "bd").toUpperCase(),
+});
+
+const toBody = (input: AddressInput) => ({
+  first_name: input.firstName,
+  last_name: input.lastName,
+  address_1: input.address1,
+  address_2: input.address2 ?? "",
+  city: input.city,
+  postal_code: input.postalCode,
+  phone: input.phone ?? "",
+  country_code: (input.countryCode ?? "bd").toLowerCase(),
+});
+
+export async function listAddresses(): Promise<Address[]> {
+  const token = await getToken();
+  if (!token) return [];
+  const res = await storeFetch("/store/customers/me/addresses", token);
+  if (!res.ok) return [];
+  const { addresses } = (await res.json()) as { addresses?: RawAddress[] };
+  return (addresses ?? []).map(mapAddress);
+}
+
+export async function addAddress(input: AddressInput): Promise<boolean> {
+  const token = await getToken();
+  if (!token) return false;
+  const res = await storeFetch("/store/customers/me/addresses", token, { method: "POST", body: JSON.stringify(toBody(input)) });
+  return res.ok;
+}
+
+export async function updateAddress(id: string, input: AddressInput): Promise<boolean> {
+  const token = await getToken();
+  if (!token) return false;
+  const res = await storeFetch(`/store/customers/me/addresses/${id}`, token, { method: "POST", body: JSON.stringify(toBody(input)) });
+  return res.ok;
+}
+
+export async function deleteAddress(id: string): Promise<boolean> {
+  const token = await getToken();
+  if (!token) return false;
+  const res = await storeFetch(`/store/customers/me/addresses/${id}`, token, { method: "DELETE" });
+  return res.ok;
+}
+
 export async function updateCustomer(patch: { firstName?: string; lastName?: string; phone?: string }): Promise<boolean> {
   const token = await getToken();
   if (!token) return false;
