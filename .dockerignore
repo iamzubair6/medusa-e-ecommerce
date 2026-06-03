@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/.medusa
+**/dist
+**/.turbo
+.git
+.env
+**/.env
+!**/.env.example
+*.log
+/tmp
+docs
+# the web image (root build context) doesn't need the Medusa backend
+apps/medusa
