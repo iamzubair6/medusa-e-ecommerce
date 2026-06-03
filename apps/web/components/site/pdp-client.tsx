@@ -3,8 +3,22 @@
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, Sparkles, X, Zap } from "lucide-react";
-import { Badge, Button, cn } from "@ecom/ui";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Minus,
+  Plus,
+  Share2,
+  ShoppingBag,
+  Sparkles,
+  Star,
+  Truck,
+  X,
+  Zap,
+} from "lucide-react";
+import { Button, cn } from "@ecom/ui";
 import type { StoreProductDetail } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
@@ -19,7 +33,6 @@ export function PdpClient({
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
   const [size, setSize] = useState<string | null>(null);
-  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [lightbox, setLightbox] = useState(false);
 
@@ -41,7 +54,7 @@ export function PdpClient({
   const addToBag = () => {
     if (!sizeObj?.variantId) return;
     addItem.mutate(
-      { variantId: sizeObj.variantId, quantity: qty },
+      { variantId: sizeObj.variantId, quantity: 1 },
       { onSuccess: () => { setAdded(true); openCart(); } },
     );
   };
@@ -59,7 +72,7 @@ export function PdpClient({
               onMouseEnter={() => setImageIdx(i)}
               onClick={() => setImageIdx(i)}
               className={cn(
-                "relative aspect-[3/4] w-full overflow-hidden rounded-sm border transition",
+                "relative aspect-[3/4] w-full overflow-hidden border transition",
                 i === imageIdx ? "border-foreground" : "border-transparent opacity-70 hover:opacity-100",
               )}
             >
@@ -67,28 +80,48 @@ export function PdpClient({
             </button>
           ))}
         </div>
-        <ZoomImage
-          src={images[imageIdx] ?? product.thumbnail}
-          alt={product.title}
-          onOpen={() => setLightbox(true)}
-        />
+        <div className="relative flex-1">
+          {product.offer && (
+            <span className="absolute left-3 top-3 z-10 rounded-full bg-accent px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-accent-foreground">
+              {product.offer.type === "bogo" ? "BOGO" : product.offer.label}
+            </span>
+          )}
+          <ZoomImage src={images[imageIdx] ?? product.thumbnail} alt={product.title} onOpen={() => setLightbox(true)} />
+        </div>
       </div>
 
-      {/* Info */}
+      {/* Buy box */}
       <div className="flex flex-col gap-5">
         <div>
-          {product.offer && (
-            <Badge variant="accent" className="mb-2">
-              {product.offer.label}
-            </Badge>
-          )}
-          <h1 className="font-display text-3xl font-bold tracking-tight">{product.title}</h1>
-          <div className="mt-2 flex items-center gap-3">
-            <span className="text-xl font-semibold">{color.price}</span>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="font-display text-2xl font-bold tracking-tight">{product.title}</h1>
+            <button type="button" className="flex shrink-0 cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <Share2 className="h-4 w-4" /> Share
+            </button>
+          </div>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="flex">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Star key={i} className="h-3.5 w-3.5 fill-foreground text-foreground" />
+              ))}
+            </span>
+            <span className="text-xs text-muted-foreground underline">(24)</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3">
+            <span className="text-xl font-bold">{color.price}</span>
             {color.originalPrice && (
               <span className="text-base text-muted-foreground line-through">{color.originalPrice}</span>
             )}
           </div>
+          {product.offer && (
+            <p className="mt-1 text-sm font-semibold text-accent">
+              {product.offer.label}
+              {product.offer.type === "bogo" && " — Use code FREE"}
+            </p>
+          )}
         </div>
 
         {/* Color */}
@@ -118,7 +151,12 @@ export function PdpClient({
 
         {/* Size */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Size</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Size</span>
+            <button type="button" className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
+              View Size Guide
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {color.sizes.map((s) => {
               const isActive = size === s.size;
@@ -131,7 +169,7 @@ export function PdpClient({
                   onClick={() => { setSize(s.size); setAdded(false); }}
                   aria-pressed={isActive}
                   className={cn(
-                    "relative flex min-w-12 cursor-pointer items-center justify-center gap-1 rounded-sm border px-3 py-2.5 text-sm font-medium transition-colors",
+                    "relative flex min-w-14 cursor-pointer items-center justify-center gap-1 rounded-sm border px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
                     soldOut && "cursor-not-allowed opacity-40 line-through",
                   )}
@@ -143,45 +181,50 @@ export function PdpClient({
             })}
           </div>
           {sizeObj?.lowStock && (
-            <p className="flex items-center gap-1.5 text-xs font-medium text-accent">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-accent">
               <Zap className="h-3.5 w-3.5" /> Hurry — only {sizeObj.stock} left in {color.name} / {sizeObj.size}!
             </p>
           )}
         </div>
 
-        {/* Quantity */}
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quantity</span>
-          <div className="flex w-fit items-center rounded-sm border border-border">
-            <button type="button" aria-label="Decrease" onClick={() => setQty((q) => Math.max(1, q - 1))} className="cursor-pointer p-3 hover:bg-muted">
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="w-10 text-center text-sm font-medium">{qty}</span>
-            <button type="button" aria-label="Increase" onClick={() => setQty((q) => Math.min(10, q + 1))} className="cursor-pointer p-3 hover:bg-muted">
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
+        {/* Add to bag + wishlist */}
+        <div className="flex items-center gap-3">
           <Button
             variant="solid"
             size="lg"
             disabled={!ready}
             loading={addItem.isPending}
             onClick={addToBag}
-            className="flex-1 rounded-full"
+            className="h-14 flex-1 rounded-full text-sm"
           >
             {added && !addItem.isPending ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
             {added && !addItem.isPending ? "Added to Bag" : ready ? "Add to Bag" : size ? "Unavailable" : "Select a Size"}
           </Button>
-          {onShopSimilar && (
-            <Button variant="outline" size="lg" onClick={onShopSimilar} className="rounded-full">
-              <Sparkles className="h-4 w-4" /> Shop Similar
-            </Button>
-          )}
+          <button
+            type="button"
+            aria-label="Add to wishlist"
+            className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border hover:border-foreground hover:text-accent"
+          >
+            <Heart className="h-5 w-5" />
+          </button>
         </div>
         {addItem.isError && <p className="text-sm text-destructive">{(addItem.error as Error).message}</p>}
+
+        {/* delivery + shop similar */}
+        <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <Truck className="h-4 w-4" /> Standard delivery in 3–5 days · Free shipping over ৳2,000
+          </span>
+          {onShopSimilar && (
+            <button
+              type="button"
+              onClick={onShopSimilar}
+              className="flex w-fit cursor-pointer items-center gap-1.5 text-foreground underline-offset-4 hover:underline"
+            >
+              <Sparkles className="h-4 w-4" /> Shop Similar
+            </button>
+          )}
+        </div>
 
         <Accordions description={product.description} />
       </div>
@@ -195,21 +238,16 @@ export function PdpClient({
   );
 }
 
-/** Main image with cursor-follow magnify on hover; click opens the lightbox. */
 function ZoomImage({ src, alt, onOpen }: { src: string; alt: string; onOpen: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(false);
   const [origin, setOrigin] = useState("50% 50%");
-
   const onMove = (e: React.MouseEvent) => {
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width) * 100;
-    const y = ((e.clientY - r.top) / r.height) * 100;
-    setOrigin(`${x}% ${y}%`);
+    setOrigin(`${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`);
   };
-
   return (
     <div
       ref={ref}
@@ -217,7 +255,7 @@ function ZoomImage({ src, alt, onOpen }: { src: string; alt: string; onOpen: () 
       onMouseLeave={() => setZoom(false)}
       onMouseMove={onMove}
       onClick={onOpen}
-      className="relative aspect-[3/4] flex-1 cursor-zoom-in overflow-hidden rounded-sm bg-muted"
+      className="relative aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-muted"
     >
       <Image
         src={src}
@@ -273,7 +311,7 @@ function Lightbox({
             type="button"
             aria-label={`Image ${i + 1}`}
             onClick={() => setIndex(i)}
-            className={cn("relative h-14 w-11 overflow-hidden rounded-sm", i === index ? "ring-2 ring-white" : "opacity-60")}
+            className={cn("relative h-14 w-11 overflow-hidden", i === index ? "ring-2 ring-white" : "opacity-60")}
           >
             <Image src={src} alt="" fill sizes="44px" className="object-cover" />
           </button>
@@ -292,7 +330,7 @@ const PANELS = [
 function Accordions({ description }: { description: string }) {
   const [open, setOpen] = useState<string | null>("details");
   return (
-    <div className="mt-2 border-t border-border">
+    <div className="mt-1 border-t border-border">
       {PANELS.map((p) => {
         const isOpen = open === p.key;
         return (
