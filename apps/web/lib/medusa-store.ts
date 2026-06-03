@@ -163,10 +163,14 @@ export async function setCartCustomer(
 }
 
 export async function listShippingOptions(id: string): Promise<ShippingOptionView[]> {
-  const data = await api<{ shipping_options: { id: string; name: string; amount?: number }[] }>(
+  const data = await api<{ shipping_options: { id: string; name: string; amount?: number | null }[] }>(
     `/store/shipping-options?cart_id=${id}`,
   );
-  return data.shipping_options.map((o) => ({ id: o.id, name: o.name, amount: fmt(o.amount, "bdt") }));
+  // Only options that have a usable price in the cart's currency (skips options
+  // from other regions/zones that aren't priced for this cart).
+  return data.shipping_options
+    .filter((o) => typeof o.amount === "number")
+    .map((o) => ({ id: o.id, name: o.name, amount: fmt(o.amount as number, "bdt") }));
 }
 
 export async function applyPromotion(id: string, code: string): Promise<CartView> {
@@ -191,6 +195,11 @@ export async function addShippingMethod(id: string, optionId: string): Promise<C
     body: JSON.stringify({ option_id: optionId }),
   });
   return mapCart(cart);
+}
+
+/** Tag the cart with the chosen payment method (carried onto the order). */
+export async function setCartMetadata(id: string, metadata: Record<string, unknown>): Promise<void> {
+  await api(`/store/carts/${id}`, { method: "POST", body: JSON.stringify({ metadata }) });
 }
 
 /** Create a payment collection + session with the manual provider. */
