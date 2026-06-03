@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { deleteProduct, setProductStatus, updateProduct } from "@/lib/medusa-admin";
-import { productSchema } from "../route";
+import { productSchema } from "@/lib/product-schema";
 
 const statusSchema = z.object({ status: z.enum(["published", "draft"]) });
 
