@@ -111,3 +111,106 @@ export async function getOrderTracking(
   );
   return match ? mapTracking(match) : null;
 }
+
+// --- Product creation (CMS admin "New product" form) ------------------------
+
+function basicAuth(): string {
+  return Buffer.from(`${SK}:`).toString("base64");
+}
+
+async function adminPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BACKEND}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Basic ${basicAuth()}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Medusa ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  return (await res.json()) as T;
+}
+
+const slugify = (s: string) =>
+  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
+/** Sales channel + shipping profile needed to create a product. */
+async function getCreateContext(): Promise<{ salesChannelId?: string; shippingProfileId?: string }> {
+  const sc = await adminFetch<{ sales_channels?: { id: string }[] }>("/admin/sales-channels?limit=1");
+  const sp = await adminFetch<{ shipping_profiles?: { id: string }[] }>("/admin/shipping-profiles?limit=1");
+  return { salesChannelId: sc?.sales_channels?.[0]?.id, shippingProfileId: sp?.shipping_profiles?.[0]?.id };
+}
+
+export interface NewProductColor {
+  name: string;
+  swatch: string;
+  price: number; // BDT
+  originalPrice?: number;
+  images: string[];
+  sizes: { size: string; stock: number }[];
+}
+export interface NewProductInput {
+  title: string;
+  description?: string;
+  colors: NewProductColor[];
+  offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+}
+
+/** Create a Medusa product (variants + BDT prices + metadata) from the form. */
+export async function createProduct(input: NewProductInput): Promise<{ id: string; handle: string }> {
+  const { salesChannelId, shippingProfileId } = await getCreateContext();
+  const handle = slugify(input.title) || `product-${Date.now()}`;
+  const colorNames = input.colors.map((c) => c.name);
+  const sizeSet = [...new Set(input.colors.flatMap((c) => c.sizes.map((s) => s.size)))];
+
+  const variants = input.colors.flatMap((c) =>
+    c.sizes.map((s) => ({
+      title: `${s.size} / ${c.name}`,
+      sku: `${handle}-${c.name}-${s.size}`.toUpperCase().replace(/[^A-Z0-9-]/g, ""),
+      manage_inventory: false, // always purchasable; stock display comes from metadata
+      options: { Size: s.size, Color: c.name },
+      prices: [{ amount: c.price, currency_code: "bdt" }],
+    })),
+  );
+
+  const metadata = {
+    swatches: Object.fromEntries(input.colors.map((c) => [c.name, c.swatch])),
+    colorImages: Object.fromEntries(input.colors.map((c) => [c.name, c.images])),
+    colorPrices: Object.fromEntries(input.colors.map((c) => [c.name, c.price])),
+    colorOriginalPrices: Object.fromEntries(
+      input.colors.filter((c) => c.originalPrice).map((c) => [c.name, c.originalPrice]),
+    ),
+    sizeStock: Object.fromEntries(
+      input.colors.map((c) => [c.name, Object.fromEntries(c.sizes.map((s) => [s.size, s.stock]))]),
+    ),
+    ...(input.offer ? { offer: input.offer } : {}),
+  };
+
+  const { product } = await adminPost<{ product: { id: string; handle: string } }>("/admin/products", {
+    title: input.title,
+    handle,
+    description: input.description ?? "",
+    status: "published",
+    ...(shippingProfileId ? { shipping_profile_id: shippingProfileId } : {}),
+    images: input.colors.flatMap((c) => c.images).map((url) => ({ url })),
+    options: [
+      { title: "Size", values: sizeSet },
+      { title: "Color", values: colorNames },
+    ],
+    variants,
+    ...(salesChannelId ? { sales_channels: [{ id: salesChannelId }] } : {}),
+    metadata,
+  });
+  return product;
+}
+
+/** Proxy a multipart upload to Medusa's file service; returns the hosted URLs. */
+export async function uploadFiles(form: FormData): Promise<string[]> {
+  const res = await fetch(`${BACKEND}/admin/uploads`, {
+    method: "POST",
+    headers: { Authorization: `Basic ${basicAuth()}` },
+    body: form,
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  const data = (await res.json()) as { files?: { url: string }[] };
+  return (data.files ?? []).map((f) => f.url);
+}
