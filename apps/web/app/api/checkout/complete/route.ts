@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { clearCartId, getCartId } from "@/lib/cart-cookie";
 import { completeCart, initPayment, setCartMetadata } from "@/lib/medusa-store";
+import { transferCartToCustomer } from "@/lib/customer-auth";
 
 const schema = z.object({ method: z.enum(["cod", "card"]).optional() });
 
@@ -14,6 +15,8 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => ({})));
   const method = parsed.success ? (parsed.data.method ?? "cod") : "cod";
   try {
+    // Link the order to the signed-in customer (no-op for guests).
+    await transferCartToCustomer(id).catch(() => undefined);
     await setCartMetadata(id, { payment_method: method }).catch(() => undefined);
     await initPayment(id);
     const result = await completeCart(id);

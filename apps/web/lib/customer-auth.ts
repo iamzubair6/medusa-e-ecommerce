@@ -153,6 +153,21 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
   }));
 }
 
+/**
+ * If a customer is signed in, attach the active cart to their account so the
+ * resulting order shows up in their order history. Best-effort (guest = no-op).
+ */
+export async function transferCartToCustomer(cartId: string): Promise<boolean> {
+  const token = await getToken();
+  if (!token) return false;
+  const res = await storeFetch(`/store/carts/${cartId}/customer`, token, { method: "POST" });
+  return res.ok;
+}
+
+export async function isLoggedIn(): Promise<boolean> {
+  return (await getToken()) !== null;
+}
+
 export async function updateCustomer(patch: { firstName?: string; lastName?: string; phone?: string }): Promise<boolean> {
   const token = await getToken();
   if (!token) return false;
