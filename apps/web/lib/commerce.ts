@@ -285,9 +285,9 @@ export const getRegionId = cache(async (): Promise<string | undefined> => {
 });
 
 const CARD_FIELDS =
-  "fields=title,handle,thumbnail,metadata,*images,*variants.calculated_price,*variants.options.option";
+  "fields=title,handle,thumbnail,metadata,*images,*variants.calculated_price,*variants.options,*variants.options.option";
 const DETAIL_FIELDS =
-  "fields=title,handle,description,thumbnail,metadata,*images,*options,*variants.calculated_price,*variants.options.option";
+  "fields=title,handle,description,thumbnail,metadata,*images,*options,*variants.calculated_price,*variants.options,*variants.options.option";
 
 function sourceToQuery(source: ProductSource, limit: number): string {
   const params = new URLSearchParams({ limit: String(limit) });
