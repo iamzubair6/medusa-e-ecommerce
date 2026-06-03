@@ -882,6 +882,36 @@ export async function deletePriceList(id: string): Promise<void> {
   await adminDelete(`/admin/price-lists/${id}`);
 }
 
+// --- Shipping rates ---------------------------------------------------------
+
+export interface AdminShippingRate {
+  id: string;
+  name: string;
+  amount: number; // BDT
+}
+
+export async function listShippingRates(): Promise<AdminShippingRate[]> {
+  const data = await adminFetch<{
+    shipping_options?: { id: string; name: string; prices?: { amount: number; currency_code: string }[] }[];
+  }>("/admin/shipping-options?fields=id,name,*prices");
+  return (data?.shipping_options ?? []).map((o) => ({
+    id: o.id,
+    name: o.name,
+    amount: o.prices?.find((p) => p.currency_code === "bdt")?.amount ?? 0,
+  }));
+}
+
+/** Update a shipping option's BDT price (keeps region + currency rows in sync). */
+export async function updateShippingRate(id: string, amount: number): Promise<void> {
+  const data = await adminFetch<{ shipping_option?: { prices?: { id: string; currency_code: string }[] } }>(
+    `/admin/shipping-options/${id}?fields=id,prices.id,prices.currency_code`,
+  );
+  const bdtPriceIds = (data?.shipping_option?.prices ?? []).filter((p) => p.currency_code === "bdt").map((p) => p.id);
+  await adminPost(`/admin/shipping-options/${id}`, {
+    prices: bdtPriceIds.map((pid) => ({ id: pid, amount, currency_code: "bdt" })),
+  });
+}
+
 // --- Customers --------------------------------------------------------------
 
 interface RawCustomer {
@@ -975,6 +1005,55 @@ export async function getCustomerDetail(id: string): Promise<AdminCustomerDetail
         paymentStatus: o.payment_status,
       }))
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
+  };
+}
+
+// --- Settings viewers (read-only infra surfaced in the dashboard) ------------
+
+export interface SettingsOverview {
+  regions: { id: string; name: string; currency: string; countries: string[] }[];
+  taxRegions: { id: string; country: string }[];
+  salesChannels: { id: string; name: string; enabled: boolean }[];
+  users: { id: string; email: string; name: string }[];
+  returnReasons: { id: string; label: string; value: string }[];
+  refundReasons: { id: string; label: string }[];
+}
+
+export async function getSettingsOverview(): Promise<SettingsOverview> {
+  const [regions, tax, channels, users, returns, refunds] = await Promise.all([
+    adminFetch<{ regions?: { id: string; name: string; currency_code: string; countries?: { iso_2: string }[] }[] }>(
+      "/admin/regions?fields=id,name,currency_code,*countries&limit=50",
+    ),
+    adminFetch<{ tax_regions?: { id: string; country_code: string }[] }>("/admin/tax-regions?fields=id,country_code&limit=50"),
+    adminFetch<{ sales_channels?: { id: string; name: string; is_disabled?: boolean }[] }>(
+      "/admin/sales-channels?fields=id,name,is_disabled&limit=50",
+    ),
+    adminFetch<{ users?: { id: string; email: string; first_name?: string | null; last_name?: string | null }[] }>(
+      "/admin/users?fields=id,email,first_name,last_name&limit=50",
+    ),
+    adminFetch<{ return_reasons?: { id: string; label: string; value: string }[] }>(
+      "/admin/return-reasons?fields=id,label,value&limit=50",
+    ).catch(() => null),
+    adminFetch<{ refund_reasons?: { id: string; label: string }[] }>("/admin/refund-reasons?fields=id,label&limit=50").catch(
+      () => null,
+    ),
+  ]);
+  return {
+    regions: (regions?.regions ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      currency: r.currency_code.toUpperCase(),
+      countries: (r.countries ?? []).map((c) => c.iso_2.toUpperCase()),
+    })),
+    taxRegions: (tax?.tax_regions ?? []).map((t) => ({ id: t.id, country: t.country_code.toUpperCase() })),
+    salesChannels: (channels?.sales_channels ?? []).map((c) => ({ id: c.id, name: c.name, enabled: !c.is_disabled })),
+    users: (users?.users ?? []).map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "—",
+    })),
+    returnReasons: (returns?.return_reasons ?? []).map((r) => ({ id: r.id, label: r.label, value: r.value })),
+    refundReasons: (refunds?.refund_reasons ?? []).map((r) => ({ id: r.id, label: r.label })),
   };
 }
 
