@@ -96,7 +96,7 @@ JSON/key-value editor):
 | `colorImages` | Which images show when a color is selected (PDP gallery + card image swap). Use CORS-friendly hosts (e.g. Unsplash) so image search can index them. |
 | `colorPrices` | The price **shown** per color (e.g. "৳160" for Olive). Keep it equal to that color's variant price. |
 | `colorOriginalPrices` | The **struck-through** "was" price → shows a sale. Omit a color to show no strikethrough. |
-| `sizeStock` | Drives the **⚡ low-stock** badge and "**Hurry — only N left**" message. A size with stock ≤ **5** is flagged low. Keep roughly in sync with real inventory. |
+| `sizeStock` | Provides the **stock number** for the **⚡ low-stock** badge and "**Hurry — only N left**" message (a size with stock ≤ **5** is flagged low). **Which colors/sizes actually exist is decided by the variants, not this** — deleting a variant removes that color/size from the store even if it's still listed here. Keep the numbers roughly in sync with real inventory. |
 | `offer` | The badge + promo line. `type` is `"bogo"` or `"discount"` (add `"percent"`). `label` is the text shown (e.g. `BUY 1 GET 1 FREE`, `25% OFF`). |
 
 Click **Save**.
