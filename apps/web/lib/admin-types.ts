@@ -42,6 +42,7 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   };
   fulfillments: AdminFulfillment[];
   fulfilled: boolean;
+  canceled: boolean;
 }
 
 export interface AdminPromotion {

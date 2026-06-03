@@ -35,6 +35,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <Badge variant={order.fulfilled ? "gold" : "outline"}>
                 {order.fulfillmentStatus.replace(/_/g, " ")}
               </Badge>
+              {order.canceled && <Badge variant="accent">Canceled</Badge>}
             </div>
             <ul className="flex flex-col divide-y divide-border">
               {order.items.map((it) => (

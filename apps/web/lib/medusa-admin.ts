@@ -502,6 +502,7 @@ export async function listOrders(
 }
 
 interface RawOrderFull extends RawOrderListItem {
+  status?: string;
   subtotal?: number;
   shipping_total?: number;
   items?: {
@@ -532,7 +533,7 @@ interface RawOrderFull extends RawOrderListItem {
 
 export async function getOrderDetail(id: string): Promise<AdminOrderDetail | null> {
   const fields =
-    "id,display_id,email,currency_code,total,subtotal,shipping_total,payment_status,fulfillment_status,created_at,metadata,*items,*shipping_address,*fulfillments,*fulfillments.labels,fulfillments.delivered_at";
+    "id,display_id,status,email,currency_code,total,subtotal,shipping_total,payment_status,fulfillment_status,created_at,metadata,*items,*shipping_address,*fulfillments,*fulfillments.labels,fulfillments.delivered_at";
   const data = await adminFetch<{ order?: RawOrderFull }>(
     `/admin/orders/${id}?fields=${encodeURIComponent(fields)}`,
   );
@@ -576,7 +577,13 @@ export async function getOrderDetail(id: string): Promise<AdminOrderDetail | nul
       trackingNumbers: (f.labels ?? []).map((l) => l.tracking_number).filter((t): t is string => !!t),
     })),
     fulfilled: o.fulfillment_status !== "not_fulfilled",
+    canceled: o.status === "canceled",
   };
+}
+
+/** Cancel an order (e.g. customer no-show on COD). Blocked by Medusa once shipped. */
+export async function cancelOrder(id: string): Promise<void> {
+  await adminPost(`/admin/orders/${id}/cancel`, {});
 }
 
 async function orderLineItems(id: string): Promise<{ id: string; quantity: number }[]> {

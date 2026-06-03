@@ -9,17 +9,19 @@ import type { AdminOrderDetail } from "@/lib/admin-types";
 export function OrderActions({ order }: { order: AdminOrderDetail }) {
   const router = useRouter();
   const [tracking, setTracking] = useState("");
-  const [busy, setBusy] = useState<"fulfil" | "ship" | "deliver" | null>(null);
+  const [busy, setBusy] = useState<"fulfil" | "ship" | "deliver" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const shipped = order.fulfillments.some((f) => f.shippedAt);
   const delivered = order.fulfillments.some((f) => f.deliveredAt);
 
-  const run = async (action: "fulfil" | "ship" | "deliver") => {
+  const run = async (action: "fulfil" | "ship" | "deliver" | "cancel") => {
+    if (action === "cancel" && !confirm("Cancel this order? This cannot be undone.")) return;
     setBusy(action);
     setError(null);
     try {
-      const path = action === "fulfil" ? "fulfill" : action === "ship" ? "ship" : "deliver";
+      const path =
+        action === "fulfil" ? "fulfill" : action === "ship" ? "ship" : action === "deliver" ? "deliver" : "cancel";
       const url = `/api/admin/orders/${order.id}/${path}`;
       const res = await fetch(url, {
         method: "POST",
@@ -37,6 +39,10 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
       setBusy(null);
     }
   };
+
+  if (order.canceled) {
+    return <p className="text-sm font-medium text-destructive">✕ Order canceled</p>;
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -74,6 +80,24 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
       )}
 
       {delivered && <p className="text-sm font-medium text-gold">✓ Delivered — order complete</p>}
+
+      {!delivered && !shipped && (
+        <Button
+          variant="ghost"
+          size="sm"
+          loading={busy === "cancel"}
+          onClick={() => run("cancel")}
+          className="w-fit text-destructive hover:bg-destructive/10"
+        >
+          Cancel order
+        </Button>
+      )}
+
+      {order.paymentMethod === "cod" && (
+        <p className="text-xs text-muted-foreground">
+          COD: no online payment to refund — settle any cash refund directly with the customer.
+        </p>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
