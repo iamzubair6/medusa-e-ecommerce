@@ -21,6 +21,8 @@ interface PromoPopupProps {
 const emailSchema = z.object({ email: z.string().email("Enter a valid email") });
 type EmailValues = z.infer<typeof emailSchema>;
 
+const PREFS = ["Women", "Men", "Curve", "Kids", "Beauty"];
+
 const storageKey = (id: string) => `popup:${id}:dismissedAt`;
 
 function recentlyDismissed(id: string, frequencyDays: number): boolean {
@@ -38,7 +40,16 @@ function recentlyDismissed(id: string, frequencyDays: number): boolean {
 export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
+  const [prefs, setPrefs] = useState<Set<string>>(new Set());
+  const [consent, setConsent] = useState(true);
   const reduce = useReducedMotion();
+
+  const togglePref = (p: string) =>
+    setPrefs((s) => {
+      const n = new Set(s);
+      n.has(p) ? n.delete(p) : n.add(p);
+      return n;
+    });
 
   const {
     register,
@@ -85,7 +96,11 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
     await fetch("/api/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: values.email, source: "popup" }),
+      body: JSON.stringify({
+        email: values.email,
+        source: "popup",
+        capturedFields: { preferences: [...prefs], consent },
+      }),
     });
     setDone(true);
     setTimeout(dismiss, 1500);
@@ -124,15 +139,44 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
                 <Image src={config.media.url} alt="" fill className="object-cover" />
               </div>
             )}
-            <div className="flex flex-col gap-4 p-6 text-center">
-              <h2 className="font-display text-2xl font-bold tracking-tight">{config.heading}</h2>
-              {config.body && <p className="text-sm text-muted-foreground">{config.body}</p>}
+            <div className="flex flex-col gap-4 p-7 text-center">
+              <span className="font-display text-xl font-bold uppercase tracking-[0.1em]">MAISON</span>
+              <div>
+                <h2 className="font-display text-3xl font-bold uppercase leading-tight tracking-tight">
+                  {config.heading}
+                </h2>
+                {config.body && <p className="mt-1 text-sm text-muted-foreground">{config.body}</p>}
+              </div>
 
               {config.captureEmail ? (
                 done ? (
-                  <p className="text-sm font-medium text-gold">You&apos;re in. Check your inbox!</p>
+                  <p className="py-4 text-sm font-medium text-accent">You&apos;re in. Check your inbox!</p>
                 ) : (
                   <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+                    {/* preferences */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Choose your preferences
+                      </span>
+                      <div className="flex flex-wrap justify-center gap-1.5">
+                        {PREFS.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            aria-pressed={prefs.has(p)}
+                            onClick={() => togglePref(p)}
+                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                              prefs.has(p)
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-border hover:border-foreground"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <Input
                       type="email"
                       placeholder="you@email.com"
@@ -140,13 +184,26 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
                       error={errors.email?.message}
                       {...register("email")}
                     />
-                    <Button type="submit" variant="gold" loading={isSubmitting}>
-                      {config.cta?.label ?? "Subscribe"}
+
+                    <label className="flex cursor-pointer items-start gap-2 text-left text-[0.7rem] leading-snug text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                        className="mt-0.5 h-3.5 w-3.5 accent-[hsl(var(--accent))]"
+                      />
+                      <span>
+                        Yes! Sign me up for email updates. I agree to the Terms of Service and Privacy Policy.
+                      </span>
+                    </label>
+
+                    <Button type="submit" variant="solid" loading={isSubmitting} className="rounded-full">
+                      {config.cta?.label ?? "I Love Saving Money!"}
                     </Button>
                   </form>
                 )
               ) : (
-                <Button variant="gold" onClick={dismiss}>
+                <Button variant="solid" onClick={dismiss} className="rounded-full">
                   {config.cta?.label ?? "Shop now"}
                 </Button>
               )}
@@ -154,9 +211,9 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
               <button
                 type="button"
                 onClick={dismiss}
-                className="cursor-pointer text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                className="cursor-pointer text-xs uppercase tracking-wide text-muted-foreground underline-offset-2 hover:underline"
               >
-                {config.dismissLabel}
+                {config.dismissLabel || "I'll pay full price"}
               </button>
             </div>
           </motion.div>
