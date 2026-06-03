@@ -31,7 +31,12 @@ function ScrollCue() {
 function Overlay({ config }: { config: HeroConfig }) {
   const reduce = useReducedMotion();
   const words = config.headline.split(" ");
-  const alignCls = config.align === "center" ? "items-center text-center" : "items-start text-left";
+  const alignCls =
+    config.align === "center"
+      ? "items-center text-center"
+      : config.align === "right"
+        ? "items-end text-right"
+        : "items-start text-left";
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-end pb-20 md:pb-24">

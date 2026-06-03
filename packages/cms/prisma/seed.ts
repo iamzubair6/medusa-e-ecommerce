@@ -35,8 +35,9 @@ async function main() {
         headline: "Own the Season",
         subheadline: "Bold silhouettes, premium fabrics, made to move.",
         cta: { label: "Shop New In", href: "/collections/new", variant: "solid" },
+        secondaryCta: { label: "Explore Sale", href: "/collections/sale", variant: "outline" },
         theme: "dark",
-        align: "left",
+        align: "right",
         autoplayMs: 6000,
         slides: [
           { media: { url: img("1490481651871-ab68de25d43d"), alt: "Editorial look one" } },

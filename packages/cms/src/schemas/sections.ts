@@ -14,7 +14,7 @@ export const heroConfigSchema = z
     cta: ctaSchema.optional(),
     secondaryCta: ctaSchema.optional(),
     theme: z.enum(["light", "dark"]).default("dark"),
-    align: z.enum(["left", "center"]).default("left"),
+    align: z.enum(["left", "center", "right"]).default("left"),
     // video mode
     video: mediaRefSchema.extend({ poster: z.string().url().optional() }).optional(),
     // carousel mode

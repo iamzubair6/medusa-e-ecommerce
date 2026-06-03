@@ -15,7 +15,7 @@ interface HeroForm {
   headline: string;
   subheadline: string;
   theme: "light" | "dark";
-  align: "left" | "center";
+  align: "left" | "center" | "right";
   autoplayMs: number;
   videoUrl: string;
   posterUrl: string;
@@ -104,6 +104,7 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
         <SelectField label="Text alignment" {...register("align")}>
           <option value="left">Left</option>
           <option value="center">Center</option>
+          <option value="right">Right</option>
         </SelectField>
         {mode === "carousel" && (
           <TextField label="Autoplay (ms)" type="number" {...register("autoplayMs")} />
