@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Camera, Heart, Menu, Search, User, X } from "lucide-react";
-import { Container } from "@ecom/ui";
+import { Container, cn } from "@ecom/ui";
 import type { Announcement, MegaMenu } from "@ecom/cms";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
@@ -40,6 +40,14 @@ export function Navbar({ links, announcement }: NavbarProps) {
   const reduce = useReducedMotion();
   const { openUpload } = useVisualSearch();
   const { count: wishlistCount } = useWishlist();
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/account/me")
+      .then((r) => r.json())
+      .then((d: { loggedIn?: boolean }) => setLoggedIn(Boolean(d.loggedIn)))
+      .catch(() => {});
+  }, []);
   const message = announcement?.active ? announcement.message : "FREE SHIPPING ON ORDERS OVER $75";
 
   return (
@@ -110,8 +118,9 @@ export function Navbar({ links, announcement }: NavbarProps) {
               <button type="button" aria-label="Search" className="cursor-pointer p-2 md:hidden">
                 <Search className="h-5 w-5" />
               </button>
-              <Link href="/account" aria-label="Account" className="p-2 transition-colors hover:text-accent">
-                <User className="h-5 w-5" />
+              <Link href="/account" aria-label={loggedIn ? "My account" : "Sign in"} className="relative p-2 transition-colors hover:text-accent">
+                <User className={cn("h-5 w-5", loggedIn && "text-accent")} />
+                {loggedIn && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />}
               </Link>
               <Link href="/wishlist" aria-label="Wishlist" className="relative hidden p-2 transition-colors hover:text-accent sm:block">
                 <Heart className="h-5 w-5" />
