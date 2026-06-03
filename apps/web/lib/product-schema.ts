@@ -6,7 +6,7 @@ export const productSchema = z.object({
   description: z.string().max(2000).optional(),
   offer: z
     .object({
-      type: z.enum(["bogo", "discount"]),
+      type: z.enum(["bogo", "discount", "custom"]),
       label: z.string().min(1).max(60),
       percent: z.number().int().min(1).max(90).optional(),
     })

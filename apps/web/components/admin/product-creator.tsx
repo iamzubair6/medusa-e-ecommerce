@@ -35,7 +35,7 @@ export interface ProductInitial {
   id: string;
   title: string;
   description?: string;
-  offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+  offer?: { type: "bogo" | "discount" | "custom"; label: string; percent?: number };
   categoryIds?: string[];
   tags?: string[];
   type?: string;
@@ -76,7 +76,7 @@ export function ProductCreator({
   const editing = Boolean(initial);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [offerType, setOfferType] = useState<"none" | "bogo" | "discount">(initial?.offer?.type ?? "none");
+  const [offerType, setOfferType] = useState<"none" | "bogo" | "discount" | "custom">(initial?.offer?.type ?? "none");
   const [offerLabel, setOfferLabel] = useState(initial?.offer?.label ?? "");
   const [offerPercent, setOfferPercent] = useState(initial?.offer?.percent ? String(initial.offer.percent) : "");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
@@ -147,7 +147,7 @@ export function ProductCreator({
           ? undefined
           : {
               type: offerType,
-              label: offerLabel || (offerType === "bogo" ? "BUY 1 GET 1 FREE" : "SALE"),
+              label: offerLabel || (offerType === "bogo" ? "BUY 1 GET 1 FREE" : offerType === "custom" ? "NEW" : "SALE"),
               ...(offerType === "discount" && offerPercent ? { percent: Number(offerPercent) } : {}),
             },
       colors: colors.map((c) => ({
@@ -194,9 +194,10 @@ export function ProductCreator({
             <option value="none">None</option>
             <option value="discount">Discount</option>
             <option value="bogo">BOGO</option>
+            <option value="custom">Custom badge</option>
           </SelectField>
           {offerType !== "none" && (
-            <TextField label="Offer label" value={offerLabel} onChange={(e) => setOfferLabel(e.target.value)} placeholder={offerType === "bogo" ? "BUY 1 GET 1 FREE" : "25% OFF"} />
+            <TextField label="Offer label" value={offerLabel} onChange={(e) => setOfferLabel(e.target.value)} placeholder={offerType === "bogo" ? "BUY 1 GET 1 FREE" : offerType === "custom" ? "NEW · LIMITED · 2 FOR 1" : "25% OFF"} />
           )}
           {offerType === "discount" && (
             <TextField label="Percent" type="number" value={offerPercent} onChange={(e) => setOfferPercent(e.target.value)} placeholder="25" />

@@ -12,7 +12,7 @@ function money(amount: number, currency = "BDT"): string {
 }
 
 export interface StoreOffer {
-  type: "bogo" | "discount";
+  type: "bogo" | "discount" | "custom";
   label: string;
   percent?: number;
 }

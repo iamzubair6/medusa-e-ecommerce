@@ -165,7 +165,7 @@ export interface NewProductInput {
   title: string;
   description?: string;
   colors: NewProductColor[];
-  offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+  offer?: { type: "bogo" | "discount" | "custom"; label: string; percent?: number };
   categoryIds?: string[];
   tags?: string[];
   type?: string;
@@ -437,7 +437,7 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     colorPrices?: Record<string, number>;
     colorOriginalPrices?: Record<string, number>;
     sizeStock?: Record<string, Record<string, number>>;
-    offer?: { type: "bogo" | "discount"; label: string; percent?: number };
+    offer?: { type: "bogo" | "discount" | "custom"; label: string; percent?: number };
   };
   const titleByOptionId = new Map((p.options ?? []).map((o) => [o.id, o.title]));
 
