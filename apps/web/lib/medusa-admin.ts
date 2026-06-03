@@ -14,6 +14,9 @@ export type { AdminOrderSummary, AdminOrderDetail } from "./admin-types";
 const BACKEND = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
 const SK = process.env.MEDUSA_ADMIN_API_KEY;
 
+/** The store's selling currency. Used to report revenue without mixing currencies. */
+const STORE_CURRENCY = "bdt";
+
 export function adminConfigured(): boolean {
   return Boolean(BACKEND && SK);
 }
@@ -504,13 +507,14 @@ interface RawOrderFull extends RawOrderListItem {
   fulfillments?: {
     id: string;
     shipped_at?: string | null;
+    delivered_at?: string | null;
     labels?: { tracking_number?: string | null }[];
   }[];
 }
 
 export async function getOrderDetail(id: string): Promise<AdminOrderDetail | null> {
   const fields =
-    "id,display_id,email,currency_code,total,subtotal,shipping_total,payment_status,fulfillment_status,created_at,metadata,*items,*shipping_address,*fulfillments,*fulfillments.labels";
+    "id,display_id,email,currency_code,total,subtotal,shipping_total,payment_status,fulfillment_status,created_at,metadata,*items,*shipping_address,*fulfillments,*fulfillments.labels,fulfillments.delivered_at";
   const data = await adminFetch<{ order?: RawOrderFull }>(
     `/admin/orders/${id}?fields=${encodeURIComponent(fields)}`,
   );
@@ -550,6 +554,7 @@ export async function getOrderDetail(id: string): Promise<AdminOrderDetail | nul
     fulfillments: (o.fulfillments ?? []).map((f) => ({
       id: f.id,
       shippedAt: f.shipped_at ?? undefined,
+      deliveredAt: f.delivered_at ?? undefined,
       trackingNumbers: (f.labels ?? []).map((l) => l.tracking_number).filter((t): t is string => !!t),
     })),
     fulfilled: o.fulfillment_status !== "not_fulfilled",
@@ -579,6 +584,14 @@ export async function shipOrder(id: string, trackingNumber: string, trackingUrl?
     items,
     labels: [{ tracking_number: trackingNumber, tracking_url: trackingUrl ?? "", label_url: "" }],
   });
+}
+
+/** Mark an order's fulfillment delivered — closes the COD loop (cash collected). */
+export async function markDelivered(id: string): Promise<void> {
+  const detail = await getOrderDetail(id);
+  const fulfillment = detail?.fulfillments[0];
+  if (!fulfillment) throw new Error("Fulfil and ship the order first.");
+  await adminPost(`/admin/orders/${id}/fulfillments/${fulfillment.id}/mark-as-delivered`, {});
 }
 
 export async function countOrders(): Promise<number> {
@@ -709,8 +722,11 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
     count?: number;
   }>("/admin/orders?fields=total,currency_code,fulfillment_status&limit=1000&order=-created_at");
   const orders = ordersData?.orders ?? [];
-  const revenue = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
-  const currency = orders[0]?.currency_code ?? "bdt";
+  // Revenue is reported in the store currency (BDT); foreign demo orders in other
+  // currencies are excluded so totals are never mixed across currencies.
+  const revenue = orders
+    .filter((o) => o.currency_code === STORE_CURRENCY)
+    .reduce((sum, o) => sum + (o.total ?? 0), 0);
   const pendingFulfilment = orders.filter((o) => o.fulfillment_status === "not_fulfilled").length;
 
   const [products, customers] = await Promise.all([
@@ -719,7 +735,7 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
   ]);
 
   return {
-    revenue: money(revenue, currency),
+    revenue: money(revenue, STORE_CURRENCY),
     orders: ordersData?.count ?? orders.length,
     products,
     customers,

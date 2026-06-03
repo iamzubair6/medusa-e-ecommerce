@@ -9,16 +9,18 @@ import type { AdminOrderDetail } from "@/lib/admin-types";
 export function OrderActions({ order }: { order: AdminOrderDetail }) {
   const router = useRouter();
   const [tracking, setTracking] = useState("");
-  const [busy, setBusy] = useState<"fulfil" | "ship" | null>(null);
+  const [busy, setBusy] = useState<"fulfil" | "ship" | "deliver" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const shipped = order.fulfillments.some((f) => f.shippedAt);
+  const delivered = order.fulfillments.some((f) => f.deliveredAt);
 
-  const run = async (action: "fulfil" | "ship") => {
+  const run = async (action: "fulfil" | "ship" | "deliver") => {
     setBusy(action);
     setError(null);
     try {
-      const url = action === "fulfil" ? `/api/admin/orders/${order.id}/fulfill` : `/api/admin/orders/${order.id}/ship`;
+      const path = action === "fulfil" ? "fulfill" : action === "ship" ? "ship" : "deliver";
+      const url = `/api/admin/orders/${order.id}/${path}`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,6 +66,14 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
           Shipped · tracking: {order.fulfillments.flatMap((f) => f.trackingNumbers).join(", ") || "—"}
         </p>
       )}
+
+      {shipped && !delivered && (
+        <Button variant="solid" loading={busy === "deliver"} onClick={() => run("deliver")}>
+          Mark Delivered {order.paymentMethod === "cod" && "(cash collected)"}
+        </Button>
+      )}
+
+      {delivered && <p className="text-sm font-medium text-gold">✓ Delivered — order complete</p>}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

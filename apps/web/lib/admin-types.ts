@@ -24,6 +24,7 @@ export interface AdminOrderItem {
 export interface AdminFulfillment {
   id: string;
   shippedAt?: string;
+  deliveredAt?: string;
   trackingNumbers: string[];
 }
 
