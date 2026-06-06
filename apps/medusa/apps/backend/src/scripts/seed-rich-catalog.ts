@@ -137,7 +137,7 @@ export default async function seedRichCatalog({ container }: ExecArgs) {
     fields: ["id", "supported_currencies.currency_code", "supported_currencies.is_default"],
   });
   const store = stores[0];
-  const currencyCodes = new Set((store.supported_currencies ?? []).map((c: { currency_code: string }) => c.currency_code));
+  const currencyCodes = new Set((store.supported_currencies ?? []).map((c) => c?.currency_code));
   if (!currencyCodes.has("bdt")) {
     await updateStoresWorkflow(container).run({
       input: {
@@ -156,7 +156,7 @@ export default async function seedRichCatalog({ container }: ExecArgs) {
 
   // --- Bangladesh region ---
   const { data: regions } = await query.graph({ entity: "region", fields: ["id", "currency_code"] });
-  let bdRegion = regions.find((r: { currency_code: string }) => r.currency_code === "bdt");
+  let bdRegion: { id: string } | undefined = regions.find((r: { currency_code: string }) => r.currency_code === "bdt");
   if (!bdRegion) {
     const { result } = await createRegionsWorkflow(container).run({
       input: {
@@ -295,8 +295,7 @@ export default async function seedRichCatalog({ container }: ExecArgs) {
     fields: ["id", "location_levels.location_id"],
   });
   const needLevels = items.filter(
-    (it: { location_levels?: { location_id: string }[] }) =>
-      !(it.location_levels ?? []).some((l) => l.location_id === locationId),
+    (it) => !(it.location_levels ?? []).some((l) => l?.location_id === locationId),
   );
   if (needLevels.length) {
     await createInventoryLevelsWorkflow(container).run({

@@ -335,7 +335,7 @@ export default async function seedBdStore({ container }: ExecArgs) {
   logger.info("BDT is now the default store currency.");
 
   const { data: regions } = await query.graph({ entity: "region", fields: ["id", "currency_code"] });
-  let bdRegion = regions.find((r: { currency_code: string }) => r.currency_code === "bdt");
+  let bdRegion: { id: string } | undefined = regions.find((r: { currency_code: string }) => r.currency_code === "bdt");
   if (!bdRegion) {
     const { result } = await createRegionsWorkflow(container).run({
       input: {
@@ -358,19 +358,44 @@ export default async function seedBdStore({ container }: ExecArgs) {
     entity: "stock_location",
     fields: ["id", "name", "fulfillment_sets.id", "fulfillment_sets.type", "fulfillment_sets.service_zones.id", "fulfillment_sets.service_zones.geo_zones.country_code"],
   });
-  let dhaka = locations.find((l: { name: string }) => /dhaka/i.test(l.name)) ?? locations[0];
-  if (!dhaka) {
+  // Find (or create) a shipping fulfillment set + a service zone covering 'bd'.
+  type FSet = { id: string; type: string; service_zones?: { id: string; geo_zones?: { country_code: string }[] }[] };
+  type Loc = { id: string; name: string; fulfillment_sets: FSet[] };
+  const foundLoc = locations.find((l: { name: string }) => /dhaka/i.test(l.name)) ?? locations[0];
+  let dhaka: Loc;
+  if (foundLoc) {
+    dhaka = {
+      id: foundLoc.id,
+      name: foundLoc.name,
+      fulfillment_sets: (foundLoc.fulfillment_sets ?? []).flatMap((f) =>
+        f
+          ? [{
+              id: f.id,
+              type: f.type,
+              service_zones: (f.service_zones ?? []).flatMap((z) =>
+                z
+                  ? [{
+                      id: z.id,
+                      geo_zones: (z.geo_zones ?? []).flatMap((g) =>
+                        g?.country_code ? [{ country_code: g.country_code }] : [],
+                      ),
+                    }]
+                  : [],
+              ),
+            }]
+          : [],
+      ),
+    };
+  } else {
     const created = await stockLocationModule.createStockLocations([{ name: "Dhaka Warehouse" }]);
-    dhaka = { ...created[0], fulfillment_sets: [] };
+    dhaka = { id: created[0].id, name: created[0].name, fulfillment_sets: [] };
     logger.info("Created Dhaka Warehouse.");
   }
 
-  // Find (or create) a shipping fulfillment set + a service zone covering 'bd'.
-  type FSet = { id: string; type: string; service_zones?: { id: string; geo_zones?: { country_code: string }[] }[] };
-  let shippingSet: FSet | undefined = (dhaka.fulfillment_sets ?? []).find((f: FSet) => f.type === "shipping");
+  let shippingSet: FSet | undefined = dhaka.fulfillment_sets.find((f) => f.type === "shipping");
   if (!shippingSet) {
     const set = await fulfillmentModule.createFulfillmentSets({ name: "Dhaka delivery", type: "shipping" });
-    await stockLocationModule.updateStockLocations({ selector: { id: dhaka.id }, update: { fulfillment_sets: [{ id: set.id }] } as never }).catch(() => undefined);
+    await stockLocationModule.updateStockLocations({ id: dhaka.id }, { fulfillment_sets: [{ id: set.id }] } as never).catch(() => undefined);
     shippingSet = { id: set.id, type: "shipping", service_zones: [] };
   }
   let zone = (shippingSet.service_zones ?? []).find((z) => (z.geo_zones ?? []).some((g) => g.country_code === "bd"))
@@ -510,7 +535,7 @@ export default async function seedBdStore({ container }: ExecArgs) {
   // Inventory levels at the Dhaka location (display low-stock is metadata-driven).
   const { data: items } = await query.graph({ entity: "inventory_item", fields: ["id", "location_levels.location_id"] });
   const needLevels = items.filter(
-    (it: { location_levels?: { location_id: string }[] }) => !(it.location_levels ?? []).some((l) => l.location_id === dhaka.id),
+    (it) => !(it.location_levels ?? []).some((l) => l?.location_id === dhaka.id),
   );
   if (needLevels.length) {
     await createInventoryLevelsWorkflow(container).run({
