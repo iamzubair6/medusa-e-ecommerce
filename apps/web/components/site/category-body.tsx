@@ -1,191 +1,252 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@ecom/ui";
-import type { ProductSort, StoreProduct } from "@/lib/commerce";
+import type { ListingFacets, StoreProduct } from "@/lib/commerce";
+import { listingQuery, type ListingParams } from "@/lib/listing-params";
 import { ProductCard } from "./product-card";
-import { SortSelect } from "./sort-select";
 
-const SIZE_ORDER = ["XXS", "XS", "S", "S/M", "M", "M/L", "L", "XL", "XXL", "1X", "2X", "3X"];
-
-const CATEGORY_LINKS = [
-  ["Dresses", "/c/dresses"],
-  ["Tops", "/c/tops"],
-  ["Bodysuits", "/c/bodysuits"],
-  ["Bottoms", "/c/bottoms"],
-  ["Matching Sets", "/c/sets"],
-  ["Swim", "/c/swim"],
-] as const;
+export interface CategoryLink {
+  label: string;
+  href: string;
+  active: boolean;
+  count?: number;
+}
+export interface CategoryImageTile {
+  label: string;
+  image: string;
+  href: string;
+}
 
 interface Props {
   title: string;
-  subtitle?: string;
+  breadcrumb: { label: string; href?: string }[];
   basePath: string;
-  sort: ProductSort;
+  params: ListingParams;
+  facets: ListingFacets;
+  categoryLinks: CategoryLink[];
   products: StoreProduct[];
+  total: number;
   page: number;
   totalPages: number;
-  total: number;
+  categoryImageRow?: CategoryImageTile[];
 }
 
-export function CategoryBody({ title, subtitle, basePath, sort, products, page, totalPages, total }: Props) {
-  const [selSizes, setSelSizes] = useState<Set<string>>(new Set());
-  const [selColors, setSelColors] = useState<Set<string>>(new Set());
+const GRID_COLS: Record<number, string> = {
+  3: "grid-cols-2 md:grid-cols-3",
+  4: "grid-cols-2 md:grid-cols-3 xl:grid-cols-4",
+  5: "grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
+};
+
+export function CategoryBody({
+  title,
+  breadcrumb,
+  basePath,
+  params,
+  facets,
+  categoryLinks,
+  products,
+  total,
+  page,
+  totalPages,
+  categoryImageRow,
+}: Props) {
+  const router = useRouter();
   const [mobileFilters, setMobileFilters] = useState(false);
 
-  const facets = useMemo(() => {
-    const sizes = new Set<string>();
-    const colors = new Map<string, string>(); // name -> swatch
-    for (const p of products)
-      for (const c of p.cardColors ?? []) {
-        if (c.name !== "Default") colors.set(c.name, c.swatch);
-        for (const s of c.sizes) sizes.add(s.size);
-      }
-    const orderedSizes = [...sizes].sort(
-      (a, b) => (SIZE_ORDER.indexOf(a) + 1 || 99) - (SIZE_ORDER.indexOf(b) + 1 || 99),
-    );
-    return { sizes: orderedSizes, colors: [...colors.entries()] };
-  }, [products]);
+  const url = (overrides: Partial<ListingParams>) => `${basePath}${listingQuery(params, { page: 1, ...overrides })}`;
+  const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
-  const filtered = useMemo(
-    () =>
-      products.filter((p) => {
-        const cols = p.cardColors ?? [];
-        const sizeOk =
-          selSizes.size === 0 || cols.some((c) => c.sizes.some((s) => selSizes.has(s.size)));
-        const colorOk = selColors.size === 0 || cols.some((c) => selColors.has(c.name));
-        return sizeOk && colorOk;
-      }),
-    [products, selSizes, selColors],
-  );
-
-  const toggle = (set: Set<string>, value: string, setter: (s: Set<string>) => void) => {
-    const next = new Set(set);
-    next.has(value) ? next.delete(value) : next.add(value);
-    setter(next);
-  };
+  const activeCount =
+    params.colors.length + params.sizes.length + params.occasion.length + params.style.length + params.trend.length;
 
   const Rail = (
-    <div className="flex flex-col gap-6 text-sm">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Refine By</p>
+    <div className="flex flex-col gap-1 text-sm">
+      <div className="pb-2">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Filter</p>
         <p className="mt-1 text-xs text-muted-foreground">{total.toLocaleString()} products</p>
       </div>
 
-      <FilterSection title="Category">
-        <ul className="flex flex-col gap-2">
-          {CATEGORY_LINKS.map(([label, href]) => (
-            <li key={href}>
-              <Link href={href} className="text-foreground/75 transition-colors hover:text-accent">
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </FilterSection>
+      {categoryLinks.length > 0 && (
+        <FilterSection title="Category">
+          <ul className="flex flex-col gap-2">
+            {categoryLinks.map((c) => (
+              <li key={c.href}>
+                <Link
+                  href={c.href}
+                  className={cn(
+                    "flex items-center justify-between transition-colors hover:text-accent",
+                    c.active ? "font-semibold text-foreground" : "text-foreground/75",
+                  )}
+                >
+                  <span>{c.label}</span>
+                  {typeof c.count === "number" && <span className="text-xs text-muted-foreground">{c.count}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </FilterSection>
+      )}
 
       {facets.sizes.length > 0 && (
         <FilterSection title="Size">
           <div className="flex flex-wrap gap-1.5">
             {facets.sizes.map((s) => (
-              <button
+              <Link
                 key={s}
-                type="button"
-                aria-pressed={selSizes.has(s)}
-                onClick={() => toggle(selSizes, s, setSelSizes)}
+                href={url({ sizes: toggle(params.sizes, s) })}
+                scroll={false}
                 className={cn(
-                  "min-w-9 rounded-sm border px-2 py-1.5 text-xs font-medium transition-colors",
-                  selSizes.has(s) ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                  "min-w-9 rounded-sm border px-2 py-1.5 text-center text-xs font-medium transition-colors",
+                  params.sizes.includes(s) ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
                 )}
               >
                 {s}
-              </button>
+              </Link>
             ))}
           </div>
         </FilterSection>
       )}
 
       {facets.colors.length > 0 && (
-        <FilterSection title="Colors">
+        <FilterSection title="Color">
           <div className="flex flex-wrap gap-2">
-            {facets.colors.map(([name, swatch]) => (
-              <button
-                key={name}
-                type="button"
-                title={name}
-                aria-pressed={selColors.has(name)}
-                onClick={() => toggle(selColors, name, setSelColors)}
+            {facets.colors.map((c) => (
+              <Link
+                key={c.name}
+                href={url({ colors: toggle(params.colors, c.name) })}
+                scroll={false}
+                title={c.name}
                 className={cn(
                   "h-7 w-7 rounded-full border p-0.5 transition",
-                  selColors.has(name) ? "border-foreground" : "border-border hover:border-foreground/60",
+                  params.colors.includes(c.name) ? "border-foreground" : "border-border hover:border-foreground/60",
                 )}
               >
-                <span className="block h-full w-full rounded-full" style={{ backgroundColor: swatch }} />
-              </button>
+                <span className="block h-full w-full rounded-full" style={{ backgroundColor: c.swatch }} />
+              </Link>
             ))}
           </div>
         </FilterSection>
       )}
 
-      {(selSizes.size > 0 || selColors.size > 0) && (
-        <button
-          type="button"
-          onClick={() => { setSelSizes(new Set()); setSelColors(new Set()); }}
-          className="flex w-fit items-center gap-1 text-xs text-accent hover:underline"
+      <FacetLinks title="Occasion" values={facets.occasion} selected={params.occasion} keyName="occasion" url={url} />
+      <FacetLinks title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />
+      <FacetLinks title="Trend" values={facets.trend} selected={params.trend} keyName="trend" url={url} />
+
+      {activeCount > 0 && (
+        <Link
+          href={`${basePath}${listingQuery(params, { page: 1, colors: [], sizes: [], occasion: [], style: [], trend: [] })}`}
+          className="mt-3 flex w-fit items-center gap-1 text-xs text-accent hover:underline"
         >
-          <X className="h-3 w-3" /> Clear filters
-        </button>
+          <X className="h-3 w-3" /> Clear all filters
+        </Link>
       )}
     </div>
   );
 
   return (
     <div className="py-6">
-      {/* header */}
-      <div className="mb-6 flex flex-col gap-3 border-b border-border pb-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">Home / {title}</p>
-          <h1 className="mt-1 font-display text-3xl font-bold uppercase tracking-tight md:text-4xl">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle ?? `${filtered.length} items`}</p>
-        </div>
-        <div className="flex items-center gap-3">
+      {/* breadcrumb */}
+      <nav className="mb-3 text-xs text-muted-foreground" aria-label="Breadcrumb">
+        {breadcrumb.map((b, i) => (
+          <span key={`${b.label}-${i}`}>
+            {b.href ? (
+              <Link href={b.href} className="hover:text-foreground">{b.label}</Link>
+            ) : (
+              <span className="text-foreground">{b.label}</span>
+            )}
+            {i < breadcrumb.length - 1 && <span className="px-1.5">/</span>}
+          </span>
+        ))}
+      </nav>
+
+      {/* title + toolbar */}
+      <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <h1 className="font-display text-3xl font-bold uppercase tracking-tight md:text-4xl">{title}</h1>
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => setMobileFilters(true)}
             className="flex items-center gap-1.5 rounded-sm border border-border px-3 py-2 text-xs font-semibold uppercase lg:hidden"
           >
-            <SlidersHorizontal className="h-4 w-4" /> Filters
+            <SlidersHorizontal className="h-4 w-4" /> Filters{activeCount > 0 ? ` (${activeCount})` : ""}
           </button>
-          <SortSelect value={sort} />
+
+          <span className="hidden text-xs text-muted-foreground sm:inline">{total.toLocaleString()} items</span>
+
+          <label className="flex items-center gap-1.5 text-xs">
+            <span className="text-muted-foreground">Sort</span>
+            <select
+              value={params.sort}
+              onChange={(e) => router.push(url({ sort: e.target.value as ListingParams["sort"] }))}
+              className="cursor-pointer rounded-sm border border-border bg-background px-2 py-1.5 text-xs font-medium"
+            >
+              <option value="newest">Newest</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+            </select>
+          </label>
+
+          <div className="hidden items-center gap-1 xl:flex" aria-label="Grid columns">
+            {[3, 4, 5].map((c) => (
+              <Link
+                key={c}
+                href={url({ columns: c as ListingParams["columns"] })}
+                scroll={false}
+                className={cn(
+                  "h-8 w-8 rounded-sm border text-center text-xs leading-7",
+                  params.columns === c ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                )}
+              >
+                {c}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Tops-style category image row */}
+      {categoryImageRow && categoryImageRow.length > 0 && (
+        <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          {categoryImageRow.map((t) => (
+            <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 text-center">
+              <span className="aspect-square w-full overflow-hidden rounded-full bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={t.image} alt={t.label} className="h-full w-full object-cover transition group-hover:scale-105" />
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide">{t.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-8">
         <aside className="hidden w-56 shrink-0 lg:block">{Rail}</aside>
 
         <div className="flex-1">
-          {filtered.length === 0 ? (
+          {products.length === 0 ? (
             <p className="py-16 text-center text-muted-foreground">No products match these filters.</p>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((p) => (
+            <div className={cn("grid gap-x-4 gap-y-8", GRID_COLS[params.columns])}>
+              {products.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
           )}
 
-          {totalPages > 1 && selSizes.size === 0 && selColors.size === 0 && (
+          {totalPages > 1 && (
             <nav className="mt-12 flex items-center justify-center gap-3 text-sm" aria-label="Pagination">
               {page > 1 && (
-                <Link href={`${basePath}?sort=${sort}${page - 1 > 1 ? `&page=${page - 1}` : ""}`} className="rounded-sm border border-border px-4 py-2 hover:bg-muted">
+                <Link href={`${basePath}${listingQuery(params, { page: page - 1 })}`} className="rounded-sm border border-border px-4 py-2 hover:bg-muted">
                   Previous
                 </Link>
               )}
               <span className="px-2 text-muted-foreground">Page {page} of {totalPages}</span>
               {page < totalPages && (
-                <Link href={`${basePath}?sort=${sort}&page=${page + 1}`} className="rounded-sm border border-border px-4 py-2 hover:bg-muted">
+                <Link href={`${basePath}${listingQuery(params, { page: page + 1 })}`} className="rounded-sm border border-border px-4 py-2 hover:bg-muted">
                   Next
                 </Link>
               )}
@@ -213,10 +274,47 @@ export function CategoryBody({ title, subtitle, basePath, sort, products, page, 
   );
 }
 
+function FacetLinks({
+  title,
+  values,
+  selected,
+  keyName,
+  url,
+}: {
+  title: string;
+  values: string[];
+  selected: string[];
+  keyName: "occasion" | "style" | "trend";
+  url: (o: Partial<ListingParams>) => string;
+}) {
+  if (values.length === 0) return null;
+  const toggle = (v: string) => (selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+  return (
+    <FilterSection title={title}>
+      <ul className="flex flex-col gap-2">
+        {values.map((v) => (
+          <li key={v}>
+            <Link
+              href={url({ [keyName]: toggle(v) } as Partial<ListingParams>)}
+              scroll={false}
+              className={cn("flex items-center gap-2 transition-colors hover:text-accent", selected.includes(v) ? "font-semibold text-foreground" : "text-foreground/75")}
+            >
+              <span className={cn("flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border", selected.includes(v) ? "border-foreground bg-foreground" : "border-border")}>
+                {selected.includes(v) && <span className="h-1.5 w-1.5 rounded-[1px] bg-background" />}
+              </span>
+              {v}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </FilterSection>
+  );
+}
+
 function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="border-t border-border pt-4">
+    <div className="border-t border-border py-4">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

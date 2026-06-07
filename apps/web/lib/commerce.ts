@@ -31,6 +31,13 @@ export interface StoreProduct {
   badge?: string;
   /** selectable colors for the card (swatch, image, quick-add sizes) */
   cardColors?: CardColor[];
+  // --- merchandising facets (from metadata / taxonomy) ---
+  division?: string;
+  categoryHandles?: string[];
+  collectionHandle?: string;
+  occasion?: string[];
+  style?: string[];
+  trend?: string[];
 }
 
 export interface CardColor {
@@ -61,6 +68,8 @@ export interface StoreProductDetail extends StoreProduct {
   description: string;
   images: string[];
   colors: StoreColor[];
+  material?: string;
+  care?: string;
 }
 
 export interface ProductListResult {
@@ -133,6 +142,12 @@ interface ProductMeta {
   colorOriginalPrices?: Record<string, number>;
   sizeStock?: Record<string, Record<string, number>>;
   offer?: StoreOffer;
+  division?: string;
+  occasion?: string[];
+  style?: string[];
+  trend?: string[];
+  material?: string;
+  care?: string;
 }
 interface MedusaProduct {
   id: string;
@@ -144,7 +159,11 @@ interface MedusaProduct {
   options?: { title: string; values?: { value: string }[] }[];
   variants?: MedusaVariant[];
   metadata?: ProductMeta | null;
+  categories?: { handle: string; name?: string }[];
+  collection?: { handle: string; title?: string } | null;
 }
+
+const strArr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
 
 function currencyOf(p: MedusaProduct): string {
   return (p.variants?.[0]?.calculated_price?.currency_code ?? "bdt").toUpperCase();
@@ -256,6 +275,12 @@ function mapCard(p: MedusaProduct, i: number): StoreProduct {
     // Prefer an explicit offer label; otherwise auto "-X%" when on sale.
     badge: p.metadata?.offer?.label ?? (discountPercent ? `-${discountPercent}%` : undefined),
     cardColors,
+    division: p.metadata?.division,
+    categoryHandles: (p.categories ?? []).map((c) => c.handle),
+    collectionHandle: p.collection?.handle,
+    occasion: strArr(p.metadata?.occasion),
+    style: strArr(p.metadata?.style),
+    trend: strArr(p.metadata?.trend),
   };
 }
 
@@ -295,6 +320,8 @@ function mapDetail(p: MedusaProduct): StoreProductDetail {
   return {
     ...card,
     description: p.description ?? "",
+    material: p.metadata?.material,
+    care: p.metadata?.care,
     images: allImages.length ? allImages : [card.thumbnail],
     colors: colors.length
       ? colors
@@ -344,9 +371,9 @@ export const getRegionId = cache(async (): Promise<string | undefined> => {
 });
 
 const CARD_FIELDS =
-  "fields=title,handle,thumbnail,metadata,*images,*variants.calculated_price,*variants.options,*variants.options.option";
+  "fields=title,handle,thumbnail,metadata,categories.handle,categories.name,collection.handle,collection.title,*images,*variants.calculated_price,*variants.options,*variants.options.option";
 const DETAIL_FIELDS =
-  "fields=title,handle,description,thumbnail,metadata,*images,*options,*variants.calculated_price,*variants.options,*variants.options.option";
+  "fields=title,handle,description,thumbnail,metadata,categories.handle,categories.name,collection.handle,collection.title,*images,*options,*variants.calculated_price,*variants.options,*variants.options.option";
 
 function sourceToQuery(source: ProductSource, limit: number): string {
   const params = new URLSearchParams({ limit: String(limit) });
@@ -505,6 +532,165 @@ export async function fetchProductsForIndex(
     .map((p, i) => mapCard(p, i))
     .filter(hasPrice)
     .map((c) => ({ productId: c.id, handle: c.handle, title: c.title, thumbnail: c.thumbnail, price: c.price }));
+}
+
+// ===========================================================================
+// Faceted catalog — divisions + attribute filtering. The catalog is small, so
+// we fetch it once (cached per request) and filter/sort/paginate in-app. This
+// supports filters Medusa can't do natively (division/occasion/style/trend).
+// ===========================================================================
+
+export const DIVISION_HANDLES = ["women", "plus", "men", "sport", "kids", "beauty"] as const;
+const DIVISION_SET = new Set<string>(DIVISION_HANDLES);
+
+export interface ListingFilters {
+  division?: string;
+  category?: string;
+  collection?: string;
+  occasion?: string[];
+  style?: string[];
+  trend?: string[];
+  colors?: string[];
+  sizes?: string[];
+}
+
+export interface ListingFacets {
+  categories: { handle: string; name: string; count: number }[];
+  colors: { name: string; swatch: string }[];
+  sizes: string[];
+  occasion: string[];
+  style: string[];
+  trend: string[];
+}
+
+export interface ListingResult {
+  products: StoreProduct[];
+  total: number;
+  page: number;
+  totalPages: number;
+  facets: ListingFacets;
+}
+
+const prettify = (h: string) =>
+  h.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "1X", "2X", "3X", "One Size"];
+const sortSizes = (a: string, b: string) => {
+  const ia = SIZE_ORDER.indexOf(a), ib = SIZE_ORDER.indexOf(b);
+  if (ia !== -1 && ib !== -1) return ia - ib;
+  const na = Number(a), nb = Number(b);
+  if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+  return a.localeCompare(b);
+};
+
+/** Whole catalog, mapped + cached per request (newest first). */
+const getCatalog = cache(async (): Promise<StoreProduct[]> => {
+  if (!medusaEnabled()) return placeholderProducts(24, "all");
+  const regionId = await getRegionId();
+  const region = regionId ? `&region_id=${regionId}` : "";
+  const data = (await medusaFetch(
+    `/store/products?limit=200&order=-created_at&${CARD_FIELDS}${region}`,
+    ["commerce:products", "commerce:catalog"],
+  )) as { products?: MedusaProduct[] } | null;
+  return (data?.products ?? []).map(mapCard).filter(hasPrice);
+});
+
+/** All categories (handle → name), cached. */
+export const listCategories = cache(async (): Promise<{ handle: string; name: string }[]> => {
+  const data = (await medusaFetch(
+    "/store/product-categories?limit=100&fields=handle,name",
+    ["commerce:categories"],
+  )) as { product_categories?: { handle: string; name: string }[] } | null;
+  return data?.product_categories ?? [];
+});
+
+function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>): ListingFacets {
+  const catCount = new Map<string, number>();
+  const colors = new Map<string, string>();
+  const sizes = new Set<string>();
+  const occ = new Set<string>(), sty = new Set<string>(), trd = new Set<string>();
+  for (const p of products) {
+    for (const h of p.categoryHandles ?? []) if (!DIVISION_SET.has(h)) catCount.set(h, (catCount.get(h) ?? 0) + 1);
+    for (const c of p.cardColors ?? []) {
+      if (c.name !== "Default") colors.set(c.name, c.swatch);
+      for (const s of c.sizes) sizes.add(s.size);
+    }
+    (p.occasion ?? []).forEach((o) => occ.add(o));
+    (p.style ?? []).forEach((s) => sty.add(s));
+    (p.trend ?? []).forEach((t) => trd.add(t));
+  }
+  return {
+    categories: [...catCount.entries()]
+      .map(([handle, count]) => ({ handle, name: nameByHandle.get(handle) ?? prettify(handle), count }))
+      .sort((a, b) => b.count - a.count),
+    colors: [...colors.entries()].map(([name, swatch]) => ({ name, swatch })),
+    sizes: [...sizes].sort(sortSizes),
+    occasion: [...occ].sort(),
+    style: [...sty].sort(),
+    trend: [...trd].sort(),
+  };
+}
+
+/** Faceted, division-aware product listing. */
+export async function fetchListing(
+  filters: ListingFilters,
+  opts: { sort?: ProductSort; page?: number; limit?: number } = {},
+): Promise<ListingResult> {
+  const [all, cats] = await Promise.all([getCatalog(), listCategories()]);
+  const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
+
+  // base scope (division + category + collection) — facets computed from here
+  const scoped = all.filter((p) => {
+    if (filters.division && p.division !== filters.division) return false;
+    if (filters.category && !(p.categoryHandles ?? []).includes(filters.category)) return false;
+    if (filters.collection && p.collectionHandle !== filters.collection) return false;
+    return true;
+  });
+  const facets = buildFacets(scoped, nameByHandle);
+
+  // refinement filters
+  const filtered = scoped.filter((p) => {
+    if (filters.occasion?.length && !filters.occasion.some((o) => (p.occasion ?? []).includes(o))) return false;
+    if (filters.style?.length && !filters.style.some((s) => (p.style ?? []).includes(s))) return false;
+    if (filters.trend?.length && !filters.trend.some((t) => (p.trend ?? []).includes(t))) return false;
+    if (filters.colors?.length && !(p.cardColors ?? []).some((c) => filters.colors!.includes(c.name))) return false;
+    if (filters.sizes?.length && !(p.cardColors ?? []).some((c) => c.sizes.some((s) => filters.sizes!.includes(s.size)))) return false;
+    return true;
+  });
+
+  if (opts.sort === "price-asc") filtered.sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
+  else if (opts.sort === "price-desc") filtered.sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
+
+  const limit = opts.limit ?? 24;
+  const page = Math.max(1, opts.page ?? 1);
+  const total = filtered.length;
+  const start = (page - 1) * limit;
+  return {
+    products: filtered.slice(start, start + limit),
+    total,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+    facets,
+  };
+}
+
+/** Content categories present within a division (for nav/sidebar), with counts. */
+export async function fetchDivisionCategories(
+  division: string,
+): Promise<{ handle: string; name: string; count: number }[]> {
+  const [all, cats] = await Promise.all([getCatalog(), listCategories()]);
+  const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
+  const count = new Map<string, number>();
+  for (const p of all) {
+    if (p.division !== division) continue;
+    for (const h of p.categoryHandles ?? []) {
+      if (DIVISION_SET.has(h)) continue;
+      count.set(h, (count.get(h) ?? 0) + 1);
+    }
+  }
+  return [...count.entries()]
+    .map(([handle, c]) => ({ handle, name: nameByHandle.get(handle) ?? prettify(handle), count: c }))
+    .sort((a, b) => b.count - a.count);
 }
 
 /** Similar products for the PDP (placeholder until image search lands). */

@@ -1,32 +1,27 @@
 import { Container } from "@ecom/ui";
-import type { ProductListResult, ProductSort } from "@/lib/commerce";
+import type { ListingPageProps } from "@/lib/build-listing";
 import { SiteNavbar } from "./site-navbar";
 import { Footer } from "./footer";
 import { CategoryBody } from "./category-body";
 
-interface ListingViewProps {
-  title: string;
-  subtitle?: string;
-  basePath: string;
-  sort: ProductSort;
-  result: ProductListResult;
-}
-
 /** Server wrapper: site chrome + the filterable category body. */
-export async function ListingView({ title, subtitle, basePath, sort, result }: ListingViewProps) {
+export async function ListingView(props: ListingPageProps) {
   return (
     <>
       <SiteNavbar />
       <Container>
         <CategoryBody
-          title={title}
-          subtitle={subtitle}
-          basePath={basePath}
-          sort={sort}
-          products={result.products}
-          page={result.page}
-          totalPages={result.totalPages}
-          total={result.total}
+          title={props.title}
+          breadcrumb={props.breadcrumb}
+          basePath={props.basePath}
+          params={props.params}
+          facets={props.facets}
+          categoryLinks={props.categoryLinks}
+          products={props.products}
+          total={props.total}
+          page={props.page}
+          totalPages={props.totalPages}
+          categoryImageRow={props.categoryImageRow}
         />
       </Container>
       <Footer />

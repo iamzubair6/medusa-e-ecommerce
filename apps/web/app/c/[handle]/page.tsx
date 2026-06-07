@@ -1,36 +1,24 @@
 import type { Metadata } from "next";
-import { fetchProductList } from "@/lib/commerce";
-import { parseListingParams, prettifyHandle } from "@/lib/listing-params";
+import { buildListing } from "@/lib/build-listing";
+import { prettifyHandle } from "@/lib/listing-params";
 import { ListingView } from "@/components/site/listing-view";
 
 export const revalidate = 300;
 
 type Params = Promise<{ handle: string }>;
-type Search = Promise<{ sort?: string; page?: string }>;
+type Search = Promise<Record<string, string | string[] | undefined>>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { handle } = await params;
   return { title: prettifyHandle(handle) };
 }
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: {
-  params: Params;
-  searchParams: Search;
-}) {
+export default async function CategoryPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { handle } = await params;
-  const { sort, page } = parseListingParams(await searchParams);
-  const result = await fetchProductList({ handle, kind: "category", page, sort });
+  const props = await buildListing({ kind: "category", handle, searchParams: await searchParams });
   return (
     <main>
-      <ListingView
-        title={prettifyHandle(handle)}
-        basePath={`/c/${handle}`}
-        sort={sort}
-        result={result}
-      />
+      <ListingView {...props} />
     </main>
   );
 }
