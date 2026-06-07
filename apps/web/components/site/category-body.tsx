@@ -214,25 +214,25 @@ export function CategoryBody({
         </div>
       </div>
 
-      {/* Tops-style category image row */}
-      {categoryImageRow && categoryImageRow.length > 0 && (
-        <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          {categoryImageRow.map((t) => (
-            <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 text-center">
-              <span className="aspect-square w-full overflow-hidden rounded-full bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={t.image} alt={t.label} className="h-full w-full object-cover transition group-hover:scale-105" />
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wide">{t.label}</span>
-            </Link>
-          ))}
-        </div>
-      )}
-
       <div className="flex gap-8">
         <aside className="hidden w-56 shrink-0 lg:block">{Rail}</aside>
 
         <div className="flex-1">
+          {/* Curated tile row (themed collections, e.g. Tops) — right of the filter rail, above the grid */}
+          {categoryImageRow && categoryImageRow.length > 0 && (
+            <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7">
+              {categoryImageRow.map((t) => (
+                <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 text-center">
+                  <span className="aspect-square w-full overflow-hidden rounded-full bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={t.image} alt={t.label} className="h-full w-full object-cover transition group-hover:scale-105" />
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">{t.label}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+
           {products.length === 0 ? (
             <p className="py-16 text-center text-muted-foreground">No products match these filters.</p>
           ) : (
