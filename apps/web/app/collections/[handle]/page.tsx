@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function CollectionPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { handle } = await params;
-  const props = await buildListing({ kind: "collection", handle, searchParams: await searchParams });
+  const props = await buildListing({ handle, searchParams: await searchParams });
   return (
     <main>
       <ListingView {...props} />

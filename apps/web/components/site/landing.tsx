@@ -8,18 +8,18 @@ const U = (id: string, w = 1600, h = 900) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
 
 const TREND_CARDS = [
-  { label: "Second Skin", img: "1490481651871-ab68de25d43d", href: "/c/women?cat=bodysuits" },
-  { label: "Vacation Strolls", img: "1469334031218-e382a71b716b", href: "/c/women?trend=Vacation" },
+  { label: "Second Skin", img: "1490481651871-ab68de25d43d", href: "/collections/bodysuits?division=women" },
+  { label: "Vacation Strolls", img: "1469334031218-e382a71b716b", href: "/collections/women?division=women&trend=Vacation" },
   { label: "Hotter on Vacation", img: "1525507119028-ed4c629a60a3", href: "/collections/trending" },
-  { label: "Swim Escape", img: "1542272604-787c3835535d", href: "/c/women?cat=swim" },
+  { label: "Swim Escape", img: "1542272604-787c3835535d", href: "/collections/swim?division=women" },
 ];
 
 const BRANDS = [
-  { label: "Maison Men", href: "/c/men", img: "1485462537746-965f33f7f6a7" },
-  { label: "Maison", href: "/c/women", img: "1490481651871-ab68de25d43d" },
-  { label: "Maison Curve", href: "/c/plus", img: "1525507119028-ed4c629a60a3" },
-  { label: "Maison Kids", href: "/c/kids", img: "1483118714900-540cf339fd46" },
-  { label: "Maison Sport", href: "/c/sport", img: "1542272604-787c3835535d" },
+  { label: "Maison Men", href: "/collections/men?division=men", img: "1485462537746-965f33f7f6a7" },
+  { label: "Maison", href: "/collections/women?division=women", img: "1490481651871-ab68de25d43d" },
+  { label: "Maison Curve", href: "/collections/plus?division=plus", img: "1525507119028-ed4c629a60a3" },
+  { label: "Maison Kids", href: "/collections/kids?division=kids", img: "1483118714900-540cf339fd46" },
+  { label: "Maison Sport", href: "/collections/sport?division=sport", img: "1542272604-787c3835535d" },
   { label: "Maison Luxe", href: "/collections/luxe", img: "1483985988355-763728e1935b" },
 ];
 
@@ -49,7 +49,7 @@ export function Landing({ data }: { data: LandingData }) {
         <img src={U("1542272604-787c3835535d", 1800, 600)} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
         <Container className="relative flex h-full flex-col items-start justify-center gap-2 text-white">
           <p className="font-display text-2xl font-black uppercase md:text-3xl">Maison × Active</p>
-          <Link href="/c/sport" className="text-xs font-bold uppercase tracking-wide underline underline-offset-4">Shop Now</Link>
+          <Link href="/collections/sport?division=sport" className="text-xs font-bold uppercase tracking-wide underline underline-offset-4">Shop Now</Link>
         </Container>
       </section>
 

@@ -28,6 +28,8 @@ interface Props {
   params: ListingParams;
   facets: ListingFacets;
   categoryLinks: CategoryLink[];
+  showCategory?: boolean;
+  leadStyle?: boolean;
   products: StoreProduct[];
   total: number;
   page: number;
@@ -48,6 +50,8 @@ export function CategoryBody({
   params,
   facets,
   categoryLinks,
+  showCategory = true,
+  leadStyle = false,
   products,
   total,
   page,
@@ -70,7 +74,7 @@ export function CategoryBody({
         <p className="mt-1 text-xs text-muted-foreground">{total.toLocaleString()} products</p>
       </div>
 
-      {categoryLinks.length > 0 && (
+      {showCategory && categoryLinks.length > 0 && (
         <FilterSection title="Category">
           <ul className="flex flex-col gap-2">
             {categoryLinks.map((c) => (
@@ -90,6 +94,8 @@ export function CategoryBody({
           </ul>
         </FilterSection>
       )}
+
+      {leadStyle && <FacetLinks title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />}
 
       {facets.sizes.length > 0 && (
         <FilterSection title="Size">
@@ -133,7 +139,7 @@ export function CategoryBody({
       )}
 
       <FacetLinks title="Occasion" values={facets.occasion} selected={params.occasion} keyName="occasion" url={url} />
-      <FacetLinks title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />
+      {!leadStyle && <FacetLinks title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />}
       <FacetLinks title="Trend" values={facets.trend} selected={params.trend} keyName="trend" url={url} />
 
       {activeCount > 0 && (

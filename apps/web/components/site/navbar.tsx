@@ -87,7 +87,7 @@ export function Navbar({ navData }: NavbarProps) {
             {/* divisions */}
             <nav className="ml-4 hidden items-center gap-5 lg:flex" aria-label="Departments">
               {divisions.map((d) => {
-                const href = d.handle === "women" ? "/" : `/c/${d.handle}`;
+                const href = d.handle === "women" ? "/" : `/collections/${d.handle}?division=${d.handle}`;
                 const active = d.handle === division;
                 return (
                   <Link
@@ -161,10 +161,15 @@ export function Navbar({ navData }: NavbarProps) {
                 New In
               </Link>
             </li>
+            <li className="shrink-0" onMouseEnter={() => setOpenMega("__clothing__")}>
+              <Link href={`/collections/${division}?division=${division}`} className="link-underline text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent">
+                Clothing
+              </Link>
+            </li>
             {categories.map((c) => (
               <li key={c.handle} className="shrink-0" onMouseEnter={() => setOpenMega(c.handle)}>
                 <Link
-                  href={`/c/${division}?cat=${c.handle}`}
+                  href={`/collections/${c.handle}?division=${division}`}
                   className="link-underline text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent"
                 >
                   {c.name}
@@ -185,7 +190,9 @@ export function Navbar({ navData }: NavbarProps) {
           {openMega && (
             <MegaPanel
               division={division}
+              mode={openMega === "__clothing__" ? "broad" : "type"}
               category={categories.find((c) => c.handle === openMega)}
+              types={categories}
               facets={facets}
               reduce={!!reduce}
             />
@@ -231,29 +238,31 @@ function MegaColumn({ heading, links }: { heading: string; links: { label: strin
   );
 }
 
+const BRANDS = [
+  { label: "Maison Luxe", href: "/collections/luxe" },
+  { label: "Maison Men", href: "/collections/men?division=men" },
+  { label: "Maison Curve", href: "/collections/plus?division=plus" },
+  { label: "Maison Sport", href: "/collections/sport?division=sport" },
+  { label: "Maison Kids", href: "/collections/kids?division=kids" },
+];
+
 function MegaPanel({
   division,
+  mode,
   category,
+  types,
   facets,
   reduce,
 }: {
   division: string;
+  mode: "broad" | "type";
   category?: NavCategory;
+  types: NavCategory[];
   facets: NavData["facets"];
   reduce: boolean;
 }) {
-  if (!category) return null;
-  const name = category.name;
-  const base = `/c/${division}?cat=${category.handle}`;
-  const quick = [
-    { label: `Shop All ${name}`, href: base },
-    { label: `New In ${name}`, href: `/collections/new?division=${division}` },
-    { label: `Back In Stock ${name}`, href: base },
-    { label: `${name} Deals`, href: `/collections/sale?division=${division}` },
-    { label: `Luxe ${name}`, href: `/collections/luxe?division=${division}` },
-    { label: `Sale ${name}`, href: `/collections/sale?division=${division}` },
-  ];
-  return (
+  if (mode === "type" && !category) return null;
+  const wrap = (children: React.ReactNode) => (
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
@@ -261,39 +270,75 @@ function MegaPanel({
       transition={{ duration: 0.16, ease: "easeOut" }}
       className="absolute left-0 right-0 top-full z-40 border-b border-border bg-card shadow-xl"
     >
-      <Container className="grid grid-cols-2 gap-6 py-7 md:grid-cols-12">
-        <div className="md:col-span-2">
-          <ul className="flex flex-col gap-2">
-            {quick.map((l, i) => (
-              <li key={l.href + i}>
-                <Link href={l.href} className={cn("text-[0.8rem] font-medium transition-colors hover:text-accent hover:underline", i === quick.length - 1 ? "text-accent" : "text-foreground/80")}>
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="md:col-span-2">
-          <MegaColumn heading="Shop by Occasion" links={facets.occasion.map((o) => ({ label: o, href: `${base}&occasion=${enc(o)}` }))} />
-        </div>
-        <div className="md:col-span-2">
-          <MegaColumn heading="Shop by Style" links={facets.style.map((s) => ({ label: s, href: `${base}&style=${enc(s)}` }))} />
-        </div>
-        <div className="md:col-span-2">
-          <MegaColumn heading="Shop by Trend" links={facets.trend.map((t) => ({ label: t, href: `${base}&trend=${enc(t)}` }))} />
-        </div>
-        <div className="md:col-span-2">
-          <MegaColumn heading="Shop by Color" links={facets.colors.map((c) => ({ label: c.name, href: `${base}&color=${enc(c.name)}`, swatch: c.swatch }))} />
-        </div>
-        <Link href={base} className="group relative hidden h-56 overflow-hidden md:col-span-2 md:block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={PROMO_IMG} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          <span className="absolute bottom-3 left-3 rounded-sm bg-background/90 px-2 py-1 text-xs font-bold uppercase tracking-wide">
-            Shop {name}
-          </span>
-        </Link>
-      </Container>
+      <Container className="grid grid-cols-2 gap-6 py-7 md:grid-cols-12">{children}</Container>
     </motion.div>
+  );
+
+  if (mode === "broad") {
+    const divBase = `/collections/${division}?division=${division}`;
+    return wrap(
+      <>
+        <div className="md:col-span-2">
+          <Link href={divBase} className="text-[0.8rem] font-bold text-foreground hover:text-accent hover:underline">
+            Shop All Clothing
+          </Link>
+        </div>
+        <div className="md:col-span-3">
+          <MegaColumn heading="All Clothing" links={types.map((t) => ({ label: t.name, href: `/collections/${t.handle}?division=${division}` }))} />
+        </div>
+        <div className="md:col-span-2">
+          <MegaColumn heading="Shop by Occasion" links={facets.occasion.map((o) => ({ label: o, href: `${divBase}&occasion=${enc(o)}` }))} />
+        </div>
+        <div className="md:col-span-3">
+          <MegaColumn heading="Shop by Trend" links={facets.trend.map((t) => ({ label: t, href: `${divBase}&trend=${enc(t)}` }))} />
+        </div>
+        <div className="md:col-span-2">
+          <MegaColumn heading="Shop Maison Brands" links={BRANDS.map((b) => ({ label: b.label, href: b.href }))} />
+        </div>
+      </>,
+    );
+  }
+
+  const name = category!.name;
+  const base = `/collections/${category!.handle}?division=${division}`;
+  const lifecycle = [
+    { label: `Shop All ${name}`, href: base },
+    { label: `New In ${name}`, href: `/collections/new?division=${division}` },
+    { label: `Back In Stock ${name}`, href: base },
+    { label: `${name} Deals`, href: `/collections/sale?division=${division}` },
+    { label: `Sale ${name}`, href: `/collections/sale?division=${division}`, red: true },
+  ];
+  return wrap(
+    <>
+      <div className="md:col-span-2">
+        <ul className="flex flex-col gap-2">
+          {lifecycle.map((l, i) => (
+            <li key={l.href + i}>
+              <Link href={l.href} className={cn("text-[0.8rem] font-medium transition-colors hover:text-accent hover:underline", l.red ? "text-accent" : "text-foreground/80")}>
+                {l.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="md:col-span-2">
+        <MegaColumn heading="Shop by Style" links={facets.style.map((s) => ({ label: `${s}`, href: `${base}&style=${enc(s)}` }))} />
+      </div>
+      <div className="md:col-span-2">
+        <MegaColumn heading="Shop by Occasion" links={facets.occasion.map((o) => ({ label: `${o} ${name}`, href: `${base}&occasion=${enc(o)}` }))} />
+      </div>
+      <div className="md:col-span-2">
+        <MegaColumn heading="Shop by Trend" links={facets.trend.map((t) => ({ label: `${t} ${name}`, href: `${base}&trend=${enc(t)}` }))} />
+      </div>
+      <div className="md:col-span-2">
+        <MegaColumn heading="Shop by Color" links={facets.colors.map((c) => ({ label: c.name, href: `${base}&color=${enc(c.name)}`, swatch: c.swatch }))} />
+      </div>
+      <Link href={base} className="group relative hidden h-56 overflow-hidden md:col-span-2 md:block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={PROMO_IMG} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <span className="absolute bottom-3 left-3 rounded-sm bg-background/90 px-2 py-1 text-xs font-bold uppercase tracking-wide">Shop {name}</span>
+      </Link>
+    </>,
   );
 }
 
@@ -334,7 +379,7 @@ function MobileDrawer({
             return (
               <li key={d.handle} className="border-b border-border">
                 <div className="flex items-center justify-between">
-                  <Link href={d.handle === "women" ? "/" : `/c/${d.handle}`} onClick={onClose} className="block py-3 text-sm font-bold uppercase tracking-wide hover:text-accent">
+                  <Link href={d.handle === "women" ? "/" : `/collections/${d.handle}?division=${d.handle}`} onClick={onClose} className="block py-3 text-sm font-bold uppercase tracking-wide hover:text-accent">
                     {d.label}
                   </Link>
                   {cats.length > 0 && (
@@ -347,7 +392,7 @@ function MobileDrawer({
                   <ul className="pb-2 pl-3">
                     {cats.map((c) => (
                       <li key={c.handle}>
-                        <Link href={`/c/${d.handle}?cat=${c.handle}`} onClick={onClose} className="block py-1.5 text-sm text-foreground/75 hover:text-accent">
+                        <Link href={`/collections/${c.handle}?division=${d.handle}`} onClick={onClose} className="block py-1.5 text-sm text-foreground/75 hover:text-accent">
                           {c.name}
                         </Link>
                       </li>

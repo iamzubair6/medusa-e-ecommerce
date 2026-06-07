@@ -17,6 +17,8 @@ export async function ListingView(props: ListingPageProps) {
           params={props.params}
           facets={props.facets}
           categoryLinks={props.categoryLinks}
+          showCategory={props.showCategory}
+          leadStyle={props.leadStyle}
           products={props.products}
           total={props.total}
           page={props.page}

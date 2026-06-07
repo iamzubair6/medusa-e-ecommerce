@@ -719,7 +719,7 @@ export const getLandingData = cache(async (): Promise<LandingData> => {
   const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
   const tileFor = (h: string): CategoryTile => {
     const p = all.find((x) => (x.categoryHandles ?? []).includes(h));
-    return { handle: h, name: nameByHandle.get(h) ?? prettify(h), image: p?.thumbnail ?? TILE_FALLBACK, href: `/c/women?cat=${h}` };
+    return { handle: h, name: nameByHandle.get(h) ?? prettify(h), image: p?.thumbnail ?? TILE_FALLBACK, href: `/collections/${h}?division=women` };
   };
   const categoryTiles = TILE_CATEGORIES.map(tileFor);
 

@@ -1,24 +1,17 @@
-import type { Metadata } from "next";
-import { buildListing } from "@/lib/build-listing";
-import { prettifyHandle } from "@/lib/listing-params";
-import { ListingView } from "@/components/site/listing-view";
+import { redirect } from "next/navigation";
 
-export const revalidate = 300;
-
+// Legacy /c/{handle} routes now live under /collections/{handle}. Redirect, keeping query.
 type Params = Promise<{ handle: string }>;
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export default async function LegacyCategoryRedirect({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { handle } = await params;
-  return { title: prettifyHandle(handle) };
-}
-
-export default async function CategoryPage({ params, searchParams }: { params: Params; searchParams: Search }) {
-  const { handle } = await params;
-  const props = await buildListing({ kind: "category", handle, searchParams: await searchParams });
-  return (
-    <main>
-      <ListingView {...props} />
-    </main>
-  );
+  const sp = await searchParams;
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (typeof v === "string") qs.set(k, v);
+    else if (Array.isArray(v) && v[0]) qs.set(k, v[0]);
+  }
+  const q = qs.toString();
+  redirect(`/collections/${handle}${q ? `?${q}` : ""}`);
 }

@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Shop All" };
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function AllProductsPage({ searchParams }: { searchParams: Search }) {
-  const props = await buildListing({ kind: "all", searchParams: await searchParams });
+  const props = await buildListing({ searchParams: await searchParams });
   return (
     <main>
       <ListingView {...props} />
