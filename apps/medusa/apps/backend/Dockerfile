@@ -15,5 +15,6 @@ WORKDIR /app/.medusa/server
 RUN npm install
 
 EXPOSE 9000
-# run migrations then start the server
-CMD ["sh", "-c", "npx medusa db:migrate && npm run start"]
+# Apply schema migrations (idempotent), but skip data-seed migration scripts
+# (src/migration-scripts/*) which are one-off and already seeded. Then start.
+CMD ["sh", "-c", "npx medusa db:migrate --skip-scripts && npm run start"]
