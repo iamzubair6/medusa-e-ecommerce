@@ -40,3 +40,29 @@ Scalable fashion e-commerce storefront with a custom CMS/admin. See `docs/PLAN.m
 ## Before saying "done"
 - `bun run typecheck` across workspace packages — zero errors. `bun run build` for web.
 - No console logs, TODOs, or hardcoded secrets in committed code.
+
+## Keep docs in sync (IMPORTANT — the product changes daily)
+When a change adds/removes/alters a feature, flow, route, env var, or deploy step,
+**update the relevant doc in the same change**:
+- `docs/ROADMAP.md` — phase/feature status.
+- `docs/ARCHITECTURE.md` — structure, data flow, new modules/routes.
+- `docs/GO_LIVE_GUIDE.md` — anything affecting deploy/env/setup.
+- `docs/PRODUCTION_DECISIONS.md` — deferred prod choices (upload storage, SMS gateway,
+  hosting). Built-mocked features go here until a real provider is wired.
+- `docs/ADMIN_GUIDE.md` / `docs/PRODUCT_GUIDE.md` — admin or merchandising changes.
+Treat doc updates as part of "done", not optional.
+
+## Tooling, skills & MCP (use the right tool)
+- **Frontend / modern UI**: prefer the `ui-ux-pro-max` and `frontend-design` skills for
+  design intent, and the **shadcn/ui MCP** + **magic** MCP (`21st_magic_component_builder`,
+  `logo_search`) for component scaffolding. Always render the result into our design
+  system (`packages/ui` + Tailwind tokens) — never introduce a new UI lib/icon set.
+- **Backend / commerce**: Medusa work runs on **Node 20** (`apps/medusa/apps/backend`);
+  seed/admin scripts via `npx medusa exec`. CMS domain logic lives in `packages/cms`.
+- **Deploy is push-based**: web → Vercel, Medusa → Render (both auto-deploy on push to
+  master). Always `typecheck` + `bun run build` (clean `.next` + warm the backend) before pushing.
+- **Specialized subagents** live in `.claude/agents/` (frontend-ui, medusa-backend,
+  cms-prisma). **Slash commands** live in `.claude/commands/` (`/verify`, `/ship`,
+  `/seed`, `/sync-docs`). Use them to keep work consistent.
+- **Persistent decisions** that aren't in code go to the auto-memory; **deferred prod
+  decisions** go to `docs/PRODUCTION_DECISIONS.md`.

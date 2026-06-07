@@ -1,0 +1,12 @@
+{
+  "$comment": "Project Claude Code config. Stop hook nudges to keep docs in sync (see CLAUDE.md). To reduce permission prompts, run the /fewer-permission-prompts skill or add a permissions.allow list yourself.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/docs-reminder.sh\"" }
+        ]
+      }
+    ]
+  }
+}
