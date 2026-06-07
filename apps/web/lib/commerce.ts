@@ -693,6 +693,27 @@ export async function fetchDivisionCategories(
     .sort((a, b) => b.count - a.count);
 }
 
+/** Related products for the PDP — prefers same content category, then division. */
+export async function fetchRelatedProducts(
+  handle: string,
+  opts: { category?: string; division?: string; limit?: number } = {},
+): Promise<StoreProduct[]> {
+  const limit = opts.limit ?? 8;
+  const all = await getCatalog();
+  const others = all.filter((p) => p.handle !== handle);
+  let pool: StoreProduct[] = [];
+  if (opts.category) pool = others.filter((p) => (p.categoryHandles ?? []).includes(opts.category!));
+  if (pool.length < limit && opts.division) {
+    for (const p of others.filter((p) => p.division === opts.division)) {
+      if (!pool.some((m) => m.handle === p.handle)) pool.push(p);
+    }
+  }
+  if (pool.length < limit) {
+    for (const p of others) if (!pool.some((m) => m.handle === p.handle)) pool.push(p);
+  }
+  return pool.slice(0, limit);
+}
+
 /** Similar products for the PDP (placeholder until image search lands). */
 export async function fetchSimilarProducts(handle: string, limit = 4): Promise<StoreProduct[]> {
   if (medusaEnabled()) {

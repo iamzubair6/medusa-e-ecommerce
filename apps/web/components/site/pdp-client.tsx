@@ -244,7 +244,7 @@ export function PdpClient({
           </button>
         </div>
 
-        <Accordions description={product.description} />
+        <Accordions product={product} />
       </div>
 
       <AnimatePresence>
@@ -341,19 +341,28 @@ function Lightbox({
   );
 }
 
-const PANELS = [
-  { key: "details", label: "Product Details" },
-  { key: "shipping", label: "Shipping & Returns" },
-] as const;
-
 /** Detects whether the stored description is rich HTML vs plain text. */
 const isHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 
-function Accordions({ description }: { description: string }) {
+function Accordions({ product }: { product: StoreProductDetail }) {
   const [open, setOpen] = useState<string | null>("details");
+  const { description, material, care, occasion = [], style = [], trend = [] } = product;
+  const attrs: { label: string; values: string[] }[] = [
+    { label: "Occasion", values: occasion },
+    { label: "Style", values: style },
+    { label: "Trend", values: trend },
+  ].filter((a) => a.values.length > 0);
+  const hasMaterials = Boolean(material || care);
+
+  const panels = [
+    { key: "details", label: "Product Details" },
+    ...(hasMaterials ? [{ key: "materials", label: "Materials & Care" }] : []),
+    { key: "shipping", label: "Shipping & Returns" },
+  ];
+
   return (
     <div className="mt-1 border-t border-border">
-      {PANELS.map((p) => {
+      {panels.map((p) => {
         const isOpen = open === p.key;
         return (
           <div key={p.key} className="border-b border-border">
@@ -365,23 +374,51 @@ function Accordions({ description }: { description: string }) {
               {p.label}
               {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </button>
-            {isOpen &&
-              (p.key === "details" ? (
-                description && isHtml(description) ? (
+            {isOpen && p.key === "details" && (
+              <div className="pb-4">
+                {description && isHtml(description) ? (
                   <div
-                    className="prose-pdp pb-4 text-sm leading-relaxed text-muted-foreground [&_a]:underline [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_h3]:text-foreground [&_li]:ml-4 [&_li]:list-disc [&_strong]:text-foreground [&_ul]:my-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1"
+                    className="prose-pdp text-sm leading-relaxed text-muted-foreground [&_a]:underline [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_h3]:text-foreground [&_li]:ml-4 [&_li]:list-disc [&_strong]:text-foreground [&_ul]:my-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1"
                     dangerouslySetInnerHTML={{ __html: description }}
                   />
                 ) : (
-                  <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {description || "Premium materials with a considered fit."}
                   </p>
-                )
-              ) : (
-                <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
-                  Standard delivery in 3–5 days. Free returns within 30 days.
-                </p>
-              ))}
+                )}
+                {attrs.length > 0 && (
+                  <dl className="mt-4 flex flex-col gap-2 text-sm">
+                    {attrs.map((a) => (
+                      <div key={a.label} className="flex gap-2">
+                        <dt className="w-24 shrink-0 font-semibold text-foreground">{a.label}</dt>
+                        <dd className="text-muted-foreground">{a.values.join(", ")}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            )}
+            {isOpen && p.key === "materials" && (
+              <div className="pb-4 text-sm leading-relaxed text-muted-foreground">
+                {material && (
+                  <p>
+                    <span className="font-semibold text-foreground">Composition: </span>
+                    {material}
+                  </p>
+                )}
+                {care && (
+                  <p className="mt-1.5">
+                    <span className="font-semibold text-foreground">Care: </span>
+                    {care}
+                  </p>
+                )}
+              </div>
+            )}
+            {isOpen && p.key === "shipping" && (
+              <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
+                Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days.
+              </p>
+            )}
           </div>
         );
       })}

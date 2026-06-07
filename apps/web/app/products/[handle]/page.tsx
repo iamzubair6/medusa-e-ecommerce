@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Reveal } from "@ecom/ui";
 import { getReviewSummary, listReviews } from "@ecom/cms";
-import { fetchProductByHandle, fetchSimilarProducts } from "@/lib/commerce";
+import { fetchProductByHandle, fetchRelatedProducts, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { PdpClient } from "@/components/site/pdp-client";
@@ -30,11 +30,15 @@ export default async function ProductPage({ params }: { params: Params }) {
   const product = await fetchProductByHandle(handle);
   if (!product) notFound();
 
-  const [similar, reviewSummary, reviewsData] = await Promise.all([
-    fetchSimilarProducts(handle, 4),
+  const divSet = new Set<string>(DIVISION_HANDLES);
+  const primaryCat = (product.categoryHandles ?? []).find((h) => !divSet.has(h));
+  const [related, trendingResult, reviewSummary, reviewsData] = await Promise.all([
+    fetchRelatedProducts(handle, { category: primaryCat, division: product.division, limit: 4 }),
+    fetchListing({ collection: "trending" }, { limit: 5 }),
     getReviewSummary(handle),
     listReviews(handle, { take: 20 }),
   ]);
+  const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
   const priceNumber = Number(product.price.replace(/[^0-9.]/g, "")) || undefined;
 
@@ -72,12 +76,21 @@ export default async function ProductPage({ params }: { params: Params }) {
 
         <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 
-        {similar.length > 0 && (
+        {related.length > 0 && (
           <section className="mt-20">
             <Reveal>
               <h2 className="mb-6 font-display text-2xl font-bold tracking-tight">You may also like</h2>
             </Reveal>
-            <ProductGrid products={similar} />
+            <ProductGrid products={related} />
+          </section>
+        )}
+
+        {trending.length > 0 && (
+          <section className="mt-16">
+            <Reveal>
+              <h2 className="mb-6 font-display text-2xl font-bold tracking-tight">Trending now</h2>
+            </Reveal>
+            <ProductGrid products={trending} />
           </section>
         )}
       </Container>
