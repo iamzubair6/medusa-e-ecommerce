@@ -693,6 +693,55 @@ export async function fetchDivisionCategories(
     .sort((a, b) => b.count - a.count);
 }
 
+// ---- Landing page data ----
+export interface CategoryTile {
+  handle: string;
+  name: string;
+  image: string;
+  href: string;
+}
+export interface LatestTab {
+  key: string;
+  label: string;
+  href: string;
+  products: StoreProduct[];
+}
+export interface LandingData {
+  categoryTiles: CategoryTile[];
+  latest: LatestTab[];
+}
+
+const TILE_FALLBACK = img(0, 800, 1000);
+const TILE_CATEGORIES = ["dresses", "matching-sets", "swim", "accessories", "tops", "shoes", "bottoms"];
+
+export const getLandingData = cache(async (): Promise<LandingData> => {
+  const [all, cats] = await Promise.all([getCatalog(), listCategories()]);
+  const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
+  const tileFor = (h: string): CategoryTile => {
+    const p = all.find((x) => (x.categoryHandles ?? []).includes(h));
+    return { handle: h, name: nameByHandle.get(h) ?? prettify(h), image: p?.thumbnail ?? TILE_FALLBACK, href: `/c/women?cat=${h}` };
+  };
+  const categoryTiles = TILE_CATEGORIES.map(tileFor);
+
+  const [newR, saleR, dressR, jeansR, setsR] = await Promise.all([
+    fetchListing({ collection: "new" }, { limit: 8 }),
+    fetchListing({ collection: "sale" }, { limit: 8 }),
+    fetchListing({ category: "dresses" }, { limit: 8 }),
+    fetchListing({ category: "jeans" }, { limit: 8 }),
+    fetchListing({ category: "matching-sets" }, { limit: 8 }),
+  ]);
+  const latest: LatestTab[] = [
+    { key: "foryou", label: "For You", href: "/products", products: all.slice(0, 8) },
+    { key: "new", label: "New In", href: "/collections/new", products: newR.products },
+    { key: "sale", label: "Sale", href: "/collections/sale", products: saleR.products },
+    { key: "dresses", label: "Dresses", href: "/c/dresses", products: dressR.products },
+    { key: "jeans", label: "Jeans", href: "/c/jeans", products: jeansR.products },
+    { key: "sets", label: "Sets", href: "/c/matching-sets", products: setsR.products },
+  ].filter((t) => t.products.length > 0);
+
+  return { categoryTiles, latest };
+});
+
 /** Related products for the PDP — prefers same content category, then division. */
 export async function fetchRelatedProducts(
   handle: string,
