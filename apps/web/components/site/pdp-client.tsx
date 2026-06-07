@@ -39,6 +39,26 @@ export function PdpClient({
   const [added, setAdded] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const [sizeGuide, setSizeGuide] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  const share = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: product.title, text: product.title, url });
+        return;
+      } catch {
+        return; // user dismissed the share sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 1600);
+    } catch {
+      /* clipboard blocked */
+    }
+  };
 
   const { addItem } = useCart();
   const { openCart } = useCartUI();
@@ -102,8 +122,8 @@ export function PdpClient({
         <div>
           <div className="flex items-start justify-between gap-4">
             <h1 className="font-display text-2xl font-bold tracking-tight">{product.title}</h1>
-            <button type="button" className="flex shrink-0 cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-              <Share2 className="h-4 w-4" /> Share
+            <button type="button" onClick={share} className="flex shrink-0 cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              {shared ? <Check className="h-4 w-4 text-accent" /> : <Share2 className="h-4 w-4" />} {shared ? "Link copied" : "Share"}
             </button>
           </div>
           <a href="#reviews" className="mt-1.5 flex items-center gap-1.5">

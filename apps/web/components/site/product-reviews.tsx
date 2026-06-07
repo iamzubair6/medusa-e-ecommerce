@@ -49,6 +49,8 @@ export function ProductReviews({
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews);
+  const [liveSummary, setLiveSummary] = useState<ReviewSummary>(summary);
 
   const submit = async () => {
     setError(null);
@@ -66,6 +68,22 @@ export function ProductReviews({
         const d = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(d.error ?? "Could not submit review");
       }
+      const created = (await res.json().catch(() => ({}))) as { id?: string };
+      // Optimistically show the new review immediately (ISR page won't refetch instantly).
+      const newReview: ReviewItem = {
+        id: created.id ?? `tmp-${reviews.length + 1}`,
+        rating,
+        author: author.trim(),
+        title: title.trim() || null,
+        body: body.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      setReviews((prev) => [newReview, ...prev]);
+      setLiveSummary((prev) => {
+        const count = prev.count + 1;
+        const average = Math.round(((prev.average * prev.count + rating) / count) * 10) / 10;
+        return { count, average };
+      });
       setOpen(false);
       setRating(0);
       setAuthor("");
@@ -85,9 +103,9 @@ export function ProductReviews({
         <div>
           <h2 className="font-display text-2xl font-bold tracking-tight">Reviews</h2>
           <div className="mt-2 flex items-center gap-2">
-            <Stars value={summary.average} />
+            <Stars value={liveSummary.average} />
             <span className="text-sm text-muted-foreground">
-              {summary.count > 0 ? `${summary.average} · ${summary.count} review${summary.count === 1 ? "" : "s"}` : "No reviews yet"}
+              {liveSummary.count > 0 ? `${liveSummary.average} · ${liveSummary.count} review${liveSummary.count === 1 ? "" : "s"}` : "No reviews yet"}
             </span>
           </div>
         </div>
@@ -129,7 +147,7 @@ export function ProductReviews({
       )}
 
       <ul className="mt-6 flex flex-col divide-y divide-border">
-        {initialReviews.map((r) => (
+        {reviews.map((r) => (
           <li key={r.id} className="py-5">
             <div className="flex items-center justify-between">
               <Stars value={r.rating} />
@@ -140,7 +158,7 @@ export function ProductReviews({
             <p className="mt-2 text-xs text-muted-foreground">— {r.author}</p>
           </li>
         ))}
-        {initialReviews.length === 0 && (
+        {reviews.length === 0 && (
           <li className="py-8 text-center text-sm text-muted-foreground">No reviews yet — be the first to review this piece.</li>
         )}
       </ul>
