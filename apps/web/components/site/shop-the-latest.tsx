@@ -11,7 +11,7 @@ export function ShopTheLatest({ tabs }: { tabs: LatestTab[] }) {
   const current = tabs.find((t) => t.key === active) ?? tabs[0];
   if (!current) return null;
   return (
-    <section className="py-12">
+    <section className="py-8">
       <h2 className="mb-5 text-center font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop the Latest</h2>
       <div className="mb-7 flex flex-wrap justify-center gap-2">
         {tabs.map((t) => (

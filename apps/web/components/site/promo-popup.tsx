@@ -124,7 +124,7 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
             animate={{ scale: 1, y: 0 }}
             exit={reduce ? undefined : { scale: 0.95, y: 12, opacity: 0 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 w-full max-w-md overflow-hidden rounded-lg bg-card shadow-2xl"
+            className="relative z-10 grid w-full max-w-3xl grid-cols-1 overflow-hidden rounded-lg bg-card shadow-2xl md:grid-cols-2"
           >
             <button
               type="button"
@@ -134,12 +134,16 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
             >
               <X className="h-4 w-4" />
             </button>
-            {config.media && (
-              <div className="relative h-40 w-full">
-                <Image src={config.media.url} alt="" fill className="object-cover" />
-              </div>
-            )}
-            <div className="flex flex-col gap-4 p-7 text-center">
+            <div className="relative h-44 w-full md:h-auto md:min-h-[440px]">
+              <Image
+                src={config.media?.url ?? "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80"}
+                alt=""
+                fill
+                sizes="(max-width: 768px) 100vw, 384px"
+                className="object-cover"
+              />
+            </div>
+            <div className="flex flex-col justify-center gap-4 p-7 text-center md:p-9">
               <span className="font-display text-xl font-bold uppercase tracking-[0.1em]">MAISON</span>
               <div>
                 <h2 className="font-display text-3xl font-bold uppercase leading-tight tracking-tight">

@@ -3,9 +3,19 @@ import { ChevronRight } from "lucide-react";
 import { Container, cn } from "@ecom/ui";
 import type { CategoryTile, LandingData } from "@/lib/commerce";
 import { ShopTheLatest } from "./shop-the-latest";
+import { BrandCarousel, type BrandSlide } from "./brand-carousel";
+import { Marquee } from "./marquee";
 
 const U = (id: string, w = 1600, h = 900) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
+
+const USP_ITEMS = ["Free Shipping Over ৳2,000", "Cash on Delivery", "Easy 30-Day Returns", "New Drops Weekly", "Shop the App"];
+
+const BRAND_SLIDES: BrandSlide[] = [
+  { image: U("1483985988355-763728e1935b", 1800, 1000), eyebrow: "Collab", title: "Maison × Active", href: "/collections/sport?division=sport" },
+  { image: U("1469334031218-e382a71b716b", 1800, 1000), eyebrow: "The Edit", title: "Vacation Mindset", href: "/collections/trending" },
+  { image: U("1525507119028-ed4c629a60a3", 1800, 1000), eyebrow: "New", title: "Golden Hours", href: "/collections/luxe" },
+];
 
 const TREND_CARDS = [
   { label: "Second Skin", img: "1490481651871-ab68de25d43d", href: "/collections/bodysuits?division=women" },
@@ -26,6 +36,9 @@ const BRANDS = [
 export function Landing({ data }: { data: LandingData }) {
   return (
     <>
+      {/* USP marquee (under the announcement bar) */}
+      <Marquee config={{ items: USP_ITEMS, speedSeconds: 30 }} />
+
       {/* Hero offer */}
       <section className="relative h-[460px] w-full overflow-hidden md:h-[560px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -43,18 +56,11 @@ export function Landing({ data }: { data: LandingData }) {
         </Container>
       </section>
 
-      {/* Brand collab strip */}
-      <section className="relative h-44 w-full overflow-hidden bg-ink md:h-52">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={U("1542272604-787c3835535d", 1800, 600)} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
-        <Container className="relative flex h-full flex-col items-start justify-center gap-2 text-white">
-          <p className="font-display text-2xl font-black uppercase md:text-3xl">Maison × Active</p>
-          <Link href="/collections/sport?division=sport" className="text-xs font-bold uppercase tracking-wide underline underline-offset-4">Shop Now</Link>
-        </Container>
-      </section>
+      {/* Brand collab / video carousel — same height as hero */}
+      <BrandCarousel slides={BRAND_SLIDES} />
 
       {/* Trend report */}
-      <Container className="py-12">
+      <Container className="py-8">
         <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">The Trend Report</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {TREND_CARDS.map((c) => (
@@ -83,7 +89,7 @@ export function Landing({ data }: { data: LandingData }) {
       </section>
 
       {/* Shop by Brand */}
-      <Container className="py-12">
+      <Container className="py-8">
         <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop by Brand</h2>
         <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
           {BRANDS.map((b) => (
@@ -112,7 +118,7 @@ export function Landing({ data }: { data: LandingData }) {
       </section>
 
       {/* Shop by Category — bento */}
-      <Container className="py-12">
+      <Container className="py-8">
         <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop by Category</h2>
         <Bento tiles={data.categoryTiles} />
       </Container>
