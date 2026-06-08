@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { findCustomerEmailByPhone } from "./medusa-admin";
 
 /**
  * Storefront customer authentication via Medusa's emailpass auth. The JWT is kept
@@ -84,6 +85,7 @@ export async function registerCustomer(input: {
   password: string;
   firstName: string;
   lastName: string;
+  phone?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   // 1) create an auth identity → registration token
   const reg = await fetch(`${BACKEND}/auth/customer/emailpass/register`, {
@@ -101,7 +103,12 @@ export async function registerCustomer(input: {
   // 2) create the customer record with that token
   const created = await storeFetch("/store/customers", regToken, {
     method: "POST",
-    body: JSON.stringify({ email: input.email, first_name: input.firstName, last_name: input.lastName }),
+    body: JSON.stringify({
+      email: input.email,
+      first_name: input.firstName,
+      last_name: input.lastName,
+      ...(input.phone ? { phone: input.phone } : {}),
+    }),
   });
   if (!created.ok) {
     const d = (await created.json().catch(() => ({}))) as { message?: string };
@@ -120,6 +127,23 @@ export async function loginCustomer(email: string, password: string): Promise<bo
   if (!token) return false;
   await setToken(token);
   return true;
+}
+
+/** Login by email OR phone + password. Phone is resolved to its account email. */
+export async function loginByIdentifier(
+  identifier: string,
+  password: string,
+): Promise<{ ok: boolean; error?: string }> {
+  let email = identifier.trim();
+  if (!email.includes("@")) {
+    const found = await findCustomerEmailByPhone(email);
+    if (!found) return { ok: false, error: "No account found for that phone number." };
+    email = found;
+  }
+  const token = await authToken(email, password);
+  if (!token) return { ok: false, error: "Incorrect email/phone or password." };
+  await setToken(token);
+  return { ok: true };
 }
 
 export async function getCustomer(): Promise<Customer | null> {

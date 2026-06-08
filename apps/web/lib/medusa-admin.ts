@@ -599,6 +599,16 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 /** Proxy a multipart upload to Medusa's file service; returns the hosted URLs. */
+/** Find a customer's email by phone (for phone+password login). */
+export async function findCustomerEmailByPhone(phone: string): Promise<string | null> {
+  const norm = (s: string) => s.replace(/\s+/g, "");
+  const data = await adminFetch<{ customers?: { email: string; phone?: string | null }[] }>(
+    `/admin/customers?q=${encodeURIComponent(phone)}&fields=id,email,phone&limit=10`,
+  );
+  const match = (data?.customers ?? []).find((c) => c.phone && norm(c.phone) === norm(phone));
+  return match?.email ?? null;
+}
+
 export async function uploadFiles(form: FormData): Promise<string[]> {
   const res = await fetch(`${BACKEND}/admin/uploads`, {
     method: "POST",
