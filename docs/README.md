@@ -10,7 +10,8 @@ reference. Keep docs updated **in the same change** as the code (see CLAUDE.md
 
 | Doc | Purpose | Update when… |
 |---|---|---|
-| **IMPLEMENTATION_STATUS.md** | ⭐ Canonical status: done / in-progress / on-hold / deployed (with commit hashes) | **every feature change** |
+| **IMPLEMENTATION_STATUS.md** | ⭐ Canonical status: done / in-progress / on-hold / deployed + the numbered task board | **every feature change** |
+| **BUILD_LOG.md** | Full day-by-day history of everything built since project start | append a dated section as work continues |
 | PRODUCTION_DECISIONS.md | Deferred prod choices (upload storage, SMS gateway, hosting) — built mocked for now | a mock is added or a real provider is wired |
 | ROADMAP.md | Original platform phases 0–5 (historical) | rarely — points to IMPLEMENTATION_STATUS for current work |
 | PLAN.md | Product vision / scope (historical baseline) | vision/scope changes |

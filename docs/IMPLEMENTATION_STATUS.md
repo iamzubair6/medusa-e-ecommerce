@@ -30,8 +30,11 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 13 | Auth — phone-OTP popup, registration (phone+OTP), email/phone login, intl phone, boxed OTP, auto-login | ✅ |
 | 14 | Checkout — required fields + geo country + intl phone + persona section + stacked 2–4% discount | 🟡 next |
 | 15 | Admin — persona builder (title/questions/discount %) | 🟡 next |
+| 16 | Required-field red star (*) across storefront + admin forms | ⬜ |
 
-**Done: 10/15 · Remaining: #7, #12, #14, #15.**
+**Done: 10/16 · Remaining: #7, #12, #14, #15, #16.**
+
+> Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
 ---
 
