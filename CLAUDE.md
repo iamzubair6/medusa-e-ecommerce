@@ -54,6 +54,16 @@ route, env var, or deploy step, **update docs in the same change**:
 Don't scatter status across docs (ROADMAP/PLAN are historical baselines). Treat doc
 updates as part of "done", not optional.
 
+## Turning feedback into tracked tasks (ALWAYS)
+Every time the user gives a **fix, update, or feedback**:
+1. **Break it into numbered tasks/phases** (use the TaskCreate task list).
+2. **Write them down** in `docs/IMPLEMENTATION_STATUS.md` → "Task board" — append the
+   new numbered rows so it stays a durable, complete record (not just the ephemeral
+   in-session list).
+3. **Maintain status** as work progresses: update both the task list and the doc's
+   board (⬜ planned → 🟡 in progress → ✅ done & deployed, with the commit hash).
+This is mandatory, not optional — the user relies on the doc board being current.
+
 ## Tooling, skills & MCP (use the right tool)
 - **Frontend / modern UI**: prefer the `ui-ux-pro-max` and `frontend-design` skills for
   design intent, and the **shadcn/ui MCP** + **magic** MCP (`21st_magic_component_builder`,
