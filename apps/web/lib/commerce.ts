@@ -70,6 +70,8 @@ export interface StoreProductDetail extends StoreProduct {
   colors: StoreColor[];
   material?: string;
   care?: string;
+  tags?: string[];
+  productType?: string;
 }
 
 export interface ProductListResult {
@@ -161,6 +163,8 @@ interface MedusaProduct {
   metadata?: ProductMeta | null;
   categories?: { handle: string; name?: string }[];
   collection?: { handle: string; title?: string } | null;
+  tags?: { value: string }[];
+  type?: { value: string } | null;
 }
 
 const strArr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
@@ -322,6 +326,8 @@ function mapDetail(p: MedusaProduct): StoreProductDetail {
     description: p.description ?? "",
     material: p.metadata?.material,
     care: p.metadata?.care,
+    tags: (p.tags ?? []).map((t) => t.value),
+    productType: p.type?.value ?? undefined,
     images: allImages.length ? allImages : [card.thumbnail],
     colors: colors.length
       ? colors
@@ -373,7 +379,7 @@ export const getRegionId = cache(async (): Promise<string | undefined> => {
 const CARD_FIELDS =
   "fields=title,handle,thumbnail,metadata,categories.handle,categories.name,collection.handle,collection.title,*images,*variants.calculated_price,*variants.options,*variants.options.option";
 const DETAIL_FIELDS =
-  "fields=title,handle,description,thumbnail,metadata,categories.handle,categories.name,collection.handle,collection.title,*images,*options,*variants.calculated_price,*variants.options,*variants.options.option";
+  "fields=title,handle,description,thumbnail,metadata,categories.handle,categories.name,collection.handle,collection.title,tags.value,type.value,*images,*options,*variants.calculated_price,*variants.options,*variants.options.option";
 
 function sourceToQuery(source: ProductSource, limit: number): string {
   const params = new URLSearchParams({ limit: String(limit) });

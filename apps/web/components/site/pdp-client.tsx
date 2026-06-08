@@ -366,7 +366,7 @@ const isHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 
 function Accordions({ product }: { product: StoreProductDetail }) {
   const [open, setOpen] = useState<string | null>("details");
-  const { description, material, care, occasion = [], style = [], trend = [] } = product;
+  const { description, material, care, occasion = [], style = [], trend = [], tags = [] } = product;
   const attrs: { label: string; values: string[] }[] = [
     { label: "Occasion", values: occasion },
     { label: "Style", values: style },
@@ -415,6 +415,13 @@ function Accordions({ product }: { product: StoreProductDetail }) {
                       </div>
                     ))}
                   </dl>
+                )}
+                {tags.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {tags.map((t) => (
+                      <span key={t} className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">{t}</span>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

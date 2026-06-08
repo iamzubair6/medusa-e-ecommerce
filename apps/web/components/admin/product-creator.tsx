@@ -40,6 +40,12 @@ export interface ProductInitial {
   categoryIds?: string[];
   tags?: string[];
   type?: string;
+  division?: string;
+  occasion?: string[];
+  style?: string[];
+  trend?: string[];
+  material?: string;
+  care?: string;
   colors: {
     name: string;
     swatch: string;
@@ -49,6 +55,16 @@ export interface ProductInitial {
     sizes: { size: string; stock: number }[];
   }[];
 }
+
+const DIVISION_OPTIONS = [
+  { value: "", label: "— none —" },
+  { value: "women", label: "Women" },
+  { value: "plus", label: "Plus+Curve" },
+  { value: "men", label: "Men" },
+  { value: "sport", label: "Sport" },
+  { value: "kids", label: "Kids" },
+  { value: "beauty", label: "Beauty" },
+];
 
 export interface CategoryOption {
   id: string;
@@ -83,6 +99,12 @@ export function ProductCreator({
   const [categoryIds, setCategoryIds] = useState<string[]>(initial?.categoryIds ?? []);
   const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
   const [type, setType] = useState(initial?.type ?? "");
+  const [division, setDivision] = useState(initial?.division ?? "");
+  const [occasion, setOccasion] = useState(initial?.occasion?.join(", ") ?? "");
+  const [styleTags, setStyleTags] = useState(initial?.style?.join(", ") ?? "");
+  const [trend, setTrend] = useState(initial?.trend?.join(", ") ?? "");
+  const [material, setMaterial] = useState(initial?.material ?? "");
+  const [care, setCare] = useState(initial?.care ?? "");
   const [colors, setColors] = useState<FormColor[]>(
     initial ? initial.colors.map(toFormColor) : [emptyColor()],
   );
@@ -156,6 +178,12 @@ export function ProductCreator({
       categoryIds,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       type: type.trim() || undefined,
+      division: division || undefined,
+      occasion: occasion.split(",").map((t) => t.trim()).filter(Boolean),
+      style: styleTags.split(",").map((t) => t.trim()).filter(Boolean),
+      trend: trend.split(",").map((t) => t.trim()).filter(Boolean),
+      material: material.trim() || undefined,
+      care: care.trim() || undefined,
       offer:
         offerType === "none"
           ? undefined
@@ -252,6 +280,20 @@ export function ProductCreator({
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="Type (optional)" value={type} onChange={(e) => setType(e.target.value)} placeholder="Clothing" />
           <TextField label="Tags (comma-separated)" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="summer, bestseller" />
+        </div>
+
+        {/* Merchandising attributes (drive storefront filters + PDP) */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField label="Division" value={division} onChange={(e) => setDivision(e.target.value)}>
+            {DIVISION_OPTIONS.map((d) => (
+              <option key={d.value} value={d.value}>{d.label}</option>
+            ))}
+          </SelectField>
+          <TextField label="Occasion (comma-separated)" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Going Out, Everyday" />
+          <TextField label="Style (comma-separated)" value={styleTags} onChange={(e) => setStyleTags(e.target.value)} placeholder="Bodycon, Sexy" />
+          <TextField label="Trend (comma-separated)" value={trend} onChange={(e) => setTrend(e.target.value)} placeholder="Summer, Floral" />
+          <TextField label="Material / composition" value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="92% Nylon, 8% Elastane" />
+          <TextField label="Care" value={care} onChange={(e) => setCare(e.target.value)} placeholder="Hand wash cold, lay flat to dry" />
         </div>
       </Card>
 

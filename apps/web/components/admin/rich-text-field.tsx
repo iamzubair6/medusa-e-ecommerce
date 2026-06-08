@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Bold, Italic, Underline, Heading, List, Link2, Eraser } from "lucide-react";
+import { Bold, Italic, Underline, Heading, List, Link2, Eraser, Baseline, PaintBucket } from "lucide-react";
 import { cn } from "@ecom/ui";
 
 /**
@@ -50,7 +50,7 @@ export function RichTextField({
     <label className="flex flex-col gap-2">
       {label && <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>}
       <div className="overflow-hidden rounded-sm border border-input bg-card/60 focus-within:border-foreground focus-within:ring-1 focus-within:ring-ring">
-        <div className="flex flex-wrap gap-0.5 border-b border-border bg-muted/40 p-1">
+        <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 p-1">
           {tools.map((t) => (
             <button
               key={t.label}
@@ -64,6 +64,49 @@ export function RichTextField({
               <t.icon className="h-4 w-4" />
             </button>
           ))}
+
+          {/* Text size */}
+          <select
+            title="Text size"
+            aria-label="Text size"
+            defaultValue=""
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              if (e.target.value) exec("fontSize", e.target.value);
+              e.target.value = "";
+            }}
+            className="ml-1 cursor-pointer rounded border border-border bg-background px-1 py-1 text-xs text-muted-foreground"
+          >
+            <option value="" disabled>Size</option>
+            <option value="2">Small</option>
+            <option value="3">Normal</option>
+            <option value="5">Large</option>
+            <option value="6">X-Large</option>
+          </select>
+
+          {/* Text color */}
+          <label title="Text color" className="ml-1 flex cursor-pointer items-center gap-1 rounded p-1 text-muted-foreground hover:bg-background hover:text-foreground">
+            <Baseline className="h-4 w-4" />
+            <input
+              type="color"
+              aria-label="Text color"
+              onMouseDown={(e) => e.preventDefault()}
+              onChange={(e) => exec("foreColor", e.target.value)}
+              className="h-4 w-5 cursor-pointer border-0 bg-transparent p-0"
+            />
+          </label>
+
+          {/* Highlight / background color */}
+          <label title="Highlight color" className="flex cursor-pointer items-center gap-1 rounded p-1 text-muted-foreground hover:bg-background hover:text-foreground">
+            <PaintBucket className="h-4 w-4" />
+            <input
+              type="color"
+              aria-label="Highlight color"
+              onMouseDown={(e) => e.preventDefault()}
+              onChange={(e) => exec("hiliteColor", e.target.value)}
+              className="h-4 w-5 cursor-pointer border-0 bg-transparent p-0"
+            />
+          </label>
         </div>
         <div
           ref={ref}

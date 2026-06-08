@@ -169,6 +169,12 @@ export interface NewProductInput {
   categoryIds?: string[];
   tags?: string[];
   type?: string;
+  division?: string;
+  occasion?: string[];
+  style?: string[];
+  trend?: string[];
+  material?: string;
+  care?: string;
 }
 
 /** Resolve free-text tag values → ids, creating any that don't exist yet. */
@@ -316,6 +322,12 @@ function buildMetadata(input: NewProductInput) {
       input.colors.map((c) => [c.name, Object.fromEntries(c.sizes.map((s) => [s.size, s.stock]))]),
     ),
     ...(input.offer ? { offer: input.offer } : {}),
+    ...(input.division ? { division: input.division } : {}),
+    ...(input.occasion?.length ? { occasion: input.occasion } : {}),
+    ...(input.style?.length ? { style: input.style } : {}),
+    ...(input.trend?.length ? { trend: input.trend } : {}),
+    ...(input.material ? { material: input.material } : {}),
+    ...(input.care ? { care: input.care } : {}),
   };
 }
 
@@ -438,6 +450,12 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     colorOriginalPrices?: Record<string, number>;
     sizeStock?: Record<string, Record<string, number>>;
     offer?: { type: "bogo" | "discount" | "custom"; label: string; percent?: number };
+    division?: string;
+    occasion?: string[];
+    style?: string[];
+    trend?: string[];
+    material?: string;
+    care?: string;
   };
   const titleByOptionId = new Map((p.options ?? []).map((o) => [o.id, o.title]));
 
@@ -483,6 +501,12 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     categoryIds: (p.categories ?? []).map((c) => c.id),
     tags: (p.tags ?? []).map((t) => t.value),
     type: p.type?.value,
+    division: meta.division,
+    occasion: meta.occasion,
+    style: meta.style,
+    trend: meta.trend,
+    material: meta.material,
+    care: meta.care,
   };
 }
 

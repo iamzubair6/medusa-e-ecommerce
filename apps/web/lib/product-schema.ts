@@ -14,6 +14,12 @@ export const productSchema = z.object({
   categoryIds: z.array(z.string().min(1)).max(20).optional(),
   tags: z.array(z.string().min(1).max(40)).max(20).optional(),
   type: z.string().max(40).optional(),
+  division: z.string().max(40).optional(),
+  occasion: z.array(z.string().min(1).max(40)).max(20).optional(),
+  style: z.array(z.string().min(1).max(40)).max(20).optional(),
+  trend: z.array(z.string().min(1).max(40)).max(20).optional(),
+  material: z.string().max(300).optional(),
+  care: z.string().max(300).optional(),
   colors: z
     .array(
       z.object({
