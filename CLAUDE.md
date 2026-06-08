@@ -64,6 +64,11 @@ Every time the user gives a **fix, update, or feedback**:
    board (⬜ planned → 🟡 in progress → ✅ done & deployed, with the commit hash).
 This is mandatory, not optional — the user relies on the doc board being current.
 
+**Ground yourself from the board:** at the start of work, and whenever the user
+references prior work without specifics ("the last task", "what we did", "continue"),
+**read `docs/IMPLEMENTATION_STATUS.md` first** to recover exact current standing
+(what's done, what's next, counts) before responding — don't guess.
+
 ## Tooling, skills & MCP (use the right tool)
 - **Frontend / modern UI**: prefer the `ui-ux-pro-max` and `frontend-design` skills for
   design intent, and the **shadcn/ui MCP** + **magic** MCP (`21st_magic_component_builder`,
