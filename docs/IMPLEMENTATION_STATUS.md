@@ -28,11 +28,11 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 11 | Discounts — start/expiry dates | ✅ |
 | 12 | Checkout — shipping methods + payment options (verify + surface) | ⬜ |
 | 13 | Auth — phone-OTP popup, registration (phone+OTP), email/phone login, intl phone, boxed OTP, auto-login | ✅ |
-| 14 | Checkout — required fields + geo country + intl phone + persona section + stacked 2–4% discount | 🟡 next |
+| 14 | Checkout — required fields + intl phone + prefill + persona section + stacked discount | ✅ `d5daa73` |
 | 15 | Admin — persona builder (title/bracket/questions/promo code) | ✅ `b876f5b` |
-| 16 | Required-field red star (*) across storefront + admin forms | 🟡 `de2c591` — admin product/discount + auth/reviews/phone done; checkout via #14, section editors via #7 |
+| 16 | Required-field red star (*) across storefront + admin forms | 🟡 product/discount + auth/reviews/phone + **checkout** (`d5daa73`); section editors via #7 |
 
-**Done: 11/16 · In progress: #16 · Remaining: #7, #12, #14.**
+**Done: 13/16 · In progress: #16 (section editors via #7) · Remaining: #7, #12.**
 
 > Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
