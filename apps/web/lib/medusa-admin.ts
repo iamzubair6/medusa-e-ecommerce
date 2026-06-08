@@ -840,6 +840,8 @@ export interface NewPromotionInput {
   targetId?: string; // category/collection id when appliesTo != order
   buyQuantity?: number; // buyget
   getQuantity?: number; // buyget
+  startsAt?: string; // ISO datetime — promo becomes active
+  endsAt?: string; // ISO datetime — promo expires
 }
 
 const targetAttr = (appliesTo: "category" | "collection") =>
@@ -847,7 +849,13 @@ const targetAttr = (appliesTo: "category" | "collection") =>
 
 /** Create a standard / free-shipping / BOGO promotion (enforced at checkout). */
 export async function createPromotion(input: NewPromotionInput): Promise<{ id: string }> {
-  const base = { code: input.code, status: "active", is_automatic: Boolean(input.automatic) };
+  const base = {
+    code: input.code,
+    status: "active",
+    is_automatic: Boolean(input.automatic),
+    ...(input.startsAt ? { starts_at: input.startsAt } : {}),
+    ...(input.endsAt ? { ends_at: input.endsAt } : {}),
+  };
   const rules =
     input.appliesTo !== "order" && input.targetId
       ? [{ attribute: targetAttr(input.appliesTo), operator: "in", values: [input.targetId] }]

@@ -42,6 +42,8 @@ export function DiscountManager({
   const [value, setValue] = useState("");
   const [buyQty, setBuyQty] = useState("1");
   const [getQty, setGetQty] = useState("1");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -73,6 +75,8 @@ export function DiscountManager({
           ...(needsValue ? { value: Number(value) } : {}),
           ...(needsTarget ? { targetId } : {}),
           ...(isBogo ? { buyQuantity: Number(buyQty), getQuantity: Number(getQty) } : {}),
+          ...(startsAt ? { startsAt: new Date(`${startsAt}T00:00:00`).toISOString() } : {}),
+          ...(endsAt ? { endsAt: new Date(`${endsAt}T23:59:59`).toISOString() } : {}),
         }),
       });
       const data = (await res.json()) as { error?: unknown };
@@ -81,6 +85,8 @@ export function DiscountManager({
       setCode("");
       setValue("");
       setTargetId("");
+      setStartsAt("");
+      setEndsAt("");
       router.refresh();
     } catch (e) {
       toast.error((e as Error).message);
@@ -179,6 +185,11 @@ export function DiscountManager({
             <TextField label="Get free" type="number" value={getQty} onChange={(e) => setGetQty(e.target.value)} />
           </div>
         )}
+
+        <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
+          <TextField label="Start date (optional)" type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          <TextField label="Expiry date (optional)" type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+        </div>
 
         <CheckboxField label="Apply automatically (no code needed at checkout)" checked={automatic} onChange={(e) => setAutomatic(e.target.checked)} />
 

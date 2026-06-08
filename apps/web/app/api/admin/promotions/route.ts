@@ -16,6 +16,12 @@ const schema = z
     targetId: z.string().min(1).optional(),
     buyQuantity: z.number().int().min(1).max(20).optional(),
     getQuantity: z.number().int().min(1).max(20).optional(),
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().optional(),
+  })
+  .refine((d) => (d.startsAt && d.endsAt ? new Date(d.endsAt) > new Date(d.startsAt) : true), {
+    message: "End date must be after the start date.",
+    path: ["endsAt"],
   })
   .refine((d) => (d.method === "percentage" || d.method === "fixed" ? d.value !== undefined : true), {
     message: "A value is required.",
