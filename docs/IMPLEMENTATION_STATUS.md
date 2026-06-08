@@ -1,0 +1,46 @@
+# Implementation Status — Fashion-Nova rebuild (living doc)
+
+Single source of truth for what's **done**, **in progress**, and **on hold**.
+Update this with every change (see CLAUDE.md "Keep docs in sync"). Older platform
+phases (0–5) live in `ROADMAP.md`; deferred production choices in
+`PRODUCTION_DECISIONS.md`.
+
+Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold (needs a decision)
+
+---
+
+## ✅ Done & deployed
+| Area | Notes | Key commit |
+|---|---|---|
+| Catalog + IA foundation | 6 divisions, content categories, collections, rich product attributes; old demo wiped | `c3dc74d` |
+| Listing pages + filters | `/collections/{handle}?division=`, derived facets (Category only on broad; Style-led single-type), Sort/Show/columns, breadcrumb, Tops tile row, per-division sidebar | `72c0a12`, `a193f20`, `0782fbc` |
+| Top nav + full-width mega menu | brand swap per division, Sport NEW badge, Men Sale red, broad vs single-type popovers | `51323fa`, `a193f20` |
+| Landing page | hero, collab carousel, trend report, promo banner, shop-by-brand, bento, shop-the-latest, rich footer; spacing/full-bleed/popup polish | `1cbe791`, `637dd64` |
+| PDP enrichment | materials & care, attributes, tags, reviews (instant), related + trending rows, working share | `a664119`, `990f8ad`, `5c7fac4` |
+| Admin product form | division/occasion/style/trend/material/care + richer rich-text editor | `5c7fac4` |
+| Device image/video upload | reusable field in product + section editors (storage pluggable) | `4260631` |
+| Discount start/expiry dates | `starts_at`/`ends_at` on promotions | `e3d6dd1` |
+| Auth | phone-OTP popup, registration (phone+OTP), login by email **or** phone | `e9c638b`, `0c18025` |
+| Project `.claude/` setup | agents, commands, skill, docs-sync hook + rules | (committed) |
+
+## 🟡 In progress
+- **Phone UX polish** — international phone field (default BD), individual OTP boxes,
+  and OTP verify now **auto-creates + logs in** a real customer (derived password).
+- **#14 Checkout** — required fields (email, phone, first name, address-by-landmark,
+  city), country auto-by-location, intl phone field, persona section + stacked 2–4% discount.
+- **#15 Admin persona builder** — dynamic title/bracket text/questions/discount % (in `SiteSetting`).
+
+## ⬜ Planned (next)
+- **#7 Re-CMS-ify the landing + Site Settings UI** — make every landing block, the
+  announcement bar, marquee, brand names, **delivery line**, and **size guide** editable in `/admin`.
+- **#12 Checkout shipping/payment** — verify end-to-end; surface/explain creation
+  (Medusa admin) vs custom admin.
+
+## ⏸️ On hold — decisions deferred (see `PRODUCTION_DECISIONS.md`)
+- **Image/video upload storage backend** (R2 / Cloudinary) — currently Medusa local disk (ephemeral on free tier).
+- **SMS/OTP gateway** — currently mocked (demo code shown on screen).
+- **Production hosting** (server + DB) — owner to plan; currently Neon + Render-free + Vercel.
+
+---
+
+_Last updated: keep this line current when you edit — reflects through the auth + phone-UX work._

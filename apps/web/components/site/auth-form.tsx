@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, cn, Container } from "@ecom/ui";
+import { PhoneInput } from "./phone-input";
+import { OtpInput } from "./otp-input";
 
 export function AuthForm() {
   const router = useRouter();
@@ -103,15 +105,17 @@ export function AuthForm() {
                 <input className={input} placeholder="Last name (optional)" value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
               </div>
               <div className="flex gap-2">
-                <input className={input} type="tel" inputMode="tel" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+                <div className="flex-1">
+                  <PhoneInput value={phone} onChange={setPhone} />
+                </div>
                 <Button type="button" variant="outline" size="lg" loading={sendingCode} onClick={sendCode} className="shrink-0">
                   {otpSent ? "Resend" : "Send code"}
                 </Button>
               </div>
               {otpSent && (
-                <div>
-                  <input className={cn(input, "tracking-[0.4em]")} inputMode="numeric" maxLength={4} placeholder="4-digit code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
-                  {devCode && <p className="mt-1 text-xs text-muted-foreground">Demo code: <span className="font-bold">{devCode}</span></p>}
+                <div className="flex flex-col gap-1">
+                  <OtpInput value={code} onChange={setCode} />
+                  {devCode && <p className="text-center text-xs text-muted-foreground">Demo code: <span className="font-bold">{devCode}</span></p>}
                 </div>
               )}
               <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />

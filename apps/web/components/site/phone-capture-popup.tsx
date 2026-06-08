@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Phone, ShieldCheck, X } from "lucide-react";
 import { Button } from "@ecom/ui";
+import { PhoneInput } from "./phone-input";
+import { OtpInput } from "./otp-input";
 
 const KEY = "maison_phone_prompt";
 export const PHONE_RESOLVED_EVENT = "maison:phone-resolved";
@@ -16,6 +19,7 @@ export const PHONE_RESOLVED_EVENT = "maison:phone-resolved";
  */
 export function PhoneCapturePopup() {
   const reduce = useReducedMotion();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
@@ -80,6 +84,7 @@ export function PhoneCapturePopup() {
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Invalid code");
       resolve();
+      router.refresh(); // reflect the new logged-in session
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -112,14 +117,9 @@ export function PhoneCapturePopup() {
               <>
                 <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-tight">Get 10% Off</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Add your phone for offers + faster checkout. We&apos;ll text a quick code.</p>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="01XXXXXXXXX"
-                  className="mt-4 h-11 w-full rounded-sm border border-input bg-card px-3 text-center text-sm"
-                />
+                <div className="mt-4">
+                  <PhoneInput value={phone} onChange={setPhone} autoFocus />
+                </div>
                 {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
                 <Button variant="solid" loading={loading} onClick={sendCode} className="mt-3 w-full rounded-full">Send code</Button>
                 <button type="button" onClick={resolve} className="mt-3 cursor-pointer text-xs uppercase tracking-wide text-muted-foreground hover:underline">No thanks</button>
@@ -129,15 +129,9 @@ export function PhoneCapturePopup() {
                 <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-tight">Enter code</h2>
                 <p className="mt-1 text-sm text-muted-foreground">We sent a 4-digit code to {phone}.</p>
                 {devCode && <p className="mt-2 rounded-sm bg-muted px-2 py-1 text-xs">Demo code: <span className="font-bold">{devCode}</span></p>}
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                  placeholder="0000"
-                  className="mt-4 h-12 w-full rounded-sm border border-input bg-card text-center text-2xl tracking-[0.5em]"
-                />
+                <div className="mt-4">
+                  <OtpInput value={code} onChange={setCode} autoFocus />
+                </div>
                 {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
                 <Button variant="solid" loading={loading} onClick={verify} className="mt-3 w-full rounded-full">Verify & continue</Button>
                 <button type="button" onClick={() => setStep("phone")} className="mt-3 cursor-pointer text-xs uppercase tracking-wide text-muted-foreground hover:underline">Change number</button>
