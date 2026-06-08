@@ -1,6 +1,8 @@
 # E-Commerce + CMS — Product Plan
 
 > Living document. Owner: Zubair Rahman. Last updated: 2026-06-02.
+> 📌 Product vision/scope baseline. For current build **status**, see
+> [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md); doc map in [`README.md`](./README.md).
 
 ## 1. Vision
 

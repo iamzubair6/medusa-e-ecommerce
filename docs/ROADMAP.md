@@ -1,5 +1,9 @@
 # Roadmap (phased)
 
+> ⚠️ **Historical** — original platform phases 0–5. For the current Fashion-Nova
+> rebuild status (done / in-progress / on-hold / deployed) see the canonical
+> [`IMPLEMENTATION_STATUS.md`](./IMPLEMENTATION_STATUS.md). Doc map: [`README.md`](./README.md).
+
 Each phase ends in something demoable. ✅ done · 🚧 in progress · ⬜ planned.
 
 ## Phase 0 — Foundation & scaffolding  ✅

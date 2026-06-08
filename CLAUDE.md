@@ -42,15 +42,17 @@ Scalable fashion e-commerce storefront with a custom CMS/admin. See `docs/PLAN.m
 - No console logs, TODOs, or hardcoded secrets in committed code.
 
 ## Keep docs in sync (IMPORTANT — the product changes daily)
-When a change adds/removes/alters a feature, flow, route, env var, or deploy step,
-**update the relevant doc in the same change**:
-- `docs/ROADMAP.md` — phase/feature status.
+**`docs/README.md` is the doc map** — read it; each doc has one job. The **canonical
+status doc is `docs/IMPLEMENTATION_STATUS.md`** (done / in-progress / on-hold /
+deployed, with commit hashes). When a change adds/removes/alters a feature, flow,
+route, env var, or deploy step, **update docs in the same change**:
+- **`docs/IMPLEMENTATION_STATUS.md`** — ALWAYS, for any feature change (status + commit).
 - `docs/ARCHITECTURE.md` — structure, data flow, new modules/routes.
-- `docs/GO_LIVE_GUIDE.md` — anything affecting deploy/env/setup.
-- `docs/PRODUCTION_DECISIONS.md` — deferred prod choices (upload storage, SMS gateway,
-  hosting). Built-mocked features go here until a real provider is wired.
+- `docs/GO_LIVE_GUIDE.md` / `docs/LOCAL_DEV.md` — deploy or local-run changes.
+- `docs/PRODUCTION_DECISIONS.md` — deferred prod choices (upload storage, SMS, hosting).
 - `docs/ADMIN_GUIDE.md` / `docs/PRODUCT_GUIDE.md` — admin or merchandising changes.
-Treat doc updates as part of "done", not optional.
+Don't scatter status across docs (ROADMAP/PLAN are historical baselines). Treat doc
+updates as part of "done", not optional.
 
 ## Tooling, skills & MCP (use the right tool)
 - **Frontend / modern UI**: prefer the `ui-ux-pro-max` and `frontend-design` skills for
