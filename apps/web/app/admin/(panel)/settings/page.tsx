@@ -1,5 +1,5 @@
 import { Card } from "@ecom/ui";
-import { Globe, Receipt, Users, ExternalLink } from "lucide-react";
+import { Globe, Receipt, Users, ExternalLink, CreditCard } from "lucide-react";
 import { getSettingsOverview, listShippingRates } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
 import { ShippingEditor } from "@/components/admin/shipping-editor";
@@ -28,6 +28,14 @@ export default async function AdminSettingsPage() {
       />
       <div className="grid gap-6 p-8 lg:grid-cols-2">
         <ShippingEditor rates={rates} />
+
+        <Viewer icon={CreditCard} title="Payment methods">
+          <Row left="Cash on Delivery" right="Live" />
+          <p className="pt-1 text-xs text-muted-foreground">
+            Online payment (card · bKash · Nagad) is planned — see <code>docs/PAYMENTS.md</code>. New
+            payment providers are enabled per-region in Medusa admin.
+          </p>
+        </Viewer>
 
         <Viewer icon={Globe} title="Regions">
           {settings.regions.map((r) => (
