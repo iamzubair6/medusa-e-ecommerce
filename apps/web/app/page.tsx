@@ -4,6 +4,7 @@ import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { Landing } from "@/components/site/landing";
 import { PromoPopup } from "@/components/site/promo-popup";
+import { PhoneCapturePopup } from "@/components/site/phone-capture-popup";
 
 export const revalidate = 600;
 
@@ -27,6 +28,7 @@ export default async function HomePage() {
       <SiteNavbar />
       <Landing data={landing} />
       <Footer />
+      <PhoneCapturePopup />
       {popup && <PromoPopup id={popup.id} trigger={popup.trigger} config={popup.config} />}
     </main>
   );

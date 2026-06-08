@@ -227,6 +227,30 @@ model ProductReview {
   @@schema("cms")
 }
 
+/// Phone OTP challenges (passwordless capture + registration phone verify).
+model OtpChallenge {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@schema("cms")
+}
+
+/// Singleton-style key→JSON store for editable site settings (announcement,
+/// marquee, brand names, persona builder, delivery line, etc.).
+model SiteSetting {
+  key       String   @id
+  value     Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  @@schema("cms")
+}
+
 // ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------

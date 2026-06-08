@@ -42,7 +42,20 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
   const [done, setDone] = useState(false);
   const [prefs, setPrefs] = useState<Set<string>>(new Set());
   const [consent, setConsent] = useState(true);
+  // Only show after the first-visit phone popup is resolved (verify OR skip).
+  const [ready, setReady] = useState(false);
   const reduce = useReducedMotion();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("maison_phone_prompt") === "done") {
+      setReady(true);
+      return;
+    }
+    const on = () => setReady(true);
+    window.addEventListener("maison:phone-resolved", on, { once: true });
+    return () => window.removeEventListener("maison:phone-resolved", on);
+  }, []);
 
   const togglePref = (p: string) =>
     setPrefs((s) => {
@@ -58,6 +71,7 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
   } = useForm<EmailValues>({ resolver: zodResolver(emailSchema) });
 
   useEffect(() => {
+    if (!ready) return;
     if (recentlyDismissed(id, config.frequencyDays)) return;
     let cleanup: (() => void) | undefined;
 
@@ -81,7 +95,7 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
       cleanup = () => document.removeEventListener("mouseout", onLeave);
     }
     return cleanup;
-  }, [id, trigger, config.delayMs, config.scrollPercent, config.frequencyDays]);
+  }, [ready, id, trigger, config.delayMs, config.scrollPercent, config.frequencyDays]);
 
   const dismiss = () => {
     setOpen(false);

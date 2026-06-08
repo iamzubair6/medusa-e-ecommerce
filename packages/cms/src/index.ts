@@ -297,3 +297,55 @@ export async function listGuestLeads(opts: { skip?: number; take?: number } = {}
   ]);
   return { items, total, skip, take };
 }
+
+// ---------------------------------------------------------------------------
+// Phone OTP (passwordless capture + registration verify)
+// ---------------------------------------------------------------------------
+
+const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const OTP_MAX_ATTEMPTS = 5;
+
+/** Create a 4-digit OTP for a phone; replaces any prior pending challenge. */
+export async function requestOtp(phone: string): Promise<{ code: string; expiresAt: Date }> {
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+  await prisma.otpChallenge.deleteMany({ where: { phone } });
+  await prisma.otpChallenge.create({ data: { phone, code, expiresAt } });
+  return { code, expiresAt };
+}
+
+/** Verify an OTP. Returns true on success (and marks it verified). */
+export async function verifyOtp(phone: string, code: string): Promise<boolean> {
+  const challenge = await prisma.otpChallenge.findFirst({
+    where: { phone, verified: false },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!challenge) return false;
+  if (challenge.expiresAt < new Date() || challenge.attempts >= OTP_MAX_ATTEMPTS) {
+    await prisma.otpChallenge.delete({ where: { id: challenge.id } }).catch(() => undefined);
+    return false;
+  }
+  if (challenge.code !== code) {
+    await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } });
+    return false;
+  }
+  await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { verified: true } });
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Site settings (editable announcement, marquee, brands, persona, etc.)
+// ---------------------------------------------------------------------------
+
+export async function getSiteSetting<T = unknown>(key: string): Promise<T | null> {
+  const row = await prisma.siteSetting.findUnique({ where: { key } });
+  return (row?.value as T) ?? null;
+}
+
+export async function setSiteSetting(key: string, value: unknown): Promise<void> {
+  await prisma.siteSetting.upsert({
+    where: { key },
+    create: { key, value: value as object },
+    update: { value: value as object },
+  });
+}
