@@ -38,5 +38,15 @@ The whole platform stood up in one day.
 - **Auth**: phone-OTP capture + passwordless session; registration (phone+OTP) + email/phone login; international phone field (BD default) + boxed OTP + auto-create-login.
 - **Project/docs**: `.claude` setup (agents/commands/skill/docs-sync hook + rules); docs reorganized (README index, IMPLEMENTATION_STATUS canonical + 15-task board, DATABASE, LOCAL_DEV, PRODUCTION_DECISIONS); workflow rules (feedback→tasks, read-status-first).
 
+## 2026-06-09 — Persona, checkout, Site Settings, CMS landing, docs
+- **Auth/phone polish**: international phone field (default BD) + boxed OTP; OTP verify auto-creates + logs in a real customer (derived password).
+- **#15 Admin persona builder** (`/admin/persona`): title, bracket, reward hint, promo code, yes/no questions → CMS `SiteSetting`.
+- **#14 Checkout**: required fields (email, first name, address/landmark, city, intl phone) with red stars, optional last name/postal, prefill from customer/phone session, **persona section** that auto-applies a stacked promo when completed.
+- **#16 Required-field red stars** across product/discount/auth/reviews/phone/checkout.
+- **#7 Site Settings** (`/admin/site`): editable announcement, marquee, brand-per-division, delivery line, size guide, category-tile count — wired into navbar/landing/PDP.
+- **#7.1 CMS-managed landing**: homepage renders an admin-built published "home" page's sections (add/edit/reorder via `/admin/pages`), else the curated landing.
+- **#12 Checkout shipping/payment** verified (BD ৳60 + COD) + payment card surfaced in admin settings.
+- **Docs system**: README (start-here map), IMPLEMENTATION_STATUS (canonical status + 16-task board), BUILD_LOG (this file), DATABASE (dev↔live migrations), LOCAL_DEV; CLAUDE.md rules + memory.
+
 ---
 _Append a new dated section as work continues. Source of truth for status is the task board in IMPLEMENTATION_STATUS.md._
