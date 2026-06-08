@@ -209,6 +209,44 @@ export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill;
                   ))}
                 </SelectField>
               </div>
+              {personaActive && (
+                <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {persona.title}{" "}
+                      {persona.bracket && <span className="font-normal text-muted-foreground">({persona.bracket})</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Optional — answer all to unlock {persona.discountHint} extra off.</p>
+                  </div>
+                  {persona.questions.map((q) => (
+                    <div key={q.id} className="flex items-center justify-between gap-3">
+                      <span className="text-sm">{q.label}</span>
+                      <div className="flex gap-2">
+                        {(["yes", "no"] as const).map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setAnswers((a) => ({ ...a, [q.id]: v }))}
+                            className={cn(
+                              "rounded-full border px-4 py-1.5 text-xs font-semibold uppercase transition-colors",
+                              answers[q.id] === v ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                            )}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {personaApplied ? (
+                    <p className="text-sm font-semibold text-gold">Extra discount applied! 🎉</p>
+                  ) : applyPersona.isError ? (
+                    <p className="text-sm text-destructive">{(applyPersona.error as Error).message}</p>
+                  ) : allAnswered ? (
+                    <p className="text-sm text-muted-foreground">Applying your reward…</p>
+                  ) : null}
+                </div>
+              )}
               <Button type="submit" variant="gold" loading={saveAddress.isPending} className="w-fit">
                 Continue to shipping
               </Button>
@@ -309,46 +347,6 @@ export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill;
             </div>
           )}
         </Card>
-
-        {/* Persona — optional questions that unlock a stacked extra discount */}
-        {personaActive && (
-          <Card className="p-6">
-            <h2 className="font-display text-lg font-semibold">
-              {persona.title}{" "}
-              {persona.bracket && <span className="text-sm font-normal text-muted-foreground">({persona.bracket})</span>}
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">Optional — answer all to unlock {persona.discountHint} extra off.</p>
-            <div className="mt-4 flex flex-col gap-3">
-              {persona.questions.map((q) => (
-                <div key={q.id} className="flex items-center justify-between gap-3">
-                  <span className="text-sm">{q.label}</span>
-                  <div className="flex gap-2">
-                    {(["yes", "no"] as const).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setAnswers((a) => ({ ...a, [q.id]: v }))}
-                        className={cn(
-                          "rounded-full border px-4 py-1.5 text-xs font-semibold uppercase transition-colors",
-                          answers[q.id] === v ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {personaApplied ? (
-              <p className="mt-3 text-sm font-semibold text-gold">Extra discount applied! 🎉</p>
-            ) : applyPersona.isError ? (
-              <p className="mt-3 text-sm text-destructive">{(applyPersona.error as Error).message}</p>
-            ) : allAnswered ? (
-              <p className="mt-3 text-sm text-muted-foreground">Applying your reward…</p>
-            ) : null}
-          </Card>
-        )}
       </div>
 
       <OrderSummary cart={cart} />

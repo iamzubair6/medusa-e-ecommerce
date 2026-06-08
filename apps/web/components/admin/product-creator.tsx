@@ -7,6 +7,7 @@ import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Button, Card, cn } from "@ecom/ui";
 import { TextField, SelectField, CheckboxField } from "./fields";
 import { RichTextField } from "./rich-text-field";
+import { Combobox } from "./combobox";
 import { useToast } from "./toast";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -284,17 +285,13 @@ export function ProductCreator({
 
         {/* Merchandising attributes (drive storefront filters + PDP) */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField label="Division" value={division} onChange={(e) => setDivision(e.target.value)}>
-            {DIVISION_OPTIONS.map((d) => (
-              <option key={d.value} value={d.value}>{d.label}</option>
-            ))}
-          </SelectField>
+          <Combobox label="Division" value={division} onChange={setDivision} options={DIVISION_OPTIONS} placeholder="— none —" />
           <TextField label="Occasion (comma-separated)" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Going Out, Everyday" />
           <TextField label="Style (comma-separated)" value={styleTags} onChange={(e) => setStyleTags(e.target.value)} placeholder="Bodycon, Sexy" />
           <TextField label="Trend (comma-separated)" value={trend} onChange={(e) => setTrend(e.target.value)} placeholder="Summer, Floral" />
-          <TextField label="Material / composition" value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="92% Nylon, 8% Elastane" />
-          <TextField label="Care" value={care} onChange={(e) => setCare(e.target.value)} placeholder="Hand wash cold, lay flat to dry" />
         </div>
+        <RichTextField label="Material / composition" value={material} onChange={setMaterial} />
+        <RichTextField label="Care" value={care} onChange={setCare} />
       </Card>
 
       {colors.map((c, i) => (

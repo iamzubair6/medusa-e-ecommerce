@@ -31,11 +31,13 @@ export function PdpClient({
   reviewSummary,
   deliveryLine,
   sizeGuideContent,
+  shippingReturns,
 }: {
   product: StoreProductDetail;
   reviewSummary?: { count: number; average: number };
   deliveryLine?: string;
   sizeGuideContent?: string;
+  shippingReturns?: string;
 }) {
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
@@ -268,7 +270,7 @@ export function PdpClient({
           </button>
         </div>
 
-        <Accordions product={product} />
+        <Accordions product={product} shippingReturns={shippingReturns} />
       </div>
 
       <AnimatePresence>
@@ -368,7 +370,7 @@ function Lightbox({
 /** Detects whether the stored description is rich HTML vs plain text. */
 const isHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 
-function Accordions({ product }: { product: StoreProductDetail }) {
+function Accordions({ product, shippingReturns }: { product: StoreProductDetail; shippingReturns?: string }) {
   const [open, setOpen] = useState<string | null>("details");
   const { description, material, care, occasion = [], style = [], trend = [], tags = [] } = product;
   const attrs: { label: string; values: string[] }[] = [
@@ -399,7 +401,7 @@ function Accordions({ product }: { product: StoreProductDetail }) {
               {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </button>
             {isOpen && p.key === "details" && (
-              <div className="pb-4">
+              <div className="max-h-[460px] overflow-y-auto pb-4 pr-1">
                 {description && isHtml(description) ? (
                   <div
                     className="prose-pdp text-sm leading-relaxed text-muted-foreground [&_a]:underline [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_h3]:text-foreground [&_li]:ml-4 [&_li]:list-disc [&_strong]:text-foreground [&_ul]:my-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1"
@@ -430,25 +432,36 @@ function Accordions({ product }: { product: StoreProductDetail }) {
               </div>
             )}
             {isOpen && p.key === "materials" && (
-              <div className="pb-4 text-sm leading-relaxed text-muted-foreground">
+              <div className="max-h-[460px] overflow-y-auto pb-4 pr-1 text-sm leading-relaxed text-muted-foreground">
                 {material && (
-                  <p>
+                  <div>
                     <span className="font-semibold text-foreground">Composition: </span>
-                    {material}
-                  </p>
+                    {isHtml(material) ? <span className="prose-pdp [&_li]:ml-4 [&_li]:list-disc" dangerouslySetInnerHTML={{ __html: material }} /> : material}
+                  </div>
                 )}
                 {care && (
-                  <p className="mt-1.5">
+                  <div className="mt-1.5">
                     <span className="font-semibold text-foreground">Care: </span>
-                    {care}
-                  </p>
+                    {isHtml(care) ? <span className="prose-pdp [&_li]:ml-4 [&_li]:list-disc" dangerouslySetInnerHTML={{ __html: care }} /> : care}
+                  </div>
                 )}
               </div>
             )}
             {isOpen && p.key === "shipping" && (
-              <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
-                Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days.
-              </p>
+              shippingReturns && shippingReturns.trim() ? (
+                isHtml(shippingReturns) ? (
+                  <div
+                    className="prose-pdp max-h-[460px] overflow-y-auto pb-4 pr-1 text-sm leading-relaxed text-muted-foreground [&_a]:underline [&_li]:ml-4 [&_li]:list-disc [&_strong]:text-foreground [&_ul]:my-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1"
+                    dangerouslySetInnerHTML={{ __html: shippingReturns }}
+                  />
+                ) : (
+                  <p className="max-h-[460px] overflow-y-auto whitespace-pre-wrap pb-4 pr-1 text-sm leading-relaxed text-muted-foreground">{shippingReturns}</p>
+                )
+              ) : (
+                <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
+                  Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days.
+                </p>
+              )
             )}
           </div>
         );

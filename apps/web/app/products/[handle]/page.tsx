@@ -74,7 +74,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           <span className="text-foreground">{product.title}</span>
         </nav>
 
-        <PdpClient product={product} reviewSummary={reviewSummary} deliveryLine={site.deliveryLine} sizeGuideContent={site.sizeGuide} />
+        <PdpClient product={product} reviewSummary={reviewSummary} deliveryLine={site.deliveryLine} sizeGuideContent={site.sizeGuide} shippingReturns={site.shippingReturns} />
 
         <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 

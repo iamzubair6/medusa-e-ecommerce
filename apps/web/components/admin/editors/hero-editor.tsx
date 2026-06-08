@@ -133,12 +133,17 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
             </Button>
           </div>
           {fields.map((field, i) => (
-            <div key={field.id} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <MediaUploadField label={`Slide ${i + 1} image`} value={watch(`slides.${i}.url`)} onChange={(u) => setValue(`slides.${i}.url`, u, { shouldDirty: true })} />
-              <TextField label="Alt text" {...register(`slides.${i}.alt`)} />
-              <Button type="button" variant="ghost" size="icon" aria-label="Remove slide" onClick={() => remove(i)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            <div key={field.id} className="rounded-md border border-border p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Slide {i + 1}</span>
+                <Button type="button" variant="ghost" size="icon" aria-label="Remove slide" onClick={() => remove(i)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
+                <MediaUploadField label="Image" value={watch(`slides.${i}.url`)} onChange={(u) => setValue(`slides.${i}.url`, u, { shouldDirty: true })} />
+                <TextField label="Alt text" {...register(`slides.${i}.alt`)} />
+              </div>
             </div>
           ))}
           {fields.length === 0 && (

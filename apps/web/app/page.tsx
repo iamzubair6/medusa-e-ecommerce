@@ -1,10 +1,9 @@
-import { getActivePopup, getSiteSetting, getPublishedPage, popupConfigSchema } from "@ecom/cms";
+import { getActivePopup, getSiteSetting, popupConfigSchema } from "@ecom/cms";
 import { getLandingData } from "@/lib/commerce";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { Landing } from "@/components/site/landing";
-import { SectionRenderer } from "@/components/site/section-renderer";
 import { PromoPopup } from "@/components/site/promo-popup";
 import { PhoneCapturePopup } from "@/components/site/phone-capture-popup";
 
@@ -24,23 +23,16 @@ async function loadPopup(): Promise<Popup> {
 }
 
 export default async function HomePage() {
-  const [landing, popup, site, homePage] = await Promise.all([
+  const [landing, popup, site] = await Promise.all([
     getLandingData(),
     loadPopup(),
     getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
-    getPublishedPage("home").catch(() => null),
   ]);
-  // If an admin has built & published a "home" page, render its CMS sections;
-  // otherwise fall back to the curated landing.
-  const sections = homePage?.sections ?? [];
+  // Curated landing (Phase 1 / #20 will re-introduce CMS-managed home blocks properly).
   return (
     <main>
       <SiteNavbar />
-      {sections.length > 0 ? (
-        sections.map((s) => <SectionRenderer key={s.id} section={{ id: s.id, type: s.type, config: s.config }} />)
-      ) : (
-        <Landing data={landing} site={site} />
-      )}
+      <Landing data={landing} site={site} />
       <Footer />
       <PhoneCapturePopup />
       {popup && <PromoPopup id={popup.id} trigger={popup.trigger} config={popup.config} />}

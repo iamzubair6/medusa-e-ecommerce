@@ -18,6 +18,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [brands, setBrands] = useState(initial.brands);
   const [deliveryLine, setDeliveryLine] = useState(initial.deliveryLine);
   const [sizeGuide, setSizeGuide] = useState(initial.sizeGuide);
+  const [shippingReturns, setShippingReturns] = useState(initial.shippingReturns);
   const [tileCount, setTileCount] = useState(String(initial.categoryTileCount));
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +31,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         brands,
         deliveryLine: deliveryLine.trim(),
         sizeGuide,
+        shippingReturns,
         categoryTileCount: Math.min(9, Math.max(3, Number(tileCount) || 7)),
       };
       const res = await fetch("/api/admin/site", {
@@ -78,6 +80,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         <h3 className="font-display text-lg font-bold">Product page</h3>
         <TextField label="Delivery line (PDP)" value={deliveryLine} onChange={(e) => setDeliveryLine(e.target.value)} />
         <TextareaField label="Size guide (HTML or text — shown in the PDP modal)" value={sizeGuide} onChange={(e) => setSizeGuide(e.target.value)} placeholder="<table>…</table> or a few lines of guidance" />
+        <TextareaField label="Shipping & Returns (HTML or text — PDP accordion)" value={shippingReturns} onChange={(e) => setShippingReturns(e.target.value)} placeholder="Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days." />
         <TextField label="Shop-by-category tiles on the homepage (3–9)" type="number" value={tileCount} onChange={(e) => setTileCount(e.target.value)} />
       </Card>
 

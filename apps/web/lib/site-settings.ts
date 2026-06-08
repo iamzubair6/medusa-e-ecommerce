@@ -31,6 +31,7 @@ export const siteSettingsSchema = z.object({
     .default({}),
   deliveryLine: z.string().max(200).default("Standard delivery in 3–5 days · Free shipping over ৳2,000"),
   sizeGuide: z.string().max(6000).default(""), // optional HTML/text shown in the size-guide modal
+  shippingReturns: z.string().max(6000).default(""), // optional HTML/text for the PDP "Shipping & Returns" accordion
   categoryTileCount: z.number().int().min(3).max(9).default(7),
 });
 
