@@ -31,8 +31,9 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 14 | Checkout — required fields + intl phone + prefill + persona section + stacked discount | ✅ `d5daa73` |
 | 15 | Admin — persona builder (title/bracket/questions/promo code) | ✅ `b876f5b` |
 | 16 | Required-field red star (*) across storefront + admin forms | ✅ `de2c591` product/discount/auth/reviews/phone/checkout (admin `required` prop available for any field) |
+| 17 | Fix Vercel build fail — time-box sitemap product fetch (cold Medusa hung past 60s) | ✅ `32fc21b` |
 
-**Done: 16/16 — all tasks complete. 🎉**
+**Done: 17/17 — all tasks complete. 🎉**
 
 > Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
