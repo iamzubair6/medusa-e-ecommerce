@@ -21,7 +21,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 4 | Listing pages + filters (`/collections?division=`, derived facets, toolbar) | ✅ |
 | 5 | Landing page rebuild (hero, trend, bento, shop-the-latest, footer) | ✅ |
 | 6 | Enrich PDP (details, materials, reviews, related/trending) | ✅ |
-| 7 | Admin UX overhaul — Site Settings + CMS-managed landing | 🟡 Site Settings `e787ca9`; per-block landing CMS + dynamic add/reorder `79dd28b` (build "home" in /admin/pages). Optional remaining: shadcn combobox/calendar field polish |
+| 7 | Admin UX overhaul — Site Settings + CMS-managed landing + shadcn fields | ✅ Site Settings `e787ca9`; CMS landing + dynamic add/reorder `79dd28b`; shadcn Combobox + DatePicker `pending-push` |
 | 8 | Device image/video upload field (storage pluggable) | ✅ |
 | 9 | Storefront bugs — product share + instant reviews | ✅ |
 | 10 | Admin product form — division/occasion/style/trend/material/care + richer editor | ✅ |
@@ -32,7 +32,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 15 | Admin — persona builder (title/bracket/questions/promo code) | ✅ `b876f5b` |
 | 16 | Required-field red star (*) across storefront + admin forms | ✅ `de2c591` product/discount/auth/reviews/phone/checkout (admin `required` prop available for any field) |
 
-**Done: 15/16 · In progress: #7 (Site Settings done; deeper CMS-ification pending) · Remaining: none new.**
+**Done: 16/16 — all tasks complete. 🎉**
 
 > Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
