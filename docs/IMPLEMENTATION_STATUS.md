@@ -40,6 +40,36 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 
 ---
 
+## Round 2 — Fully dynamic, Shopify-style CMS (2026-06-09 feedback) ⬜ planned
+
+> **Vision:** every part of the storefront — navigation/IA, mega-menu, landing,
+> listing config, PDP content, shipping/payment, settings — must be **admin-managed
+> and dynamic** (no hardcoding), like Shopify/other ecommerce CMS. The IA follows
+> Fashion Nova: **Division (page `/pages/{division}`) → Collection (mega-menu item
+> w/ multi-column popover) → Category (listing filter / special section)**.
+
+| # | Task | Type | Status |
+|---|------|------|--------|
+| 19 | Restore curated landing (old seeded "home" page overrides it via #7.1) | fix | ⬜ urgent |
+| 20 | CMS-manage full landing — block types/editors/renderers for all FN blocks | add | ⬜ |
+| 21 | Section manager: add Create + Delete sections (dynamic) | add | ⬜ |
+| 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega+landing) | add | ⬜ |
+| 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ⬜ |
+| 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ⬜ |
+| 25 | Migrate remaining admin SelectField → Combobox | update | ⬜ |
+| 26 | Dynamic payment methods management in admin | add | ⬜ |
+| 27 | Dynamic shipping methods/zones management in admin | add | ⬜ |
+| 28 | Fix hero slide editor design/alignment issue | fix | ⬜ |
+| 29 | Product form: richer material & care (rich/structured) | update | ⬜ |
+| 30 | Move persona into checkout contact-info step | update | ⬜ |
+| 31 | PDP accordions: max-height + scroll | fix | ⬜ |
+| 32 | Admin-editable Shipping & Returns content | add | ⬜ |
+
+_Verified gap analysis backing these is in this session; build order proposed below
+once the architecture is confirmed with the owner._
+
+---
+
 ## ✅ Done & deployed
 | Area | Notes | Key commit |
 |---|---|---|
