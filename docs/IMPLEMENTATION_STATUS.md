@@ -9,6 +9,32 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 
 ---
 
+## Task board (the 15 tasks) — durable record
+
+> Mirror of the working task list so it persists in the repo. Keep statuses current.
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Catalog + IA data foundation (6 divisions, categories, collections, attributes) | ✅ |
+| 2 | Fix left-sidebar category bug (per-division) | ✅ |
+| 3 | Top nav + full-width mega menu (broad vs single-type) | ✅ |
+| 4 | Listing pages + filters (`/collections?division=`, derived facets, toolbar) | ✅ |
+| 5 | Landing page rebuild (hero, trend, bento, shop-the-latest, footer) | ✅ |
+| 6 | Enrich PDP (details, materials, reviews, related/trending) | ✅ |
+| 7 | Admin UX overhaul — re-CMS-ify landing + Site Settings (announcement/marquee/brands/delivery line/size guide) | ⬜ |
+| 8 | Device image/video upload field (storage pluggable) | ✅ |
+| 9 | Storefront bugs — product share + instant reviews | ✅ |
+| 10 | Admin product form — division/occasion/style/trend/material/care + richer editor | ✅ |
+| 11 | Discounts — start/expiry dates | ✅ |
+| 12 | Checkout — shipping methods + payment options (verify + surface) | ⬜ |
+| 13 | Auth — phone-OTP popup, registration (phone+OTP), email/phone login, intl phone, boxed OTP, auto-login | ✅ |
+| 14 | Checkout — required fields + geo country + intl phone + persona section + stacked 2–4% discount | 🟡 next |
+| 15 | Admin — persona builder (title/questions/discount %) | 🟡 next |
+
+**Done: 10/15 · Remaining: #7, #12, #14, #15.**
+
+---
+
 ## ✅ Done & deployed
 | Area | Notes | Key commit |
 |---|---|---|
