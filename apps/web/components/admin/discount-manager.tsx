@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Trash2, Plus } from "lucide-react";
 import { Badge, Button, Card } from "@ecom/ui";
 import { TextField, SelectField, CheckboxField } from "./fields";
+import { DatePicker } from "./date-picker";
+import { Combobox } from "./combobox";
 import { useToast } from "./toast";
 
 interface Promotion {
@@ -160,12 +162,12 @@ export function DiscountManager({
             <option value="collection">A collection</option>
           </SelectField>
           {needsTarget && (
-            <SelectField label={appliesTo === "category" ? "Category" : "Collection"} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-              <option value="">Select…</option>
-              {targets.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </SelectField>
+            <Combobox
+              label={appliesTo === "category" ? "Category" : "Collection"}
+              value={targetId}
+              onChange={setTargetId}
+              options={targets.map((t) => ({ value: t.id, label: t.name }))}
+            />
           )}
         </div>
 
@@ -189,8 +191,8 @@ export function DiscountManager({
         )}
 
         <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
-          <TextField label="Start date (optional)" type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-          <TextField label="Expiry date (optional)" type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+          <DatePicker label="Start date (optional)" value={startsAt} onChange={setStartsAt} />
+          <DatePicker label="Expiry date (optional)" value={endsAt} onChange={setEndsAt} />
         </div>
 
         <CheckboxField label="Apply automatically (no code needed at checkout)" checked={automatic} onChange={(e) => setAutomatic(e.target.checked)} />
