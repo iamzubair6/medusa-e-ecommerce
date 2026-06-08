@@ -50,20 +50,22 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 
 | # | Task | Type | Status |
 |---|------|------|--------|
-| 19 | Restore curated landing (old seeded "home" page overrides it via #7.1) | fix | ⬜ urgent |
-| 20 | CMS-manage full landing — block types/editors/renderers for all FN blocks | add | ⬜ |
-| 21 | Section manager: add Create + Delete sections (dynamic) | add | ⬜ |
-| 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega+landing) | add | ⬜ |
-| 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ⬜ |
-| 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ⬜ |
-| 25 | Migrate remaining admin SelectField → Combobox | update | ⬜ |
-| 26 | Dynamic payment methods management in admin | add | ⬜ |
-| 27 | Dynamic shipping methods/zones management in admin | add | ⬜ |
-| 28 | Fix hero slide editor design/alignment issue | fix | ⬜ |
-| 29 | Product form: richer material & care (rich/structured) | update | ⬜ |
-| 30 | Move persona into checkout contact-info step | update | ⬜ |
-| 31 | PDP accordions: max-height + scroll | fix | ⬜ |
-| 32 | Admin-editable Shipping & Returns content | add | ⬜ |
+| 19 | Restore curated landing (homepage no longer prefers stale seeded CMS home) | fix | ✅ `3e50050` |
+| 20 | CMS-manage full landing — block types/editors/renderers for all FN blocks | add | ⬜ Phase 1 |
+| 21 | Section manager: add Create + Delete sections (dynamic) | add | ⬜ Phase 1 |
+| 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega+landing) | add | ⬜ Phase 2 |
+| 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ⬜ Phase 2 |
+| 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ⬜ Phase 3 |
+| 25 | Migrate remaining admin SelectField → Combobox | update | 🟡 `3e50050` product-creator division done; section editors/price-list/campaign remain |
+| 26 | Dynamic payment methods management in admin | add | ⬜ Phase 4 |
+| 27 | Dynamic shipping methods/zones management in admin | add | ⬜ Phase 4 |
+| 28 | Fix hero slide editor design/alignment issue | fix | ✅ `3e50050` |
+| 29 | Product form: richer material & care (rich text) | update | ✅ `3e50050` |
+| 30 | Move persona into checkout contact-info step | update | ✅ `3e50050` |
+| 31 | PDP accordions: max-height + scroll | fix | ✅ `3e50050` |
+| 32 | Admin-editable Shipping & Returns content | add | ✅ `3e50050` |
+
+**Phase 0 done** (#19, #28–#32 + #25 started). Next: Phase 1 (#20, #21 page builder), Phase 2 (#22, #23 nav/IA), Phase 3 (#24), Phase 4 (#26, #27).
 
 _Verified gap analysis backing these is in this session; build order proposed below
 once the architecture is confirmed with the owner._
