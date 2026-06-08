@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -10,8 +10,10 @@ import { z } from "zod";
 import { Button, Card, cn } from "@ecom/ui";
 import { TextField, SelectField } from "@/components/admin/fields";
 import { PromoCode } from "@/components/cart/promo-code";
+import { PhoneInput } from "@/components/site/phone-input";
 import { useCart } from "@/hooks/use-cart";
 import type { CartView, ShippingOptionView } from "@/lib/cart-types";
+import type { Persona } from "@/lib/persona";
 
 // Countries served by the Bangladesh (BDT) region.
 const COUNTRIES = [["bd", "Bangladesh"]] as const;
@@ -19,18 +21,25 @@ const COUNTRIES = [["bd", "Bangladesh"]] as const;
 const addressSchema = z.object({
   email: z.string().email("Enter a valid email"),
   first_name: z.string().min(1, "Required"),
-  last_name: z.string().min(1, "Required"),
+  last_name: z.string().optional(),
   address_1: z.string().min(1, "Required"),
   city: z.string().min(1, "Required"),
-  postal_code: z.string().min(1, "Required"),
+  postal_code: z.string().optional(),
   country_code: z.string().length(2),
-  phone: z.string().optional(),
+  phone: z.string().min(6, "Required"),
 });
 type AddressValues = z.infer<typeof addressSchema>;
 
 type Step = "address" | "shipping" | "review";
 
-export function CheckoutClient() {
+interface CheckoutPrefill {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
+
+export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill; persona: Persona }) {
   const router = useRouter();
   const qc = useQueryClient();
   const { cart } = useCart();
@@ -38,21 +47,57 @@ export function CheckoutClient() {
   const [options, setOptions] = useState<ShippingOptionView[]>([]);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [payMethod, setPayMethod] = useState<"cod" | "card">("cod");
+  const [answers, setAnswers] = useState<Record<string, "yes" | "no">>({});
+  const [personaApplied, setPersonaApplied] = useState(false);
   const setCart = (c: CartView | null) => qc.setQueryData(["cart"], c);
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<AddressValues>({
     resolver: zodResolver(addressSchema),
-    defaultValues: { country_code: "bd" },
+    defaultValues: {
+      country_code: "bd",
+      email: prefill.email,
+      first_name: prefill.firstName,
+      last_name: prefill.lastName,
+      phone: prefill.phone,
+    },
   });
+
+  // Persona: when all questions are answered, apply the configured promo (stacks).
+  const personaActive = persona.enabled && persona.questions.length > 0 && Boolean(persona.promoCode);
+  const allAnswered = personaActive && persona.questions.every((q) => answers[q.id]);
+  const applyPersona = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/cart/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: persona.promoCode }),
+      });
+      const d = (await res.json()) as { cart?: CartView; error?: string };
+      if (!res.ok || !d.cart) throw new Error(d.error ?? "Could not apply discount");
+      return d.cart;
+    },
+    onSuccess: (c) => {
+      setCart(c);
+      setPersonaApplied(true);
+    },
+  });
+  useEffect(() => {
+    if (allAnswered && !personaApplied && !applyPersona.isPending) applyPersona.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allAnswered]);
 
   // Step 1 — save contact + address (also captures a guest lead), then load options.
   const saveAddress = useMutation({
     mutationFn: async (values: AddressValues) => {
-      const { email, ...address } = values;
+      const { email, ...rest } = values;
+      // last name / postal are optional in the UI but Medusa expects strings.
+      const address = { ...rest, last_name: rest.last_name || "", postal_code: rest.postal_code || "0000" };
       const res = await fetch("/api/checkout/customer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -138,25 +183,31 @@ export function CheckoutClient() {
           <StepHeader n={1} title="Contact & shipping address" done={step !== "address"} />
           {step === "address" ? (
             <form onSubmit={handleSubmit((v) => saveAddress.mutate(v))} className="mt-4 flex flex-col gap-4">
-              <TextField label="Email" type="email" error={errors.email?.message} {...register("email")} />
+              <TextField label="Email" required type="email" error={errors.email?.message} {...register("email")} />
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="First name" error={errors.first_name?.message} {...register("first_name")} />
-                <TextField label="Last name" error={errors.last_name?.message} {...register("last_name")} />
+                <TextField label="First name" required error={errors.first_name?.message} {...register("first_name")} />
+                <TextField label="Last name" {...register("last_name")} />
               </div>
-              <TextField label="Address" error={errors.address_1?.message} {...register("address_1")} />
+              <TextField label="Address / landmark" required error={errors.address_1?.message} placeholder="House, road, area, landmark" {...register("address_1")} />
               <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="City" error={errors.city?.message} {...register("city")} />
-                <TextField label="Postal code" error={errors.postal_code?.message} {...register("postal_code")} />
+                <TextField label="City" required error={errors.city?.message} {...register("city")} />
+                <TextField label="Postal code" {...register("postal_code")} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <SelectField label="Country" {...register("country_code")}>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Phone<span className="text-destructive"> *</span>
+                  </span>
+                  <PhoneInput value={watch("phone") || ""} onChange={(v) => setValue("phone", v, { shouldValidate: true })} />
+                  {errors.phone && <span className="text-xs text-destructive">{errors.phone.message}</span>}
+                </div>
+                <SelectField label="Country (auto-detected)" {...register("country_code")}>
                   {COUNTRIES.map(([code, name]) => (
                     <option key={code} value={code}>
                       {name}
                     </option>
                   ))}
                 </SelectField>
-                <TextField label="Phone (optional)" {...register("phone")} />
               </div>
               <Button type="submit" variant="gold" loading={saveAddress.isPending} className="w-fit">
                 Continue to shipping
@@ -258,6 +309,46 @@ export function CheckoutClient() {
             </div>
           )}
         </Card>
+
+        {/* Persona — optional questions that unlock a stacked extra discount */}
+        {personaActive && (
+          <Card className="p-6">
+            <h2 className="font-display text-lg font-semibold">
+              {persona.title}{" "}
+              {persona.bracket && <span className="text-sm font-normal text-muted-foreground">({persona.bracket})</span>}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">Optional — answer all to unlock {persona.discountHint} extra off.</p>
+            <div className="mt-4 flex flex-col gap-3">
+              {persona.questions.map((q) => (
+                <div key={q.id} className="flex items-center justify-between gap-3">
+                  <span className="text-sm">{q.label}</span>
+                  <div className="flex gap-2">
+                    {(["yes", "no"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setAnswers((a) => ({ ...a, [q.id]: v }))}
+                        className={cn(
+                          "rounded-full border px-4 py-1.5 text-xs font-semibold uppercase transition-colors",
+                          answers[q.id] === v ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {personaApplied ? (
+              <p className="mt-3 text-sm font-semibold text-gold">Extra discount applied! 🎉</p>
+            ) : applyPersona.isError ? (
+              <p className="mt-3 text-sm text-destructive">{(applyPersona.error as Error).message}</p>
+            ) : allAnswered ? (
+              <p className="mt-3 text-sm text-muted-foreground">Applying your reward…</p>
+            ) : null}
+          </Card>
+        )}
       </div>
 
       <OrderSummary cart={cart} />
