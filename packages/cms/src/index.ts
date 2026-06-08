@@ -1,6 +1,7 @@
 import { prisma } from "./client";
 import {
   parseSectionConfig,
+  defaultSectionConfig,
   megaMenuSchema,
   popupConfigSchema,
   campaignPayloadSchema,
@@ -103,6 +104,27 @@ export async function updateSection(sectionId: string, config: unknown) {
   const section = await prisma.section.findUnique({ where: { id: sectionId } });
   if (!section) throw new Error("Section not found");
   return upsertSectionConfig(sectionId, section.type as SectionTypeKey, config);
+}
+
+/** Create a section (with a valid starter config) at the end of a page. */
+export async function createSection(pageLayoutId: string, type: SectionTypeKey) {
+  const config = parseSectionConfig(type, defaultSectionConfig(type));
+  const count = await prisma.section.count({ where: { pageLayoutId } });
+  return prisma.section.create({
+    data: { pageLayoutId, type, position: count, config: config as object },
+  });
+}
+
+/** Delete a section. */
+export async function deleteSection(id: string) {
+  return prisma.section.delete({ where: { id } });
+}
+
+/** Create a new page layout (DRAFT). */
+export async function createPage(input: { slug: string; title: string }) {
+  return prisma.pageLayout.create({
+    data: { slug: input.slug, title: input.title, status: "DRAFT" },
+  });
 }
 
 /** Persist a new section order for a page (array index becomes position). */

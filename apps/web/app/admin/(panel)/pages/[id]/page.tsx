@@ -37,7 +37,7 @@ export default async function PageEditor({ params }: { params: Promise<{ id: str
         }
       />
       <div className="p-8">
-        <SectionManager sections={sections} />
+        <SectionManager sections={sections} pageLayoutId={page.id} />
       </div>
     </>
   );

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
-import { Badge, Card, cn } from "@ecom/ui";
+import { ChevronDown, ChevronUp, ArrowUp, ArrowDown, Plus, Trash2 } from "lucide-react";
+import { Badge, Button, Card, cn } from "@ecom/ui";
 import {
   bannerConfigSchema,
   categoryGridConfigSchema,
@@ -11,6 +11,7 @@ import {
   heroConfigSchema,
   marqueeConfigSchema,
   productRowConfigSchema,
+  SECTION_TYPES,
 } from "@ecom/cms";
 import { HeroEditor } from "./editors/hero-editor";
 import { MarqueeEditor } from "./editors/marquee-editor";
@@ -66,11 +67,31 @@ function sectionLabel(section: AdminSection): string {
   return c?.headline ?? c?.heading ?? section.type.replace("_", " ").toLowerCase();
 }
 
-export function SectionManager({ sections: initial }: { sections: AdminSection[] }) {
+export function SectionManager({ sections: initial, pageLayoutId }: { sections: AdminSection[]; pageLayoutId: string }) {
   const router = useRouter();
   const [sections, setSections] = useState(initial);
   const [openId, setOpenId] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
+  const [newType, setNewType] = useState<string>("HERO");
+  const [busy, setBusy] = useState(false);
+
+  const addSection = async () => {
+    setBusy(true);
+    await fetch("/api/admin/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageLayoutId, type: newType }),
+    });
+    setBusy(false);
+    router.refresh();
+  };
+
+  const removeSection = async (id: string) => {
+    if (!confirm("Delete this section?")) return;
+    setSections((s) => s.filter((x) => x.id !== id));
+    await fetch(`/api/admin/sections/${id}`, { method: "DELETE" });
+    router.refresh();
+  };
 
   const move = async (index: number, dir: -1 | 1) => {
     const target = index + dir;
@@ -130,6 +151,14 @@ export function SectionManager({ sections: initial }: { sections: AdminSection[]
                 {open ? "Close" : "Edit"}
                 {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
+              <button
+                type="button"
+                aria-label="Delete section"
+                onClick={() => removeSection(section.id)}
+                className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
             {open && (
               <div className="border-t border-border bg-muted/30 p-5">
@@ -139,6 +168,23 @@ export function SectionManager({ sections: initial }: { sections: AdminSection[]
           </Card>
         );
       })}
+
+      {sections.length === 0 && <p className="text-sm text-muted-foreground">No sections yet — add one below.</p>}
+
+      <div className="flex items-center gap-2 rounded-md border border-dashed border-border p-3">
+        <select
+          value={newType}
+          onChange={(e) => setNewType(e.target.value)}
+          className="h-10 rounded-sm border border-input bg-card px-3 text-sm"
+        >
+          {SECTION_TYPES.map((t) => (
+            <option key={t} value={t}>{t.replace("_", " ")}</option>
+          ))}
+        </select>
+        <Button type="button" variant="outline" size="sm" loading={busy} onClick={addSection}>
+          <Plus className="h-4 w-4" /> Add section
+        </Button>
+      </div>
     </div>
   );
 }

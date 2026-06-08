@@ -109,3 +109,26 @@ export const sectionConfigSchemas = {
 } as const;
 
 export type SectionTypeKey = keyof typeof sectionConfigSchemas;
+
+export const SECTION_TYPES = Object.keys(sectionConfigSchemas) as SectionTypeKey[];
+
+const PLACEHOLDER_IMG =
+  "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=80";
+
+/** A valid starter config for a freshly-created section of each type. */
+export function defaultSectionConfig(type: SectionTypeKey): unknown {
+  switch (type) {
+    case "HERO":
+      return { mode: "carousel", headline: "New headline", theme: "dark", align: "left", autoplayMs: 6000, slides: [{ media: { url: PLACEHOLDER_IMG } }] };
+    case "PRODUCT_ROW":
+      return { heading: "Featured", source: { kind: "newest" }, limit: 8, layout: "carousel" };
+    case "CATEGORY_GRID":
+      return { tiles: [{ media: { url: PLACEHOLDER_IMG }, label: "Shop", href: "/products" }], columns: 3 };
+    case "EDITORIAL":
+      return { media: { url: PLACEHOLDER_IMG }, heading: "Heading", imageSide: "left" };
+    case "BANNER":
+      return { heading: "Big sale", theme: "dark" };
+    case "MARQUEE":
+      return { items: ["Free shipping over ৳2,000"], speedSeconds: 30 };
+  }
+}
