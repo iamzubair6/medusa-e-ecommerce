@@ -26,13 +26,13 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 9 | Storefront bugs — product share + instant reviews | ✅ |
 | 10 | Admin product form — division/occasion/style/trend/material/care + richer editor | ✅ |
 | 11 | Discounts — start/expiry dates | ✅ |
-| 12 | Checkout — shipping methods + payment options (verify + surface) | ⬜ |
+| 12 | Checkout — shipping methods + payment options (verify + surface) | ✅ `d8c392d` — BD shipping ৳60 + COD verified; shipping editable in admin, payment card added |
 | 13 | Auth — phone-OTP popup, registration (phone+OTP), email/phone login, intl phone, boxed OTP, auto-login | ✅ |
 | 14 | Checkout — required fields + intl phone + prefill + persona section + stacked discount | ✅ `d5daa73` |
 | 15 | Admin — persona builder (title/bracket/questions/promo code) | ✅ `b876f5b` |
 | 16 | Required-field red star (*) across storefront + admin forms | ✅ `de2c591` product/discount/auth/reviews/phone/checkout (admin `required` prop available for any field) |
 
-**Done: 14/16 · In progress: #7 (Site Settings done; deeper CMS-ification pending) · Remaining: #12.**
+**Done: 15/16 · In progress: #7 (Site Settings done; deeper CMS-ification pending) · Remaining: none new.**
 
 > Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
