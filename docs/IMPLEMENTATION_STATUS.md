@@ -21,7 +21,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 4 | Listing pages + filters (`/collections?division=`, derived facets, toolbar) | ✅ |
 | 5 | Landing page rebuild (hero, trend, bento, shop-the-latest, footer) | ✅ |
 | 6 | Enrich PDP (details, materials, reviews, related/trending) | ✅ |
-| 7 | Admin UX overhaul — re-CMS-ify landing + Site Settings (announcement/marquee/brands/delivery line/size guide) | ⬜ |
+| 7 | Admin UX overhaul — Site Settings (announcement/marquee/brands/delivery line/size guide/tile count) | 🟡 `e787ca9` core done; remaining: per-block landing CMS editing, shadcn combobox/calendar, dynamic add-section |
 | 8 | Device image/video upload field (storage pluggable) | ✅ |
 | 9 | Storefront bugs — product share + instant reviews | ✅ |
 | 10 | Admin product form — division/occasion/style/trend/material/care + richer editor | ✅ |
@@ -30,9 +30,9 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 13 | Auth — phone-OTP popup, registration (phone+OTP), email/phone login, intl phone, boxed OTP, auto-login | ✅ |
 | 14 | Checkout — required fields + intl phone + prefill + persona section + stacked discount | ✅ `d5daa73` |
 | 15 | Admin — persona builder (title/bracket/questions/promo code) | ✅ `b876f5b` |
-| 16 | Required-field red star (*) across storefront + admin forms | 🟡 product/discount + auth/reviews/phone + **checkout** (`d5daa73`); section editors via #7 |
+| 16 | Required-field red star (*) across storefront + admin forms | ✅ `de2c591` product/discount/auth/reviews/phone/checkout (admin `required` prop available for any field) |
 
-**Done: 13/16 · In progress: #16 (section editors via #7) · Remaining: #7, #12.**
+**Done: 14/16 · In progress: #7 (Site Settings done; deeper CMS-ification pending) · Remaining: #12.**
 
 > Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
