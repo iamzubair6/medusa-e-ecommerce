@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@ecom/ui";
 import { heroConfigSchema, type HeroConfig } from "@ecom/cms";
 import { TextField, TextareaField, SelectField } from "../fields";
+import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
 /** Form shape mirrors HeroConfig but keeps optional objects always present for RHF. */
@@ -61,7 +62,7 @@ function fromForm(f: HeroForm): unknown {
 }
 
 export function HeroEditor({ sectionId, config }: { sectionId: string; config: HeroConfig }) {
-  const { register, handleSubmit, watch, control } = useForm<HeroForm>({ defaultValues: toForm(config) });
+  const { register, handleSubmit, watch, setValue, control } = useForm<HeroForm>({ defaultValues: toForm(config) });
   const { fields, append, remove } = useFieldArray({ control, name: "slides" });
   const mode = watch("mode");
   const save = useSaveSection(sectionId);
@@ -113,8 +114,8 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
 
       {mode === "video" ? (
         <div className="grid gap-4 rounded-md border border-border p-4 sm:grid-cols-2">
-          <TextField label="Video URL (mp4)" placeholder="https://…/hero.mp4" {...register("videoUrl")} />
-          <TextField label="Poster image URL" placeholder="https://…/poster.jpg" {...register("posterUrl")} />
+          <MediaUploadField label="Video (mp4)" accept="video/*" value={watch("videoUrl")} onChange={(u) => setValue("videoUrl", u, { shouldDirty: true })} />
+          <MediaUploadField label="Poster image" value={watch("posterUrl")} onChange={(u) => setValue("posterUrl", u, { shouldDirty: true })} />
         </div>
       ) : (
         <div className="flex flex-col gap-3 rounded-md border border-border p-4">
@@ -133,7 +134,7 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
           </div>
           {fields.map((field, i) => (
             <div key={field.id} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <TextField label={`Slide ${i + 1} image URL`} {...register(`slides.${i}.url`)} />
+              <MediaUploadField label={`Slide ${i + 1} image`} value={watch(`slides.${i}.url`)} onChange={(u) => setValue(`slides.${i}.url`, u, { shouldDirty: true })} />
               <TextField label="Alt text" {...register(`slides.${i}.alt`)} />
               <Button type="button" variant="ghost" size="icon" aria-label="Remove slide" onClick={() => remove(i)}>
                 <Trash2 className="h-4 w-4" />

@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@ecom/ui";
 import { categoryGridConfigSchema, type CategoryGridConfig } from "@ecom/cms";
 import { TextField, SelectField } from "../fields";
+import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
 interface Form {
@@ -15,7 +16,7 @@ interface Form {
 }
 
 export function CategoryGridEditor({ sectionId, config }: { sectionId: string; config: CategoryGridConfig }) {
-  const { register, handleSubmit, control } = useForm<Form>({
+  const { register, handleSubmit, control, watch, setValue } = useForm<Form>({
     defaultValues: {
       heading: config.heading ?? "",
       columns: String(config.columns),
@@ -50,7 +51,7 @@ export function CategoryGridEditor({ sectionId, config }: { sectionId: string; c
       <div className="flex flex-col gap-3 rounded-md border border-border p-4">
         {fields.map((field, i) => (
           <div key={field.id} className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
-            <TextField label={`Tile ${i + 1} image`} {...register(`tiles.${i}.url`)} />
+            <MediaUploadField label={`Tile ${i + 1} image`} value={watch(`tiles.${i}.url`)} onChange={(u) => setValue(`tiles.${i}.url`, u, { shouldDirty: true })} />
             <TextField label="Label" {...register(`tiles.${i}.label`)} />
             <TextField label="Link" {...register(`tiles.${i}.href`)} />
             <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => remove(i)}>

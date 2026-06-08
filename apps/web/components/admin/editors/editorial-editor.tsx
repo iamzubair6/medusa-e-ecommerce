@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@ecom/ui";
 import { editorialConfigSchema, type EditorialConfig } from "@ecom/cms";
 import { TextField, TextareaField, SelectField } from "../fields";
+import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
 interface Form {
@@ -18,7 +19,7 @@ interface Form {
 }
 
 export function EditorialEditor({ sectionId, config }: { sectionId: string; config: EditorialConfig }) {
-  const { register, handleSubmit } = useForm<Form>({
+  const { register, handleSubmit, watch, setValue } = useForm<Form>({
     defaultValues: {
       mediaUrl: config.media.url,
       eyebrow: config.eyebrow ?? "",
@@ -49,7 +50,7 @@ export function EditorialEditor({ sectionId, config }: { sectionId: string; conf
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="Image URL" {...register("mediaUrl")} />
+        <MediaUploadField label="Image" value={watch("mediaUrl")} onChange={(u) => setValue("mediaUrl", u, { shouldDirty: true })} />
         <SelectField label="Image side" {...register("imageSide")}>
           <option value="left">Left</option>
           <option value="right">Right</option>

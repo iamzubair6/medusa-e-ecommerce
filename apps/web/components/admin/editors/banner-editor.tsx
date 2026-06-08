@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@ecom/ui";
 import { bannerConfigSchema, type BannerConfig } from "@ecom/cms";
 import { TextField, SelectField } from "../fields";
+import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
 interface Form {
@@ -16,7 +17,7 @@ interface Form {
 }
 
 export function BannerEditor({ sectionId, config }: { sectionId: string; config: BannerConfig }) {
-  const { register, handleSubmit } = useForm<Form>({
+  const { register, handleSubmit, watch, setValue } = useForm<Form>({
     defaultValues: {
       heading: config.heading,
       theme: config.theme,
@@ -49,7 +50,7 @@ export function BannerEditor({ sectionId, config }: { sectionId: string; config:
           <option value="light">Light</option>
           <option value="gold">Gold</option>
         </SelectField>
-        <TextField label="Background image URL (optional)" {...register("mediaUrl")} />
+        <MediaUploadField label="Background image (optional)" accept="image/*,video/*" value={watch("mediaUrl")} onChange={(u) => setValue("mediaUrl", u, { shouldDirty: true })} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="CTA label" {...register("ctaLabel")} />
