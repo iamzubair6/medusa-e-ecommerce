@@ -237,7 +237,7 @@ export function ProductCreator({
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <Card className="flex flex-col gap-4 p-6">
-        <TextField label="Product title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ribbed Knit Tank" />
+        <TextField label="Product title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ribbed Knit Tank" />
         <RichTextField label="Description" value={description} onChange={setDescription} />
         <div className="grid gap-4 sm:grid-cols-3">
           <SelectField label="Offer" value={offerType} onChange={(e) => setOfferType(e.target.value as typeof offerType)}>

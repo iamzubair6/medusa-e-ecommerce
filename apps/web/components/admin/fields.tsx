@@ -7,11 +7,13 @@ import { cn } from "@ecom/ui";
 function Field({
   label,
   error,
+  required,
   children,
   className,
 }: {
   label?: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -20,6 +22,7 @@ function Field({
       {label && (
         <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {label}
+          {required && <span className="text-destructive"> *</span>}
         </span>
       )}
       {children}
@@ -36,11 +39,12 @@ const base =
 export function TextField({
   label,
   error,
+  required,
   className,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; required?: boolean }) {
   return (
-    <Field label={label} error={error} className={className}>
+    <Field label={label} error={error} required={required} className={className}>
       <input className={cn(base, "h-12")} {...props} />
     </Field>
   );
@@ -49,11 +53,12 @@ export function TextField({
 export function TextareaField({
   label,
   error,
+  required,
   className,
   ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string }) {
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string; required?: boolean }) {
   return (
-    <Field label={label} error={error} className={className}>
+    <Field label={label} error={error} required={required} className={className}>
       <textarea className={cn(base, "min-h-24 py-2.5")} {...props} />
     </Field>
   );
@@ -63,12 +68,13 @@ export function TextareaField({
 export function SelectField({
   label,
   error,
+  required,
   className,
   children,
   ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string }) {
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; required?: boolean }) {
   return (
-    <Field label={label} error={error} className={className}>
+    <Field label={label} error={error} required={required} className={className}>
       <div className="relative">
         <select className={cn(base, "h-12 cursor-pointer appearance-none pr-10")} {...props}>
           {children}

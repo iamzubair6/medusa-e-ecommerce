@@ -117,7 +117,10 @@ export function PhoneCapturePopup() {
               <>
                 <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-tight">Get 10% Off</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Add your phone for offers + faster checkout. We&apos;ll text a quick code.</p>
-                <div className="mt-4">
+                <div className="mt-4 flex flex-col gap-1.5 text-left">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Mobile number<span className="text-destructive"> *</span>
+                  </span>
                   <PhoneInput value={phone} onChange={setPhone} autoFocus />
                 </div>
                 {error && <p className="mt-2 text-sm text-destructive">{error}</p>}

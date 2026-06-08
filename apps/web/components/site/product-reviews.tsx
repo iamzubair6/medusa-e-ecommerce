@@ -117,7 +117,7 @@ export function ProductReviews({
       {open && (
         <div className="mt-6 flex max-w-xl flex-col gap-4 rounded-lg border border-border bg-card p-6">
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your rating</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your rating<span className="text-destructive"> *</span></span>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -135,10 +135,16 @@ export function ProductReviews({
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" className="h-11 rounded-sm border border-input bg-card px-3 text-sm" />
+            <div className="relative">
+              <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Your name" className="h-11 w-full rounded-sm border border-input bg-card px-3 text-sm" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-destructive">*</span>
+            </div>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className="h-11 rounded-sm border border-input bg-card px-3 text-sm" />
           </div>
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="What did you think?" className="min-h-28 rounded-sm border border-input bg-card p-3 text-sm" />
+          <div className="relative">
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="What did you think?" className="min-h-28 w-full rounded-sm border border-input bg-card p-3 text-sm" />
+            <span className="pointer-events-none absolute right-3 top-3 text-destructive">*</span>
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button variant="solid" loading={saving} onClick={submit} className="w-fit">
             Submit review

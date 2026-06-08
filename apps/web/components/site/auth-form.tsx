@@ -72,6 +72,13 @@ export function AuthForm() {
   };
 
   const input = "h-12 w-full rounded-sm border border-input bg-card px-3.5 text-sm focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  // Wrap a required field so a red * shows (placeholder-only inputs).
+  const Req = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative">
+      {children}
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-destructive">*</span>
+    </div>
+  );
 
   return (
     <Container className="flex min-h-[60vh] items-center justify-center py-16">
@@ -97,11 +104,11 @@ export function AuthForm() {
 
         <form className="mt-6 flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); submit(); }}>
           {mode === "login" ? (
-            <input className={input} placeholder="Email or phone" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" />
+            <Req><input className={input} placeholder="Email or phone" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" /></Req>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <input className={input} placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" />
+                <Req><input className={input} placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" /></Req>
                 <input className={input} placeholder="Last name (optional)" value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
               </div>
               <div className="flex gap-2">
@@ -118,10 +125,10 @@ export function AuthForm() {
                   {devCode && <p className="text-center text-xs text-muted-foreground">Demo code: <span className="font-bold">{devCode}</span></p>}
                 </div>
               )}
-              <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              <Req><input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Req>
             </>
           )}
-          <input className={input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} />
+          <Req><input className={input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} /></Req>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" variant="solid" size="lg" loading={busy} className="mt-1 w-full">
             {mode === "login" ? "Sign in" : "Create account"}

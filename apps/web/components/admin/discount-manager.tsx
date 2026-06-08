@@ -133,6 +133,7 @@ export function DiscountManager({
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
             label={automatic ? "Name" : "Code"}
+            required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder={automatic ? "SUMMER-SALE" : "WELCOME10"}
@@ -171,6 +172,7 @@ export function DiscountManager({
         {needsValue && (
           <TextField
             label={method === "percentage" ? "Percent (%)" : "Amount (৳)"}
+            required
             type="number"
             value={value}
             onChange={(e) => setValue(e.target.value)}
