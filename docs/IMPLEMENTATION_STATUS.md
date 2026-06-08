@@ -21,7 +21,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 4 | Listing pages + filters (`/collections?division=`, derived facets, toolbar) | ✅ |
 | 5 | Landing page rebuild (hero, trend, bento, shop-the-latest, footer) | ✅ |
 | 6 | Enrich PDP (details, materials, reviews, related/trending) | ✅ |
-| 7 | Admin UX overhaul — Site Settings + CMS-managed landing + shadcn fields | ✅ Site Settings `e787ca9`; CMS landing + dynamic add/reorder `79dd28b`; shadcn Combobox + DatePicker `pending-push` |
+| 7 | Admin UX overhaul — Site Settings + CMS-managed landing + shadcn fields | ✅ Site Settings `e787ca9`; CMS landing + dynamic add/reorder `79dd28b`; shadcn Combobox + DatePicker `5d8d002` |
 | 8 | Device image/video upload field (storage pluggable) | ✅ |
 | 9 | Storefront bugs — product share + instant reviews | ✅ |
 | 10 | Admin product form — division/occasion/style/trend/material/care + richer editor | ✅ |
