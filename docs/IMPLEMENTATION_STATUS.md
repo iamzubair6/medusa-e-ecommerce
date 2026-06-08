@@ -52,7 +52,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 |---|------|------|--------|
 | 19 | Restore curated landing (homepage no longer prefers stale seeded CMS home) | fix | ✅ `3e50050` |
 | 20 | CMS-manage full landing — block types/editors/renderers for all FN blocks | add | ⬜ Phase 1 |
-| 21 | Section manager: add Create + Delete sections (dynamic) | add | ⬜ Phase 1 |
+| 21 | Section manager: add Create + Delete sections (dynamic) | add | ✅ `(phase1)` create/delete/reorder/edit live |
 | 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega+landing) | add | ⬜ Phase 2 |
 | 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ⬜ Phase 2 |
 | 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ⬜ Phase 3 |
