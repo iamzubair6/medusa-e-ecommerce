@@ -1,6 +1,8 @@
 import "server-only";
 import { cache } from "react";
+import { getSiteSetting } from "@ecom/cms";
 import { fetchDivisionCategories, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
+import { parseSiteSettings } from "@/lib/site-settings";
 
 export interface NavDivision {
   handle: string;
@@ -16,7 +18,7 @@ export interface NavData {
   categoriesByDivision: Record<string, NavCategory[]>;
   facets: { occasion: string[]; style: string[]; trend: string[]; colors: { name: string; swatch: string }[] };
   brandByDivision: Record<string, string>;
-  announcement: { message: string; href: string };
+  announcement: { active: boolean; message: string; href: string };
 }
 
 const DIVISIONS: NavDivision[] = [
@@ -44,13 +46,16 @@ export const getNavData = cache(async (): Promise<NavData> => {
     categoriesByDivision[h] = catLists[i]!.map((c) => ({ handle: c.handle, name: c.name }));
   });
 
-  const { facets } = await fetchListing({}, { limit: 1 });
+  const [{ facets }, site] = await Promise.all([
+    fetchListing({}, { limit: 1 }),
+    getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
+  ]);
 
   return {
     divisions: DIVISIONS,
     categoriesByDivision,
     facets: { occasion: facets.occasion, style: facets.style, trend: facets.trend, colors: facets.colors },
-    brandByDivision: BRAND,
-    announcement: { message: "FREE SHIPPING ON ORDERS OVER ৳2,000", href: "/products" },
+    brandByDivision: { ...BRAND, ...site.brands },
+    announcement: site.announcement,
   };
 });

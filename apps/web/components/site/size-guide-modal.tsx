@@ -12,7 +12,9 @@ const ROWS = [
   { size: "XXL", bust: "104–110", waist: "88–94", hips: "112–118" },
 ];
 
-export function SizeGuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+const isHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
+
+export function SizeGuideModal({ open, onClose, content }: { open: boolean; onClose: () => void; content?: string }) {
   const reduce = useReducedMotion();
   return (
     <AnimatePresence>
@@ -42,6 +44,14 @@ export function SizeGuideModal({ open, onClose }: { open: boolean; onClose: () =
               <X className="h-5 w-5" />
             </button>
             <h2 className="font-display text-xl font-bold">Size Guide</h2>
+            {content && content.trim() ? (
+              isHtml(content) ? (
+                <div className="prose-pdp mt-4 max-h-[70vh] overflow-y-auto text-sm leading-relaxed text-muted-foreground [&_strong]:text-foreground [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1.5" dangerouslySetInnerHTML={{ __html: content }} />
+              ) : (
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{content}</p>
+              )
+            ) : (
+              <>
             <p className="mt-1 text-sm text-muted-foreground">Body measurements in centimetres. If you’re between sizes, size up for a relaxed fit.</p>
             <div className="mt-5 overflow-hidden rounded-md border border-border">
               <table className="w-full text-sm">
@@ -68,6 +78,8 @@ export function SizeGuideModal({ open, onClose }: { open: boolean; onClose: () =
             <p className="mt-4 text-xs text-muted-foreground">
               <strong className="text-foreground">How to measure:</strong> Bust — around the fullest part. Waist — the narrowest point. Hips — around the fullest part.
             </p>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}

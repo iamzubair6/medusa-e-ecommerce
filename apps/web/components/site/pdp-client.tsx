@@ -29,9 +29,13 @@ import { SizeGuideModal } from "./size-guide-modal";
 export function PdpClient({
   product,
   reviewSummary,
+  deliveryLine,
+  sizeGuideContent,
 }: {
   product: StoreProductDetail;
   reviewSummary?: { count: number; average: number };
+  deliveryLine?: string;
+  sizeGuideContent?: string;
 }) {
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
@@ -253,7 +257,7 @@ export function PdpClient({
         {/* delivery + shop similar */}
         <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
-            <Truck className="h-4 w-4" /> Standard delivery in 3–5 days · Free shipping over ৳2,000
+            <Truck className="h-4 w-4" /> {deliveryLine || "Standard delivery in 3–5 days · Free shipping over ৳2,000"}
           </span>
           <button
             type="button"
@@ -273,7 +277,7 @@ export function PdpClient({
         )}
       </AnimatePresence>
 
-      <SizeGuideModal open={sizeGuide} onClose={() => setSizeGuide(false)} />
+      <SizeGuideModal open={sizeGuide} onClose={() => setSizeGuide(false)} content={sizeGuideContent} />
     </div>
   );
 }

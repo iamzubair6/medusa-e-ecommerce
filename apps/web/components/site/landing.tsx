@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Container, cn } from "@ecom/ui";
 import type { CategoryTile, LandingData } from "@/lib/commerce";
+import type { SiteSettings } from "@/lib/site-settings";
 import { ShopTheLatest } from "./shop-the-latest";
 import { BrandCarousel, type BrandSlide } from "./brand-carousel";
 import { Marquee } from "./marquee";
@@ -33,11 +34,13 @@ const BRANDS = [
   { label: "Maison Luxe", href: "/collections/luxe", img: "1483985988355-763728e1935b" },
 ];
 
-export function Landing({ data }: { data: LandingData }) {
+export function Landing({ data, site }: { data: LandingData; site?: SiteSettings }) {
+  const marqueeItems = site?.marquee.items.length ? site.marquee.items : USP_ITEMS;
+  const showMarquee = site ? site.marquee.enabled : true;
   return (
     <>
       {/* USP marquee (under the announcement bar) */}
-      <Marquee config={{ items: USP_ITEMS, speedSeconds: 30 }} />
+      {showMarquee && <Marquee config={{ items: marqueeItems, speedSeconds: 30 }} />}
 
       {/* Hero offer */}
       <section className="relative h-[460px] w-full overflow-hidden md:h-[560px]">
@@ -120,7 +123,7 @@ export function Landing({ data }: { data: LandingData }) {
       {/* Shop by Category — bento */}
       <Container className="py-8">
         <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop by Category</h2>
-        <Bento tiles={data.categoryTiles} />
+        <Bento tiles={data.categoryTiles.slice(0, site?.categoryTileCount ?? 7)} />
       </Container>
 
       {/* Sale strip */}

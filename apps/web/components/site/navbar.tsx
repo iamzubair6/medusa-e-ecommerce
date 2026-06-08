@@ -57,14 +57,16 @@ export function Navbar({ navData }: NavbarProps) {
   return (
     <header className="sticky top-0 z-30 w-full bg-background">
       {/* announcement */}
-      <div className="bg-ink text-center text-primary-foreground">
-        <Container className="py-2 text-[11px] font-bold uppercase tracking-[0.08em]">
-          {announcement.message}{" "}
-          <Link href={announcement.href} className="underline underline-offset-2">
-            Shop Now
-          </Link>
-        </Container>
-      </div>
+      {announcement.active && (
+        <div className="bg-ink text-center text-primary-foreground">
+          <Container className="py-2 text-[11px] font-bold uppercase tracking-[0.08em]">
+            {announcement.message}{" "}
+            <Link href={announcement.href} className="underline underline-offset-2">
+              Shop Now
+            </Link>
+          </Container>
+        </div>
+      )}
 
       {/* main bar */}
       <div className="border-b border-border">

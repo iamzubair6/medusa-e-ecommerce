@@ -18,6 +18,7 @@ const items = [
   { href: "/admin/popups", label: "Popups", icon: Megaphone, exact: false },
   { href: "/admin/campaigns", label: "Campaigns", icon: Rocket, exact: false },
   { href: "/admin/persona", label: "Persona", icon: ClipboardList, exact: false },
+  { href: "/admin/site", label: "Storefront", icon: LayoutTemplate, exact: false },
   { href: "/admin/visual-search", label: "Visual Search", icon: ScanSearch, exact: false },
   { href: "/admin/leads", label: "Guest Leads", icon: Users, exact: false },
   { href: "/admin/settings", label: "Settings", icon: Settings, exact: false },

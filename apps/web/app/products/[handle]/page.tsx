@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Reveal } from "@ecom/ui";
-import { getReviewSummary, listReviews } from "@ecom/cms";
+import { getReviewSummary, listReviews, getSiteSetting } from "@ecom/cms";
+import { parseSiteSettings } from "@/lib/site-settings";
 import { fetchProductByHandle, fetchRelatedProducts, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
@@ -32,11 +33,12 @@ export default async function ProductPage({ params }: { params: Params }) {
 
   const divSet = new Set<string>(DIVISION_HANDLES);
   const primaryCat = (product.categoryHandles ?? []).find((h) => !divSet.has(h));
-  const [related, trendingResult, reviewSummary, reviewsData] = await Promise.all([
+  const [related, trendingResult, reviewSummary, reviewsData, site] = await Promise.all([
     fetchRelatedProducts(handle, { category: primaryCat, division: product.division, limit: 4 }),
     fetchListing({ collection: "trending" }, { limit: 5 }),
     getReviewSummary(handle),
     listReviews(handle, { take: 20 }),
+    getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
   ]);
   const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
@@ -72,7 +74,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           <span className="text-foreground">{product.title}</span>
         </nav>
 
-        <PdpClient product={product} reviewSummary={reviewSummary} />
+        <PdpClient product={product} reviewSummary={reviewSummary} deliveryLine={site.deliveryLine} sizeGuideContent={site.sizeGuide} />
 
         <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 

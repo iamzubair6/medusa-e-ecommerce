@@ -1,5 +1,6 @@
-import { getActivePopup, popupConfigSchema } from "@ecom/cms";
+import { getActivePopup, getSiteSetting, popupConfigSchema } from "@ecom/cms";
 import { getLandingData } from "@/lib/commerce";
+import { parseSiteSettings } from "@/lib/site-settings";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { Landing } from "@/components/site/landing";
@@ -22,11 +23,15 @@ async function loadPopup(): Promise<Popup> {
 }
 
 export default async function HomePage() {
-  const [landing, popup] = await Promise.all([getLandingData(), loadPopup()]);
+  const [landing, popup, site] = await Promise.all([
+    getLandingData(),
+    loadPopup(),
+    getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
+  ]);
   return (
     <main>
       <SiteNavbar />
-      <Landing data={landing} />
+      <Landing data={landing} site={site} />
       <Footer />
       <PhoneCapturePopup />
       {popup && <PromoPopup id={popup.id} trigger={popup.trigger} config={popup.config} />}
