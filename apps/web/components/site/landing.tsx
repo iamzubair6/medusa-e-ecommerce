@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Container, cn } from "@ecom/ui";
 import type { CategoryTile, LandingData } from "@/lib/commerce";
-import type { SiteSettings } from "@/lib/site-settings";
+import { type SiteSettings, DEFAULT_SITE_SETTINGS } from "@/lib/site-settings";
 import { ShopTheLatest } from "./shop-the-latest";
 import { BrandCarousel, type BrandSlide } from "./brand-carousel";
 import { Marquee } from "./marquee";
@@ -37,6 +37,7 @@ const BRANDS = [
 export function Landing({ data, site }: { data: LandingData; site?: SiteSettings }) {
   const marqueeItems = site?.marquee.items.length ? site.marquee.items : USP_ITEMS;
   const showMarquee = site ? site.marquee.enabled : true;
+  const L = site?.landing ?? DEFAULT_SITE_SETTINGS.landing;
   return (
     <>
       {/* USP marquee (under the announcement bar) */}
@@ -45,15 +46,15 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       {/* Hero offer */}
       <section className="relative h-[460px] w-full overflow-hidden md:h-[560px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={U("1483985988355-763728e1935b", 1800, 1000)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={L.hero.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/55 to-transparent" />
         <Container className="relative flex h-full flex-col justify-center gap-3 text-white">
-          <p className="text-sm font-bold uppercase tracking-[0.2em]">New Season</p>
-          <h1 className="max-w-md font-display text-4xl font-black uppercase leading-none md:text-6xl">BOGO Free</h1>
-          <p className="max-w-sm text-lg font-medium">Get ৳500 off ৳2,500+ — use code <span className="font-bold">MAISON25</span></p>
+          {L.hero.eyebrow && <p className="text-sm font-bold uppercase tracking-[0.2em]">{L.hero.eyebrow}</p>}
+          <h1 className="max-w-md font-display text-4xl font-black uppercase leading-none md:text-6xl">{L.hero.headline}</h1>
+          {L.hero.subtext && <p className="max-w-sm text-lg font-medium">{L.hero.subtext}</p>}
           <div>
-            <Link href="/collections/sale" className="mt-2 inline-block rounded-full bg-white px-8 py-3 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-white/90">
-              Shop Now
+            <Link href={L.hero.ctaHref} className="mt-2 inline-block rounded-full bg-white px-8 py-3 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-white/90">
+              {L.hero.ctaLabel}
             </Link>
           </div>
         </Container>
@@ -81,12 +82,12 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       {/* Big promo banner */}
       <section className="relative h-72 w-full overflow-hidden md:h-96">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={U("1490481651871-ab68de25d43d", 1800, 900)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={L.promo.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-black/30" />
         <Container className="relative flex h-full flex-col items-center justify-center gap-3 text-center text-white">
-          <h2 className="font-display text-4xl font-black uppercase md:text-6xl">Up to 80% Off Sitewide</h2>
-          <Link href="/collections/sale" className="rounded-full bg-white px-8 py-3 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-white/90">
-            Shop Now
+          <h2 className="font-display text-4xl font-black uppercase md:text-6xl">{L.promo.heading}</h2>
+          <Link href={L.promo.ctaHref} className="rounded-full bg-white px-8 py-3 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-white/90">
+            {L.promo.ctaLabel}
           </Link>
         </Container>
       </section>
@@ -110,12 +111,12 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       {/* Full-width feature */}
       <section className="relative h-80 w-full overflow-hidden md:h-[460px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={U("1525507119028-ed4c629a60a3", 1800, 950)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={L.feature.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <Container className="relative flex h-full flex-col items-start justify-end gap-3 pb-10 text-white">
-          <h2 className="font-display text-4xl font-black uppercase md:text-5xl">Golden Hours</h2>
-          <Link href="/collections/luxe" className="rounded-full bg-white px-8 py-3 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-white/90">
-            Shop the Edit
+          <h2 className="font-display text-4xl font-black uppercase md:text-5xl">{L.feature.heading}</h2>
+          <Link href={L.feature.ctaHref} className="rounded-full bg-white px-8 py-3 text-xs font-bold uppercase tracking-wide text-black transition hover:bg-white/90">
+            {L.feature.ctaLabel}
           </Link>
         </Container>
       </section>
@@ -129,9 +130,9 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       {/* Sale strip */}
       <section className="relative h-40 w-full overflow-hidden bg-accent">
         <Container className="relative flex h-full flex-col items-center justify-center gap-2 text-center text-accent-foreground">
-          <h2 className="font-display text-3xl font-black uppercase md:text-4xl">60–80% Off Sale</h2>
-          <Link href="/collections/sale" className="rounded-full bg-accent-foreground px-7 py-2.5 text-xs font-bold uppercase tracking-wide text-accent">
-            Shop Now
+          <h2 className="font-display text-3xl font-black uppercase md:text-4xl">{L.sale.heading}</h2>
+          <Link href={L.sale.ctaHref} className="rounded-full bg-accent-foreground px-7 py-2.5 text-xs font-bold uppercase tracking-wide text-accent">
+            {L.sale.ctaLabel}
           </Link>
         </Container>
       </section>

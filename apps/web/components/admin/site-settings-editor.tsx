@@ -20,7 +20,12 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [sizeGuide, setSizeGuide] = useState(initial.sizeGuide);
   const [shippingReturns, setShippingReturns] = useState(initial.shippingReturns);
   const [tileCount, setTileCount] = useState(String(initial.categoryTileCount));
+  const [landing, setLanding] = useState(initial.landing);
   const [saving, setSaving] = useState(false);
+
+  type LandingBlock = keyof SiteSettings["landing"];
+  const setL = <B extends LandingBlock>(block: B, key: keyof SiteSettings["landing"][B], value: string) =>
+    setLanding((l) => ({ ...l, [block]: { ...l[block], [key]: value } }));
 
   const save = async () => {
     setSaving(true);
@@ -33,6 +38,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         sizeGuide,
         shippingReturns,
         categoryTileCount: Math.min(9, Math.max(3, Number(tileCount) || 7)),
+        landing,
       };
       const res = await fetch("/api/admin/site", {
         method: "POST",
@@ -82,6 +88,53 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         <TextareaField label="Size guide (HTML or text — shown in the PDP modal)" value={sizeGuide} onChange={(e) => setSizeGuide(e.target.value)} placeholder="<table>…</table> or a few lines of guidance" />
         <TextareaField label="Shipping & Returns (HTML or text — PDP accordion)" value={shippingReturns} onChange={(e) => setShippingReturns(e.target.value)} placeholder="Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days." />
         <TextField label="Shop-by-category tiles on the homepage (3–9)" type="number" value={tileCount} onChange={(e) => setTileCount(e.target.value)} />
+      </Card>
+
+      <Card className="flex flex-col gap-5 p-6">
+        <h3 className="font-display text-lg font-bold">Landing blocks</h3>
+
+        <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Hero offer</span>
+          <TextField label="Image URL" value={landing.hero.image} onChange={(e) => setL("hero", "image", e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label="Eyebrow" value={landing.hero.eyebrow} onChange={(e) => setL("hero", "eyebrow", e.target.value)} />
+            <TextField label="Headline" value={landing.hero.headline} onChange={(e) => setL("hero", "headline", e.target.value)} />
+          </div>
+          <TextField label="Subtext" value={landing.hero.subtext} onChange={(e) => setL("hero", "subtext", e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label="Button label" value={landing.hero.ctaLabel} onChange={(e) => setL("hero", "ctaLabel", e.target.value)} />
+            <TextField label="Button link" value={landing.hero.ctaHref} onChange={(e) => setL("hero", "ctaHref", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Promo banner</span>
+          <TextField label="Image URL" value={landing.promo.image} onChange={(e) => setL("promo", "image", e.target.value)} />
+          <TextField label="Heading" value={landing.promo.heading} onChange={(e) => setL("promo", "heading", e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label="Button label" value={landing.promo.ctaLabel} onChange={(e) => setL("promo", "ctaLabel", e.target.value)} />
+            <TextField label="Button link" value={landing.promo.ctaHref} onChange={(e) => setL("promo", "ctaHref", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Feature banner</span>
+          <TextField label="Image URL" value={landing.feature.image} onChange={(e) => setL("feature", "image", e.target.value)} />
+          <TextField label="Heading" value={landing.feature.heading} onChange={(e) => setL("feature", "heading", e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label="Button label" value={landing.feature.ctaLabel} onChange={(e) => setL("feature", "ctaLabel", e.target.value)} />
+            <TextField label="Button link" value={landing.feature.ctaHref} onChange={(e) => setL("feature", "ctaHref", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sale strip</span>
+          <TextField label="Heading" value={landing.sale.heading} onChange={(e) => setL("sale", "heading", e.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label="Button label" value={landing.sale.ctaLabel} onChange={(e) => setL("sale", "ctaLabel", e.target.value)} />
+            <TextField label="Button link" value={landing.sale.ctaHref} onChange={(e) => setL("sale", "ctaHref", e.target.value)} />
+          </div>
+        </div>
       </Card>
 
       <Button variant="gold" loading={saving} onClick={save} className="w-fit">Save storefront content</Button>
