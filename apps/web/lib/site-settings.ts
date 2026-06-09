@@ -69,6 +69,26 @@ export const siteSettingsSchema = z.object({
           ctaHref: z.string().max(200).default("/collections/sale"),
         })
         .default({}),
+      trendCards: z
+        .array(z.object({ label: z.string().max(40), image: z.string(), href: z.string().max(200) }))
+        .max(8)
+        .default([
+          { label: "Second Skin", image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80", href: "/collections/bodysuits?division=women" },
+          { label: "Vacation Strolls", image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=600&h=800&q=80", href: "/collections/women?division=women&trend=Vacation" },
+          { label: "Hotter on Vacation", image: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=600&h=800&q=80", href: "/collections/trending" },
+          { label: "Swim Escape", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=600&h=800&q=80", href: "/collections/swim?division=women" },
+        ]),
+      brandTiles: z
+        .array(z.object({ label: z.string().max(40), image: z.string(), href: z.string().max(200) }))
+        .max(12)
+        .default([
+          { label: "Maison Men", image: "https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/men?division=men" },
+          { label: "Maison", image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/women?division=women" },
+          { label: "Maison Curve", image: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/plus?division=plus" },
+          { label: "Maison Kids", image: "https://images.unsplash.com/photo-1483118714900-540cf339fd46?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/kids?division=kids" },
+          { label: "Maison Sport", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/sport?division=sport" },
+          { label: "Maison Luxe", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/luxe" },
+        ]),
     })
     .default({}),
 });

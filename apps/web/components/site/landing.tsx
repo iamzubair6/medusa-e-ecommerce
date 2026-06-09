@@ -18,22 +18,6 @@ const BRAND_SLIDES: BrandSlide[] = [
   { image: U("1525507119028-ed4c629a60a3", 1800, 1000), eyebrow: "New", title: "Golden Hours", href: "/collections/luxe" },
 ];
 
-const TREND_CARDS = [
-  { label: "Second Skin", img: "1490481651871-ab68de25d43d", href: "/collections/bodysuits?division=women" },
-  { label: "Vacation Strolls", img: "1469334031218-e382a71b716b", href: "/collections/women?division=women&trend=Vacation" },
-  { label: "Hotter on Vacation", img: "1525507119028-ed4c629a60a3", href: "/collections/trending" },
-  { label: "Swim Escape", img: "1542272604-787c3835535d", href: "/collections/swim?division=women" },
-];
-
-const BRANDS = [
-  { label: "Maison Men", href: "/collections/men?division=men", img: "1485462537746-965f33f7f6a7" },
-  { label: "Maison", href: "/collections/women?division=women", img: "1490481651871-ab68de25d43d" },
-  { label: "Maison Curve", href: "/collections/plus?division=plus", img: "1525507119028-ed4c629a60a3" },
-  { label: "Maison Kids", href: "/collections/kids?division=kids", img: "1483118714900-540cf339fd46" },
-  { label: "Maison Sport", href: "/collections/sport?division=sport", img: "1542272604-787c3835535d" },
-  { label: "Maison Luxe", href: "/collections/luxe", img: "1483985988355-763728e1935b" },
-];
-
 export function Landing({ data, site }: { data: LandingData; site?: SiteSettings }) {
   const marqueeItems = site?.marquee.items.length ? site.marquee.items : USP_ITEMS;
   const showMarquee = site ? site.marquee.enabled : true;
@@ -67,10 +51,10 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       <Container className="py-8">
         <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">The Trend Report</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {TREND_CARDS.map((c) => (
+          {L.trendCards.map((c) => (
             <Link key={c.label} href={c.href} className="group relative block aspect-[3/4] overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={U(c.img, 600, 800)} alt={c.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <img src={c.image} alt={c.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-sm bg-background/90 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide">
                 {c.label} <ChevronRight className="h-3.5 w-3.5" />
               </span>
@@ -96,10 +80,10 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       <Container className="py-8">
         <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop by Brand</h2>
         <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-          {BRANDS.map((b) => (
+          {L.brandTiles.map((b) => (
             <Link key={b.label} href={b.href} className="group relative block aspect-square overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={U(b.img, 400, 400)} alt={b.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <img src={b.image} alt={b.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-center text-xs font-black uppercase tracking-wide text-white">
                 {b.label}
               </span>

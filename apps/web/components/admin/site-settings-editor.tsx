@@ -2,10 +2,38 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
 import { Button, Card } from "@ecom/ui";
 import { TextField, TextareaField, CheckboxField } from "./fields";
 import { useToast } from "./toast";
 import type { SiteSettings } from "@/lib/site-settings";
+
+interface Tile { label: string; image: string; href: string }
+
+/** Reusable add/remove editor for a list of {label, image, href} tiles. */
+function TileArray({ label, items, onChange }: { label: string; items: Tile[]; onChange: (items: Tile[]) => void }) {
+  const set = (i: number, k: keyof Tile, v: string) => onChange(items.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)));
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...items, { label: "", image: "", href: "" }])}>
+          <Plus className="h-4 w-4" /> Add
+        </Button>
+      </div>
+      {items.map((it, i) => (
+        <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_1fr_auto] sm:items-end">
+          <TextField label="Label" value={it.label} onChange={(e) => set(i, "label", e.target.value)} />
+          <TextField label="Image URL" value={it.image} onChange={(e) => set(i, "image", e.target.value)} />
+          <TextField label="Link" value={it.href} onChange={(e) => set(i, "href", e.target.value)} />
+          <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => onChange(items.filter((_, idx) => idx !== i))}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const router = useRouter();
@@ -23,8 +51,8 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [landing, setLanding] = useState(initial.landing);
   const [saving, setSaving] = useState(false);
 
-  type LandingBlock = keyof SiteSettings["landing"];
-  const setL = <B extends LandingBlock>(block: B, key: keyof SiteSettings["landing"][B], value: string) =>
+  type LandingObjBlock = "hero" | "promo" | "feature" | "sale";
+  const setL = <B extends LandingObjBlock>(block: B, key: keyof SiteSettings["landing"][B], value: string) =>
     setLanding((l) => ({ ...l, [block]: { ...l[block], [key]: value } }));
 
   const save = async () => {
@@ -135,6 +163,9 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
             <TextField label="Button link" value={landing.sale.ctaHref} onChange={(e) => setL("sale", "ctaHref", e.target.value)} />
           </div>
         </div>
+
+        <TileArray label="Trend report cards" items={landing.trendCards} onChange={(items) => setLanding((l) => ({ ...l, trendCards: items }))} />
+        <TileArray label="Shop by brand tiles" items={landing.brandTiles} onChange={(items) => setLanding((l) => ({ ...l, brandTiles: items }))} />
       </Card>
 
       <Button variant="gold" loading={saving} onClick={save} className="w-fit">Save storefront content</Button>
