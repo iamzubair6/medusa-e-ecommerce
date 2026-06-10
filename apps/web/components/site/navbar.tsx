@@ -89,15 +89,15 @@ export function Navbar({ navData }: NavbarProps) {
             {/* divisions */}
             <nav className="ml-4 hidden items-center gap-5 lg:flex" aria-label="Departments">
               {divisions.map((d) => {
-                const href = d.handle === "women" ? "/" : `/collections/${d.handle}?division=${d.handle}`;
+                const href = d.handle === "women" ? "/" : `/pages/${d.handle}`;
                 const active = d.handle === division;
                 return (
                   <Link
                     key={d.handle}
                     href={href}
                     className={cn(
-                      "relative text-xs font-bold uppercase tracking-wide transition-colors hover:text-foreground",
-                      active ? "text-foreground" : "text-foreground/70",
+                      "relative text-xs font-bold uppercase tracking-wide underline-offset-[6px] transition-colors hover:text-foreground",
+                      active ? "text-foreground underline decoration-2" : "text-foreground/70",
                     )}
                   >
                     {d.badge && (
@@ -381,7 +381,7 @@ function MobileDrawer({
             return (
               <li key={d.handle} className="border-b border-border">
                 <div className="flex items-center justify-between">
-                  <Link href={d.handle === "women" ? "/" : `/collections/${d.handle}?division=${d.handle}`} onClick={onClose} className="block py-3 text-sm font-bold uppercase tracking-wide hover:text-accent">
+                  <Link href={d.handle === "women" ? "/" : `/pages/${d.handle}`} onClick={onClose} className="block py-3 text-sm font-bold uppercase tracking-wide hover:text-accent">
                     {d.label}
                   </Link>
                   {cats.length > 0 && (
