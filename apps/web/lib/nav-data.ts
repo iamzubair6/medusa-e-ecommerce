@@ -3,6 +3,7 @@ import { cache } from "react";
 import { getSiteSetting } from "@ecom/cms";
 import { fetchDivisionCategories, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
 import { parseSiteSettings } from "@/lib/site-settings";
+import { parseNavigation, type Navigation } from "@/lib/navigation";
 
 export interface NavDivision {
   handle: string;
@@ -19,6 +20,7 @@ export interface NavData {
   facets: { occasion: string[]; style: string[]; trend: string[]; colors: { name: string; swatch: string }[] };
   brandByDivision: Record<string, string>;
   announcement: { active: boolean; message: string; href: string };
+  navigation: Navigation;
 }
 
 const DIVISIONS: NavDivision[] = [
@@ -46,16 +48,24 @@ export const getNavData = cache(async (): Promise<NavData> => {
     categoriesByDivision[h] = catLists[i]!.map((c) => ({ handle: c.handle, name: c.name }));
   });
 
-  const [{ facets }, site] = await Promise.all([
+  const [{ facets }, site, navigation] = await Promise.all([
     fetchListing({}, { limit: 1 }),
     getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
+    getSiteSetting("navigation").then(parseNavigation).catch(() => parseNavigation(null)),
   ]);
 
+  // Admin-managed division labels/badges override the defaults when present.
+  const divisions = DIVISIONS.map((d) => {
+    const nd = navigation.divisions.find((x) => x.handle === d.handle);
+    return nd ? { handle: d.handle, label: nd.label || d.label, badge: nd.badge || d.badge } : d;
+  });
+
   return {
-    divisions: DIVISIONS,
+    divisions,
     categoriesByDivision,
     facets: { occasion: facets.occasion, style: facets.style, trend: facets.trend, colors: facets.colors },
     brandByDivision: { ...BRAND, ...site.brands },
     announcement: site.announcement,
+    navigation,
   };
 });

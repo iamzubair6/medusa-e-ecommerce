@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Camera, ChevronDown, Heart, Menu, Search, User, X } from "lucide-react";
 import { Container, cn } from "@ecom/ui";
 import type { NavCategory, NavData } from "@/lib/nav-data";
+import type { NavColumn } from "@/lib/navigation";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
@@ -53,6 +54,9 @@ export function Navbar({ navData }: NavbarProps) {
   const brand = brandByDivision[division] ?? "MAISON";
   const divLabel = divisions.find((d) => d.handle === division)?.label ?? "Women";
   const categories = categoriesByDivision[division] ?? [];
+  // Admin-managed collections for this division (else fall back to the auto menu).
+  const adminCollections = navData.navigation.divisions.find((d) => d.handle === division)?.collections ?? [];
+  const useAdminNav = adminCollections.length > 0;
 
   return (
     <header className="sticky top-0 z-30 w-full bg-background">
@@ -156,50 +160,80 @@ export function Navbar({ navData }: NavbarProps) {
 
       {/* second-level category bar + full-width mega menu */}
       <div className="relative hidden border-b border-border bg-background lg:block" onMouseLeave={() => setOpenMega(null)}>
-        <Container>
-          <ul className="flex flex-wrap items-center gap-6 py-2.5">
-            <li className="shrink-0" onMouseEnter={() => setOpenMega(null)}>
-              <Link href={`/collections/new?division=${division}`} className="text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent">
-                New In
-              </Link>
-            </li>
-            <li className="shrink-0" onMouseEnter={() => setOpenMega("__clothing__")}>
-              <Link href={`/collections/${division}?division=${division}`} className="link-underline text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent">
-                Clothing
-              </Link>
-            </li>
-            {categories.map((c) => (
-              <li key={c.handle} className="shrink-0" onMouseEnter={() => setOpenMega(c.handle)}>
-                <Link
-                  href={`/collections/${c.handle}?division=${division}`}
-                  className="link-underline text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent"
-                >
-                  {c.name}
-                </Link>
-              </li>
-            ))}
-            {division === "men" && (
-              <li className="shrink-0" onMouseEnter={() => setOpenMega(null)}>
-                <Link href={`/collections/sale?division=men`} className="text-[0.7rem] font-bold uppercase tracking-[0.1em] text-accent transition-colors hover:underline">
-                  Sale
-                </Link>
-              </li>
-            )}
-          </ul>
-        </Container>
+        {useAdminNav ? (
+          <>
+            <Container>
+              <ul className="flex flex-wrap items-center gap-6 py-2.5">
+                {adminCollections.map((col, i) => (
+                  <li key={i} className="shrink-0" onMouseEnter={() => setOpenMega(col.columns.length ? `col:${i}` : null)}>
+                    <Link
+                      href={col.href}
+                      className={cn(
+                        "text-[0.7rem] font-bold uppercase tracking-[0.1em] transition-colors hover:text-accent",
+                        col.highlight ? "text-accent" : "text-foreground/75",
+                        col.columns.length > 0 && "link-underline",
+                      )}
+                    >
+                      {col.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Container>
+            <AnimatePresence>
+              {openMega?.startsWith("col:") && (adminCollections[Number(openMega.slice(4))]?.columns.length ?? 0) > 0 && (
+                <AdminMegaPanel columns={adminCollections[Number(openMega.slice(4))]!.columns} reduce={!!reduce} />
+              )}
+            </AnimatePresence>
+          </>
+        ) : (
+          <>
+            <Container>
+              <ul className="flex flex-wrap items-center gap-6 py-2.5">
+                <li className="shrink-0" onMouseEnter={() => setOpenMega(null)}>
+                  <Link href={`/collections/new?division=${division}`} className="text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent">
+                    New In
+                  </Link>
+                </li>
+                <li className="shrink-0" onMouseEnter={() => setOpenMega("__clothing__")}>
+                  <Link href={`/collections/${division}?division=${division}`} className="link-underline text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent">
+                    Clothing
+                  </Link>
+                </li>
+                {categories.map((c) => (
+                  <li key={c.handle} className="shrink-0" onMouseEnter={() => setOpenMega(c.handle)}>
+                    <Link
+                      href={`/collections/${c.handle}?division=${division}`}
+                      className="link-underline text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:text-accent"
+                    >
+                      {c.name}
+                    </Link>
+                  </li>
+                ))}
+                {division === "men" && (
+                  <li className="shrink-0" onMouseEnter={() => setOpenMega(null)}>
+                    <Link href={`/collections/sale?division=men`} className="text-[0.7rem] font-bold uppercase tracking-[0.1em] text-accent transition-colors hover:underline">
+                      Sale
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </Container>
 
-        <AnimatePresence>
-          {openMega && (
-            <MegaPanel
-              division={division}
-              mode={openMega === "__clothing__" ? "broad" : "type"}
-              category={categories.find((c) => c.handle === openMega)}
-              types={categories}
-              facets={facets}
-              reduce={!!reduce}
-            />
-          )}
-        </AnimatePresence>
+            <AnimatePresence>
+              {openMega && (
+                <MegaPanel
+                  division={division}
+                  mode={openMega === "__clothing__" ? "broad" : "type"}
+                  category={categories.find((c) => c.handle === openMega)}
+                  types={categories}
+                  facets={facets}
+                  reduce={!!reduce}
+                />
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </div>
 
       {/* mobile drawer */}
@@ -247,6 +281,27 @@ const BRANDS = [
   { label: "Maison Sport", href: "/collections/sport?division=sport" },
   { label: "Maison Kids", href: "/collections/kids?division=kids" },
 ];
+
+/** Full-width popover rendered from admin-managed columns. */
+function AdminMegaPanel({ columns, reduce }: { columns: NavColumn[]; reduce: boolean }) {
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduce ? undefined : { opacity: 0, y: 4 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+      className="absolute left-0 right-0 top-full z-40 border-b border-border bg-card shadow-xl"
+    >
+      <Container className="grid grid-cols-2 gap-6 py-7 md:grid-cols-12">
+        {columns.map((col, i) => (
+          <div key={i} className="md:col-span-3">
+            <MegaColumn heading={col.heading} links={col.links} />
+          </div>
+        ))}
+      </Container>
+    </motion.div>
+  );
+}
 
 function MegaPanel({
   division,
