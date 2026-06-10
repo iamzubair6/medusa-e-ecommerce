@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Plus } from "lucide-react";
 import { Badge, Button, Card } from "@ecom/ui";
-import { TextField, SelectField } from "./fields";
+import { TextField } from "./fields";
+import { Combobox, EnumCombobox } from "./combobox";
 import { useToast } from "./toast";
 
 interface PriceList {
@@ -105,25 +106,26 @@ export function PriceListManager({
           <TextField label="Discount (%)" type="number" value={percentOff} onChange={(e) => setPercentOff(e.target.value)} placeholder="30" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField
+          <EnumCombobox
             label="Applies to"
             value={appliesTo}
-            onChange={(e) => {
-              setAppliesTo(e.target.value as AppliesTo);
+            onChange={(v) => {
+              setAppliesTo(v);
               setTargetId("");
             }}
-          >
-            <option value="all">All products</option>
-            <option value="category">A category</option>
-            <option value="collection">A collection</option>
-          </SelectField>
+            options={[
+              { value: "all", label: "All products" },
+              { value: "category", label: "A category" },
+              { value: "collection", label: "A collection" },
+            ]}
+          />
           {appliesTo !== "all" && (
-            <SelectField label={appliesTo === "category" ? "Category" : "Collection"} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-              <option value="">Select…</option>
-              {targets.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </SelectField>
+            <Combobox
+              label={appliesTo === "category" ? "Category" : "Collection"}
+              value={targetId}
+              onChange={setTargetId}
+              options={targets.map((t) => ({ value: t.id, label: t.name }))}
+            />
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

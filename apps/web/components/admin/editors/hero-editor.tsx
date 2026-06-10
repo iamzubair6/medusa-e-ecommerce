@@ -5,7 +5,8 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@ecom/ui";
 import { heroConfigSchema, type HeroConfig } from "@ecom/cms";
-import { TextField, TextareaField, SelectField } from "../fields";
+import { TextField, TextareaField } from "../fields";
+import { EnumCombobox } from "../combobox";
 import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
@@ -83,14 +84,24 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <SelectField label="Mode" {...register("mode")}>
-          <option value="carousel">Carousel (image slides)</option>
-          <option value="video">Video background</option>
-        </SelectField>
-        <SelectField label="Theme" {...register("theme")}>
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </SelectField>
+        <EnumCombobox
+          label="Mode"
+          value={watch("mode")}
+          onChange={(v) => setValue("mode", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "carousel", label: "Carousel (image slides)" },
+            { value: "video", label: "Video background" },
+          ]}
+        />
+        <EnumCombobox
+          label="Theme"
+          value={watch("theme")}
+          onChange={(v) => setValue("theme", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "dark", label: "Dark" },
+            { value: "light", label: "Light" },
+          ]}
+        />
       </div>
 
       <TextField label="Eyebrow" placeholder="Summer 2026" {...register("eyebrow")} />
@@ -102,11 +113,16 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
         <TextField label="CTA link" placeholder="/collections/new" {...register("ctaHref")} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <SelectField label="Text alignment" {...register("align")}>
-          <option value="left">Left</option>
-          <option value="center">Center</option>
-          <option value="right">Right</option>
-        </SelectField>
+        <EnumCombobox
+          label="Text alignment"
+          value={watch("align")}
+          onChange={(v) => setValue("align", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "left", label: "Left" },
+            { value: "center", label: "Center" },
+            { value: "right", label: "Right" },
+          ]}
+        />
         {mode === "carousel" && (
           <TextField label="Autoplay (ms)" type="number" {...register("autoplayMs")} />
         )}

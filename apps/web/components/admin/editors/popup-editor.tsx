@@ -6,7 +6,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card } from "@ecom/ui";
 import { popupConfigSchema, type PopupConfig } from "@ecom/cms";
-import { TextField, TextareaField, SelectField, CheckboxField } from "../fields";
+import { TextField, TextareaField, CheckboxField } from "../fields";
+import { EnumCombobox } from "../combobox";
 
 export interface AdminPopup {
   id: string;
@@ -33,7 +34,7 @@ interface Form {
 
 export function PopupEditor({ popup }: { popup: AdminPopup }) {
   const router = useRouter();
-  const { register, handleSubmit, watch } = useForm<Form>({
+  const { register, handleSubmit, watch, setValue } = useForm<Form>({
     defaultValues: {
       name: popup.name,
       active: popup.active,
@@ -92,12 +93,17 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
         </div>
         <CheckboxField label="Active (show on storefront)" {...register("active")} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField label="Trigger" {...register("trigger")}>
-            <option value="TIMER">After delay</option>
-            <option value="SCROLL">On scroll</option>
-            <option value="EXIT_INTENT">Exit intent</option>
-            <option value="IMMEDIATE">Immediately</option>
-          </SelectField>
+          <EnumCombobox
+            label="Trigger"
+            value={watch("trigger")}
+            onChange={(v) => setValue("trigger", v, { shouldDirty: true, shouldValidate: true })}
+            options={[
+              { value: "TIMER", label: "After delay" },
+              { value: "SCROLL", label: "On scroll" },
+              { value: "EXIT_INTENT", label: "Exit intent" },
+              { value: "IMMEDIATE", label: "Immediately" },
+            ]}
+          />
           {trigger === "TIMER" && (
             <TextField label="Delay (ms)" type="number" {...register("delayMs")} />
           )}

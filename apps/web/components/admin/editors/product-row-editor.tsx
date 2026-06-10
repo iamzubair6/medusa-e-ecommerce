@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@ecom/ui";
 import { productRowConfigSchema, type ProductRowConfig } from "@ecom/cms";
-import { TextField, SelectField } from "../fields";
+import { TextField } from "../fields";
+import { EnumCombobox } from "../combobox";
 import { useSaveSection } from "../use-save-section";
 
 interface Form {
@@ -20,7 +21,7 @@ interface Form {
 }
 
 export function ProductRowEditor({ sectionId, config }: { sectionId: string; config: ProductRowConfig }) {
-  const { register, handleSubmit, watch } = useForm<Form>({
+  const { register, handleSubmit, watch, setValue } = useForm<Form>({
     defaultValues: {
       heading: config.heading,
       subheading: config.subheading ?? "",
@@ -62,16 +63,26 @@ export function ProductRowEditor({ sectionId, config }: { sectionId: string; con
       <TextField label="Heading" {...register("heading")} />
       <TextField label="Subheading (optional)" {...register("subheading")} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <SelectField label="Product source" {...register("sourceKind")}>
-          <option value="newest">Newest</option>
-          <option value="bestsellers">Best sellers</option>
-          <option value="collection">Collection</option>
-          <option value="ids">Specific products</option>
-        </SelectField>
-        <SelectField label="Layout" {...register("layout")}>
-          <option value="carousel">Carousel</option>
-          <option value="grid">Grid</option>
-        </SelectField>
+        <EnumCombobox
+          label="Product source"
+          value={watch("sourceKind")}
+          onChange={(v) => setValue("sourceKind", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "newest", label: "Newest" },
+            { value: "bestsellers", label: "Best sellers" },
+            { value: "collection", label: "Collection" },
+            { value: "ids", label: "Specific products" },
+          ]}
+        />
+        <EnumCombobox
+          label="Layout"
+          value={watch("layout")}
+          onChange={(v) => setValue("layout", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "carousel", label: "Carousel" },
+            { value: "grid", label: "Grid" },
+          ]}
+        />
       </div>
       {kind === "collection" && (
         <TextField label="Collection ID / handle" {...register("collectionHandle")} />

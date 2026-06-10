@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { Trash2 } from "lucide-react";
 import { Badge, Button, Card } from "@ecom/ui";
-import { TextField, SelectField } from "./fields";
+import { TextField } from "./fields";
+import { EnumCombobox } from "./combobox";
 
 export interface AdminCampaign {
   id: string;
@@ -45,6 +46,8 @@ export function CampaignManager({ campaigns }: { campaigns: AdminCampaign[] }) {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues: { status: "SCHEDULED" } });
 
@@ -103,13 +106,12 @@ export function CampaignManager({ campaigns }: { campaigns: AdminCampaign[] }) {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="Name" error={errors.name?.message} {...register("name")} />
-            <SelectField label="Status" {...register("status")}>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s.toLowerCase()}
-                </option>
-              ))}
-            </SelectField>
+            <EnumCombobox
+              label="Status"
+              value={watch("status")}
+              onChange={(v) => setValue("status", v, { shouldDirty: true, shouldValidate: true })}
+              options={STATUSES.map((s) => ({ value: s, label: s.toLowerCase() }))}
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="Starts" type="datetime-local" error={errors.startsAt?.message} {...register("startsAt")} />

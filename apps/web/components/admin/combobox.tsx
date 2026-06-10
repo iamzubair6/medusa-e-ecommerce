@@ -98,3 +98,39 @@ export function Combobox({
     </div>
   );
 }
+
+/**
+ * Type-narrowing wrapper around {@link Combobox} for fixed string-union enums
+ * (e.g. RHF fields like `"video" | "carousel"`). Emits the literal union type
+ * instead of a raw `string`, so it bridges to `setValue(name, value, …)`
+ * without unsafe casts.
+ */
+export function EnumCombobox<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+  required,
+  placeholder,
+}: {
+  label?: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: readonly { value: T; label: string }[];
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <Combobox
+      label={label}
+      value={value}
+      required={required}
+      placeholder={placeholder}
+      options={options.map((o) => ({ value: o.value, label: o.label }))}
+      onChange={(v) => {
+        const match = options.find((o) => o.value === v);
+        if (match) onChange(match.value);
+      }}
+    />
+  );
+}

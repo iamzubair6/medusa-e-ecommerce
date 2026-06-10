@@ -5,7 +5,8 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@ecom/ui";
 import { categoryGridConfigSchema, type CategoryGridConfig } from "@ecom/cms";
-import { TextField, SelectField } from "../fields";
+import { TextField } from "../fields";
+import { EnumCombobox } from "../combobox";
 import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
@@ -42,11 +43,16 @@ export function CategoryGridEditor({ sectionId, config }: { sectionId: string; c
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="Heading (optional)" {...register("heading")} />
-        <SelectField label="Columns" {...register("columns")}>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-        </SelectField>
+        <EnumCombobox<string>
+          label="Columns"
+          value={watch("columns")}
+          onChange={(v) => setValue("columns", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "2", label: "2" },
+            { value: "3", label: "3" },
+            { value: "4", label: "4" },
+          ]}
+        />
       </div>
       <div className="flex flex-col gap-3 rounded-md border border-border p-4">
         {fields.map((field, i) => (

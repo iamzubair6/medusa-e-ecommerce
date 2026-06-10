@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Button, Card, cn } from "@ecom/ui";
-import { TextField, SelectField, CheckboxField } from "./fields";
+import { TextField, CheckboxField } from "./fields";
 import { RichTextField } from "./rich-text-field";
-import { Combobox } from "./combobox";
+import { Combobox, EnumCombobox } from "./combobox";
 import { useToast } from "./toast";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -241,12 +241,17 @@ export function ProductCreator({
         <TextField label="Product title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ribbed Knit Tank" />
         <RichTextField label="Description" value={description} onChange={setDescription} />
         <div className="grid gap-4 sm:grid-cols-3">
-          <SelectField label="Offer" value={offerType} onChange={(e) => setOfferType(e.target.value as typeof offerType)}>
-            <option value="none">None</option>
-            <option value="discount">Discount</option>
-            <option value="bogo">BOGO</option>
-            <option value="custom">Custom badge</option>
-          </SelectField>
+          <EnumCombobox
+            label="Offer"
+            value={offerType}
+            onChange={setOfferType}
+            options={[
+              { value: "none", label: "None" },
+              { value: "discount", label: "Discount" },
+              { value: "bogo", label: "BOGO" },
+              { value: "custom", label: "Custom badge" },
+            ]}
+          />
           {offerType !== "none" && (
             <TextField label="Offer label" value={offerLabel} onChange={(e) => setOfferLabel(e.target.value)} placeholder={offerType === "bogo" ? "BUY 1 GET 1 FREE" : offerType === "custom" ? "NEW · LIMITED · 2 FOR 1" : "25% OFF"} />
           )}

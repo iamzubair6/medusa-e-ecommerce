@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@ecom/ui";
 import { bannerConfigSchema, type BannerConfig } from "@ecom/cms";
-import { TextField, SelectField } from "../fields";
+import { TextField } from "../fields";
+import { EnumCombobox } from "../combobox";
 import { MediaUploadField } from "../media-upload-field";
 import { useSaveSection } from "../use-save-section";
 
@@ -45,11 +46,16 @@ export function BannerEditor({ sectionId, config }: { sectionId: string; config:
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <TextField label="Heading" {...register("heading")} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <SelectField label="Theme" {...register("theme")}>
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-          <option value="gold">Gold</option>
-        </SelectField>
+        <EnumCombobox
+          label="Theme"
+          value={watch("theme")}
+          onChange={(v) => setValue("theme", v, { shouldDirty: true, shouldValidate: true })}
+          options={[
+            { value: "dark", label: "Dark" },
+            { value: "light", label: "Light" },
+            { value: "gold", label: "Gold" },
+          ]}
+        />
         <MediaUploadField label="Background image (optional)" accept="image/*,video/*" value={watch("mediaUrl")} onChange={(u) => setValue("mediaUrl", u, { shouldDirty: true })} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
