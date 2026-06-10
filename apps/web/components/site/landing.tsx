@@ -22,6 +22,7 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
   const marqueeItems = site?.marquee.items.length ? site.marquee.items : USP_ITEMS;
   const showMarquee = site ? site.marquee.enabled : true;
   const L = site?.landing ?? DEFAULT_SITE_SETTINGS.landing;
+  const collabSlides: BrandSlide[] = L.collabSlides.length ? L.collabSlides : BRAND_SLIDES;
   return (
     <>
       {/* USP marquee (under the announcement bar) */}
@@ -45,7 +46,7 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
       </section>
 
       {/* Brand collab / video carousel — same height as hero */}
-      <BrandCarousel slides={BRAND_SLIDES} />
+      <BrandCarousel slides={collabSlides} />
 
       {/* Trend report */}
       <Container className="py-8">

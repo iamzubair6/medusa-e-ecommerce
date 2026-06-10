@@ -89,6 +89,23 @@ export const siteSettingsSchema = z.object({
           { label: "Maison Sport", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/sport?division=sport" },
           { label: "Maison Luxe", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=400&h=400&q=80", href: "/collections/luxe" },
         ]),
+      // Brand collab / video carousel slides (full-bleed, auto-advancing).
+      collabSlides: z
+        .array(
+          z.object({
+            image: z.string(),
+            title: z.string().max(80),
+            href: z.string().max(200),
+            eyebrow: z.string().max(60).optional(),
+            cta: z.string().max(40).optional(),
+          }),
+        )
+        .max(8)
+        .default([
+          { image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1800&h=1000&q=80", eyebrow: "Collab", title: "Maison × Active", href: "/collections/sport?division=sport" },
+          { image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1800&h=1000&q=80", eyebrow: "The Edit", title: "Vacation Mindset", href: "/collections/trending" },
+          { image: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=1800&h=1000&q=80", eyebrow: "New", title: "Golden Hours", href: "/collections/luxe" },
+        ]),
     })
     .default({}),
 });

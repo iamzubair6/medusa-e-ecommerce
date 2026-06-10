@@ -54,6 +54,7 @@ enum SectionType {
   EDITORIAL // image + copy block
   BANNER
   MARQUEE
+  BRAND_CAROUSEL // full-bleed auto-advancing collab/brand slides
 
   @@schema("cms")
 }

@@ -1,5 +1,6 @@
 import {
   bannerConfigSchema,
+  brandCarouselConfigSchema,
   categoryGridConfigSchema,
   editorialConfigSchema,
   heroConfigSchema,
@@ -13,6 +14,7 @@ import { ProductRow } from "./product-row";
 import { CategoryGrid } from "./category-grid";
 import { Editorial } from "./editorial";
 import { Banner } from "./banner";
+import { BrandCarousel, type BrandSlide } from "./brand-carousel";
 
 export interface SectionData {
   id: string;
@@ -63,6 +65,18 @@ export async function SectionRenderer({ section }: { section: SectionData }) {
       if (!r.success) return logInvalid(section, r.error.flatten()), null;
       const products = await fetchProducts(r.data.source, r.data.limit);
       return <ProductRow config={r.data} products={products} />;
+    }
+    case "BRAND_CAROUSEL": {
+      const r = brandCarouselConfigSchema.safeParse(section.config);
+      if (!r.success) return logInvalid(section, r.error.flatten()), null;
+      const slides: BrandSlide[] = r.data.slides.map((s) => ({
+        image: s.media.url,
+        eyebrow: s.eyebrow,
+        title: s.title,
+        href: s.href,
+        cta: s.cta,
+      }));
+      return <BrandCarousel slides={slides} intervalMs={r.data.intervalMs} />;
     }
     default:
       return null;

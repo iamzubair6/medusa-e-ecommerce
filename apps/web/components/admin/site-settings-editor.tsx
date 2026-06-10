@@ -9,6 +9,7 @@ import { useToast } from "./toast";
 import type { SiteSettings } from "@/lib/site-settings";
 
 interface Tile { label: string; image: string; href: string }
+type CollabSlide = SiteSettings["landing"]["collabSlides"][number];
 
 /** Reusable add/remove editor for a list of {label, image, href} tiles. */
 function TileArray({ label, items, onChange }: { label: string; items: Tile[]; onChange: (items: Tile[]) => void }) {
@@ -29,6 +30,40 @@ function TileArray({ label, items, onChange }: { label: string; items: Tile[]; o
           <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => onChange(items.filter((_, idx) => idx !== i))}>
             <Trash2 className="h-4 w-4" />
           </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Add/remove editor for the brand collab carousel slides (image/title/href + optional eyebrow/cta). */
+function CollabSlideArray({ label, items, onChange }: { label: string; items: CollabSlide[]; onChange: (items: CollabSlide[]) => void }) {
+  const set = (i: number, k: keyof CollabSlide, v: string) => onChange(items.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)));
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-border p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...items, { image: "", title: "", href: "" }])}>
+          <Plus className="h-4 w-4" /> Add
+        </Button>
+      </div>
+      {items.map((it, i) => (
+        <div key={i} className="flex flex-col gap-2 rounded-md border border-border/60 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">Slide {i + 1}</span>
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => onChange(items.filter((_, idx) => idx !== i))}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <TextField label="Image URL" value={it.image} onChange={(e) => set(i, "image", e.target.value)} />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <TextField label="Eyebrow (optional)" value={it.eyebrow ?? ""} onChange={(e) => set(i, "eyebrow", e.target.value)} />
+            <TextField label="Title" value={it.title} onChange={(e) => set(i, "title", e.target.value)} />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <TextField label="Link" value={it.href} onChange={(e) => set(i, "href", e.target.value)} />
+            <TextField label="Button label (optional)" value={it.cta ?? ""} onChange={(e) => set(i, "cta", e.target.value)} />
+          </div>
         </div>
       ))}
     </div>
@@ -66,7 +101,16 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         sizeGuide,
         shippingReturns,
         categoryTileCount: Math.min(9, Math.max(3, Number(tileCount) || 7)),
-        landing,
+        landing: {
+          ...landing,
+          collabSlides: landing.collabSlides.map((s) => ({
+            image: s.image.trim(),
+            title: s.title.trim(),
+            href: s.href.trim(),
+            eyebrow: s.eyebrow?.trim() || undefined,
+            cta: s.cta?.trim() || undefined,
+          })),
+        },
       };
       const res = await fetch("/api/admin/site", {
         method: "POST",
@@ -164,6 +208,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
           </div>
         </div>
 
+        <CollabSlideArray label="Brand collab carousel" items={landing.collabSlides} onChange={(items) => setLanding((l) => ({ ...l, collabSlides: items }))} />
         <TileArray label="Trend report cards" items={landing.trendCards} onChange={(items) => setLanding((l) => ({ ...l, trendCards: items }))} />
         <TileArray label="Shop by brand tiles" items={landing.brandTiles} onChange={(items) => setLanding((l) => ({ ...l, brandTiles: items }))} />
       </Card>

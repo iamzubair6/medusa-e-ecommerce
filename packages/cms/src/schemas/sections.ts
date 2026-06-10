@@ -88,6 +88,24 @@ export const bannerConfigSchema = z.object({
 });
 export type BannerConfig = z.infer<typeof bannerConfigSchema>;
 
+/** BRAND_CAROUSEL — full-bleed auto-advancing collab/brand slides. */
+export const brandCarouselConfigSchema = z.object({
+  slides: z
+    .array(
+      z.object({
+        media: mediaRefSchema,
+        eyebrow: z.string().max(60).optional(),
+        title: z.string().min(1).max(80),
+        href: z.string().min(1).max(200),
+        cta: z.string().max(40).optional(),
+      }),
+    )
+    .min(1)
+    .max(8),
+  intervalMs: z.number().int().min(2000).max(12000).default(5000),
+});
+export type BrandCarouselConfig = z.infer<typeof brandCarouselConfigSchema>;
+
 /** MARQUEE — scrolling text strip (announcements / hype). */
 export const marqueeConfigSchema = z.object({
   items: z.array(z.string().min(1).max(60)).min(1).max(12),
@@ -106,6 +124,7 @@ export const sectionConfigSchemas = {
   EDITORIAL: editorialConfigSchema,
   BANNER: bannerConfigSchema,
   MARQUEE: marqueeConfigSchema,
+  BRAND_CAROUSEL: brandCarouselConfigSchema,
 } as const;
 
 export type SectionTypeKey = keyof typeof sectionConfigSchemas;
@@ -130,5 +149,7 @@ export function defaultSectionConfig(type: SectionTypeKey): unknown {
       return { heading: "Big sale", theme: "dark" };
     case "MARQUEE":
       return { items: ["Free shipping over ৳2,000"], speedSeconds: 30 };
+    case "BRAND_CAROUSEL":
+      return { slides: [{ media: { url: PLACEHOLDER_IMG }, eyebrow: "Collab", title: "Maison × Active", href: "/collections/sale" }], intervalMs: 5000 };
   }
 }
