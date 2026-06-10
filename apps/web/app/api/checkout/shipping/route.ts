@@ -1,14 +1,29 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getSiteSetting } from "@ecom/cms";
 import { getCartId } from "@/lib/cart-cookie";
 import { addShippingMethod, listShippingOptions } from "@/lib/medusa-store";
+import { parseCheckoutConfig, shippingOverrideFor } from "@/lib/checkout-config";
+import type { ShippingOptionView } from "@/lib/cart-types";
 
-/** List shipping options for the current cart. */
+/** List shipping options for the current cart, filtered/labelled by the admin
+ *  "checkout" override (hidden options dropped, notes attached). */
 export async function GET() {
   const id = await getCartId();
   if (!id) return NextResponse.json({ error: "No cart" }, { status: 404 });
   try {
-    return NextResponse.json({ options: await listShippingOptions(id) });
+    const [options, raw] = await Promise.all([
+      listShippingOptions(id),
+      getSiteSetting("checkout").catch(() => null),
+    ]);
+    const config = parseCheckoutConfig(raw);
+    const visible: ShippingOptionView[] = [];
+    for (const o of options) {
+      const ov = shippingOverrideFor(config, o.id);
+      if (ov && !ov.enabled) continue; // admin-hidden
+      visible.push({ ...o, note: ov?.note || undefined });
+    }
+    return NextResponse.json({ options: visible });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
   }

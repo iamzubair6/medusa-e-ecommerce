@@ -1,19 +1,31 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getSiteSetting } from "@ecom/cms";
 import { clearCartId, getCartId } from "@/lib/cart-cookie";
 import { completeCart, initPayment, setCartMetadata } from "@/lib/medusa-store";
 import { transferCartToCustomer } from "@/lib/customer-auth";
+import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
 
-const schema = z.object({ method: z.enum(["cod", "card"]).optional() });
+const schema = z.object({ method: z.string().min(1).max(24).optional() });
 
-/** Set the payment method (default Cash on Delivery), then complete the order.
- *  Both use Medusa's manual provider for now — funds are collected on delivery
- *  (COD) or will route to Stripe when wired (card). */
+/** Set the payment method, then complete the order. The chosen method must be an
+ *  admin-enabled payment method (CMS "checkout"); the default is the first one.
+ *  All methods settle through Medusa's manual provider for now — funds are
+ *  collected on delivery (COD) until a real gateway is wired. */
 export async function POST(request: Request) {
   const id = await getCartId();
   if (!id) return NextResponse.json({ error: "No cart" }, { status: 404 });
   const parsed = schema.safeParse(await request.json().catch(() => ({})));
-  const method = parsed.success ? (parsed.data.method ?? "cod") : "cod";
+  const requested = parsed.success ? parsed.data.method : undefined;
+
+  const config = parseCheckoutConfig(await getSiteSetting("checkout").catch(() => null));
+  const allowed = paymentMethodIds(config);
+  if (allowed.length === 0) {
+    return NextResponse.json({ error: "No payment methods are enabled." }, { status: 409 });
+  }
+  // Use the requested method only if it's currently enabled; else the first one.
+  const method = requested && allowed.includes(requested) ? requested : allowed[0]!;
+
   try {
     // Link the order to the signed-in customer (no-op for guests).
     await transferCartToCustomer(id).catch(() => undefined);

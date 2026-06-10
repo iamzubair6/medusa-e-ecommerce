@@ -10,10 +10,11 @@ export const metadata: Metadata = { title: "Order Confirmed" };
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; email?: string; total?: string; method?: string }>;
+  searchParams: Promise<{ order?: string; email?: string; total?: string; method?: string; payLabel?: string }>;
 }) {
-  const { order, email, total, method } = await searchParams;
-  const payLabel = method === "card" ? "Card / Online" : "Cash on Delivery";
+  const { order, email, total, method, payLabel: payLabelParam } = await searchParams;
+  // Prefer the admin-managed label the client passed; fall back for older links.
+  const payLabel = payLabelParam || (method === "card" ? "Card / Online" : "Cash on Delivery");
 
   return (
     <main>

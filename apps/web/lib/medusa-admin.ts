@@ -1003,17 +1003,46 @@ export interface AdminShippingRate {
   id: string;
   name: string;
   amount: number; // BDT
+  /** Service zone the option is scoped to (its delivery zone), best-effort. */
+  zone?: string;
 }
 
 export async function listShippingRates(): Promise<AdminShippingRate[]> {
   const data = await adminFetch<{
-    shipping_options?: { id: string; name: string; prices?: { amount: number; currency_code: string }[] }[];
-  }>("/admin/shipping-options?fields=id,name,*prices");
+    shipping_options?: {
+      id: string;
+      name: string;
+      prices?: { amount: number; currency_code: string }[];
+      service_zone?: { name?: string } | null;
+    }[];
+  }>("/admin/shipping-options?fields=id,name,*prices,service_zone.name");
   return (data?.shipping_options ?? []).map((o) => ({
     id: o.id,
     name: o.name,
     amount: o.prices?.find((p) => p.currency_code === "bdt")?.amount ?? 0,
+    zone: o.service_zone?.name ?? undefined,
   }));
+}
+
+/** Payment providers attached to the selling regions (read-only — enabling new
+ *  ones needs infra). Medusa v2 has no top-level /admin/payment-providers route,
+ *  so we read them off the regions and de-duplicate (BDT region preferred). */
+export interface AdminPaymentProvider {
+  id: string;
+  enabled: boolean;
+}
+
+export async function listPaymentProviders(): Promise<AdminPaymentProvider[]> {
+  const data = await adminFetch<{
+    regions?: { currency_code: string; payment_providers?: { id: string; is_enabled?: boolean }[] }[];
+  }>("/admin/regions?fields=id,currency_code,*payment_providers&limit=50");
+  const regions = data?.regions ?? [];
+  // Prefer the BDT region's providers; fall back to all regions' union.
+  const source = regions.find((r) => r.currency_code === "bdt") ?? regions[0];
+  const list = source?.payment_providers ?? regions.flatMap((r) => r.payment_providers ?? []);
+  const seen = new Map<string, boolean>();
+  for (const p of list) if (!seen.has(p.id)) seen.set(p.id, p.is_enabled ?? true);
+  return [...seen.entries()].map(([id, enabled]) => ({ id, enabled }));
 }
 
 /** Update a shipping option's BDT price (keeps region + currency rows in sync). */

@@ -15,6 +15,8 @@ export interface ShippingOptionView {
   id: string;
   name: string;
   amount: string;
+  /** Optional admin-managed checkout helper copy (CMS "checkout" override). */
+  note?: string;
 }
 
 export interface CartView {

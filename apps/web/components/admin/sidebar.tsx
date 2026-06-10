@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, Settings, LogOut, ExternalLink, ClipboardList } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck } from "lucide-react";
 import { cn } from "@ecom/ui";
 
 const items = [
@@ -12,6 +12,8 @@ const items = [
   { href: "/admin/categories", label: "Categories", icon: FolderTree, exact: false },
   { href: "/admin/discounts", label: "Discounts", icon: Tag, exact: false },
   { href: "/admin/price-lists", label: "Sales", icon: TicketPercent, exact: false },
+  { href: "/admin/payments", label: "Payments", icon: CreditCard, exact: false },
+  { href: "/admin/shipping", label: "Shipping", icon: Truck, exact: false },
   { href: "/admin/customers", label: "Customers", icon: UserRound, exact: false },
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate, exact: false },
   { href: "/admin/navigation", label: "Navigation", icon: Navigation, exact: false },

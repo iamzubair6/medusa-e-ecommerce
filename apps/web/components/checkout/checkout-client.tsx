@@ -14,6 +14,7 @@ import { PhoneInput } from "@/components/site/phone-input";
 import { useCart } from "@/hooks/use-cart";
 import type { CartView, ShippingOptionView } from "@/lib/cart-types";
 import type { Persona } from "@/lib/persona";
+import type { PaymentMethod } from "@/lib/checkout-config";
 
 // Countries served by the Bangladesh (BDT) region.
 const COUNTRIES = [["bd", "Bangladesh"]] as const;
@@ -39,14 +40,22 @@ interface CheckoutPrefill {
   phone: string;
 }
 
-export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill; persona: Persona }) {
+export function CheckoutClient({
+  prefill,
+  persona,
+  paymentMethods,
+}: {
+  prefill: CheckoutPrefill;
+  persona: Persona;
+  paymentMethods: PaymentMethod[];
+}) {
   const router = useRouter();
   const qc = useQueryClient();
   const { cart } = useCart();
   const [step, setStep] = useState<Step>("address");
   const [options, setOptions] = useState<ShippingOptionView[]>([]);
   const [selectedOption, setSelectedOption] = useState<string>("");
-  const [payMethod, setPayMethod] = useState<"cod" | "card">("cod");
+  const [payMethod, setPayMethod] = useState<string>(paymentMethods[0]?.id ?? "");
   const [answers, setAnswers] = useState<Record<string, "yes" | "no">>({});
   const [personaApplied, setPersonaApplied] = useState(false);
   const setCart = (c: CartView | null) => qc.setQueryData(["cart"], c);
@@ -152,11 +161,13 @@ export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill;
     },
     onSuccess: (order) => {
       setCart(null);
+      const chosen = paymentMethods.find((m) => m.id === payMethod);
       const params = new URLSearchParams({
         order: String(order.displayId),
         email: order.email,
         total: order.total,
         method: payMethod,
+        payLabel: chosen?.label ?? payMethod,
       });
       router.push(`/checkout/success?${params.toString()}`);
     },
@@ -266,23 +277,29 @@ export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill;
           <StepHeader n={2} title="Shipping method" done={step === "review"} />
           {step === "shipping" && (
             <div className="mt-4 flex flex-col gap-3">
+              {options.length === 0 && (
+                <p className="text-sm text-muted-foreground">No delivery options available for your area.</p>
+              )}
               {options.map((opt) => (
                 <label
                   key={opt.id}
                   className={cn(
-                    "flex cursor-pointer items-center justify-between rounded-md border px-4 py-3",
+                    "flex cursor-pointer items-center justify-between gap-3 rounded-md border px-4 py-3",
                     selectedOption === opt.id ? "border-foreground" : "border-border",
                   )}
                 >
-                  <span className="flex items-center gap-3 text-sm">
+                  <span className="flex items-start gap-3 text-sm">
                     <input
                       type="radio"
                       name="shipping"
                       checked={selectedOption === opt.id}
                       onChange={() => setSelectedOption(opt.id)}
-                      className="accent-[hsl(var(--accent))]"
+                      className="mt-0.5 accent-[hsl(var(--accent))]"
                     />
-                    {opt.name}
+                    <span>
+                      <span className="block">{opt.name}</span>
+                      {opt.note && <span className="block text-xs text-muted-foreground">{opt.note}</span>}
+                    </span>
                   </span>
                   <span className="text-sm font-semibold">{opt.amount}</span>
                 </label>
@@ -310,36 +327,45 @@ export function CheckoutClient({ prefill, persona }: { prefill: CheckoutPrefill;
           {step === "review" && (
             <div className="mt-4 flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <label
-                  className={cn(
-                    "flex cursor-pointer items-start gap-3 rounded-md border p-4",
-                    payMethod === "cod" ? "border-foreground" : "border-border",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="pay"
-                    checked={payMethod === "cod"}
-                    onChange={() => setPayMethod("cod")}
-                    className="mt-0.5 accent-[hsl(var(--accent))]"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold">Cash on Delivery</span>
-                    <span className="block text-xs text-muted-foreground">
-                      Pay in cash when your order is delivered.
+                {paymentMethods.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No payment methods are available right now. Please try again later.
+                  </p>
+                )}
+                {paymentMethods.map((m) => (
+                  <label
+                    key={m.id}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-md border p-4",
+                      payMethod === m.id ? "border-foreground" : "border-border",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="pay"
+                      checked={payMethod === m.id}
+                      onChange={() => setPayMethod(m.id)}
+                      className="mt-0.5 accent-[hsl(var(--accent))]"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold">{m.label}</span>
+                      {m.description && (
+                        <span className="block text-xs text-muted-foreground">{m.description}</span>
+                      )}
                     </span>
-                  </span>
-                </label>
-                <label className="flex cursor-not-allowed items-start gap-3 rounded-md border border-border p-4 opacity-50">
-                  <input type="radio" name="pay" disabled className="mt-0.5" />
-                  <span>
-                    <span className="block text-sm font-semibold">Card / Online Payment</span>
-                    <span className="block text-xs text-muted-foreground">Coming soon (Stripe).</span>
-                  </span>
-                </label>
+                  </label>
+                ))}
               </div>
-              <Button type="button" variant="gold" size="lg" loading={placeOrder.isPending} onClick={() => placeOrder.mutate()} className="w-fit">
-                Place Order {payMethod === "cod" ? "(Cash on Delivery)" : ""}
+              <Button
+                type="button"
+                variant="gold"
+                size="lg"
+                loading={placeOrder.isPending}
+                disabled={!payMethod}
+                onClick={() => placeOrder.mutate()}
+                className="w-fit"
+              >
+                Place Order
               </Button>
               {placeOrder.isError && (
                 <p className="text-sm text-destructive">{(placeOrder.error as Error).message}</p>

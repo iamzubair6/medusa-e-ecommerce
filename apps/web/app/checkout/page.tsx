@@ -4,6 +4,7 @@ import { getSiteSetting } from "@ecom/cms";
 import { getCustomer } from "@/lib/customer-auth";
 import { getPhoneSession } from "@/lib/phone-session";
 import { parsePersona } from "@/lib/persona";
+import { enabledPaymentMethods, parseCheckoutConfig } from "@/lib/checkout-config";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
@@ -12,10 +13,11 @@ export const metadata: Metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
 
 export default async function CheckoutPage() {
-  const [customer, phone, personaRaw] = await Promise.all([
+  const [customer, phone, personaRaw, checkoutRaw] = await Promise.all([
     getCustomer().catch(() => null),
     getPhoneSession().catch(() => null),
     getSiteSetting("persona").catch(() => null),
+    getSiteSetting("checkout").catch(() => null),
   ]);
 
   // Phone-OTP accounts have a placeholder @phone.maison.local email — don't prefill it.
@@ -31,7 +33,11 @@ export default async function CheckoutPage() {
     <main>
       <SiteNavbar />
       <Container className="py-10">
-        <CheckoutClient prefill={prefill} persona={parsePersona(personaRaw)} />
+        <CheckoutClient
+          prefill={prefill}
+          persona={parsePersona(personaRaw)}
+          paymentMethods={enabledPaymentMethods(parseCheckoutConfig(checkoutRaw))}
+        />
       </Container>
       <Footer />
     </main>
