@@ -1,27 +1,20 @@
-import { getNavMenu } from "@ecom/cms";
+import { getSiteSetting } from "@ecom/cms";
 import { AdminHeader } from "@/components/admin/page-header";
-import { NavEditor, type AdminNavItem } from "@/components/admin/editors/nav-editor";
+import { NavigationBuilder } from "@/components/admin/navigation-builder";
+import { parseNavigation } from "@/lib/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function NavigationPage() {
-  const menu = await getNavMenu("main");
-  const items: AdminNavItem[] =
-    menu?.items.map((it) => ({
-      label: it.label,
-      href: it.href,
-      megaMenu: it.megaMenu ?? undefined,
-    })) ?? [];
-
+  const raw = await getSiteSetting("navigation").catch(() => null);
   return (
     <>
-      <AdminHeader title="Navigation" description="Edit the main menu and mega-menus." />
+      <AdminHeader
+        title="Navigation"
+        description="Divisions → collections → mega-menu popover columns. Empty divisions fall back to the auto menu."
+      />
       <div className="p-8">
-        {menu ? (
-          <NavEditor menuKey="main" items={items} />
-        ) : (
-          <p className="text-sm text-muted-foreground">No main menu found. Run the CMS seed.</p>
-        )}
+        <NavigationBuilder initial={parseNavigation(raw)} />
       </div>
     </>
   );
