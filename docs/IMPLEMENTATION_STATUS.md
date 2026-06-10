@@ -55,7 +55,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 21 | Section manager: add Create + Delete sections (dynamic) | add | ✅ `(phase1)` create/delete/reorder/edit live |
 | 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega) | add | ✅ `fd226e8`,`71e9fa1` routing + underline + admin labels/badges (per-division landing content = future) |
 | 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ✅ `71e9fa1` /admin/navigation builds divisions→collections→columns→links; navbar renders it (fallback to auto) |
-| 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ⬜ Phase 3 |
+| 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ✅ `listingConfig` SiteSetting + `/admin/listings`: per-listing Category facet show/hide, filter-group reorder, and curated tile row (any source/limit) — replaces the hardcoded Tops row |
 | 25 | Migrate remaining admin SelectField → Combobox | update | 🟡 `3e50050` product-creator division done; section editors/price-list/campaign remain |
 | 26 | Dynamic payment methods management in admin | add | ⬜ Phase 4 |
 | 27 | Dynamic shipping methods/zones management in admin | add | ⬜ Phase 4 |
@@ -65,7 +65,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 31 | PDP accordions: max-height + scroll | fix | ✅ `3e50050` |
 | 32 | Admin-editable Shipping & Returns content | add | ✅ `3e50050` |
 
-**Phase 0 done** (#19, #28–#32 + #25 started). Next: Phase 1 (#20, #21 page builder), Phase 2 (#22, #23 nav/IA), Phase 3 (#24), Phase 4 (#26, #27).
+**Phase 0–3 done** (#19, #28–#32, #25 started; #20, #21 page builder; #22, #23 nav/IA; #24 listing config). Remaining: finish #20/#25, then Phase 4 (#26, #27 dynamic payment/shipping).
 
 _Verified gap analysis backing these is in this session; build order proposed below
 once the architecture is confirmed with the owner._
@@ -106,4 +106,4 @@ once the architecture is confirmed with the owner._
 
 ---
 
-_Last updated: keep this line current when you edit — reflects through the auth + phone-UX work._
+_Last updated: through Round 2 Phase 3 (#24 admin-managed listing config — facet visibility/order + curated tile row)._
