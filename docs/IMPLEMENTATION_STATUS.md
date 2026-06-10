@@ -53,8 +53,8 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 19 | Restore curated landing (homepage no longer prefers stale seeded CMS home) | fix | ✅ `3e50050` |
 | 20 | CMS-manage full landing — editable blocks | add | 🟡 `a2dfd74`,`4da9987` hero/promo/feature/sale + trend-card & brand-tile arrays editable; remaining: collab carousel slides, optional generic-section home |
 | 21 | Section manager: add Create + Delete sections (dynamic) | add | ✅ `(phase1)` create/delete/reorder/edit live |
-| 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega+landing) | add | 🟡 routing + underline + `/pages/[division]` route done; admin-managed divisions + per-division content pending (with #23) |
-| 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ⬜ Phase 2 |
+| 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega) | add | ✅ `fd226e8`,`71e9fa1` routing + underline + admin labels/badges (per-division landing content = future) |
+| 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ✅ `71e9fa1` /admin/navigation builds divisions→collections→columns→links; navbar renders it (fallback to auto) |
 | 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ⬜ Phase 3 |
 | 25 | Migrate remaining admin SelectField → Combobox | update | 🟡 `3e50050` product-creator division done; section editors/price-list/campaign remain |
 | 26 | Dynamic payment methods management in admin | add | ⬜ Phase 4 |
