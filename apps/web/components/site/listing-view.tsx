@@ -18,12 +18,13 @@ export async function ListingView(props: ListingPageProps) {
           facets={props.facets}
           categoryLinks={props.categoryLinks}
           showCategory={props.showCategory}
-          leadStyle={props.leadStyle}
+          facetOrder={props.facetOrder}
           products={props.products}
           total={props.total}
           page={props.page}
           totalPages={props.totalPages}
           categoryImageRow={props.categoryImageRow}
+          categoryRowHeading={props.categoryRowHeading}
         />
       </Container>
       <Footer />

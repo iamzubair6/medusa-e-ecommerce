@@ -1,4 +1,5 @@
 import "server-only";
+import { getSiteSetting } from "@ecom/cms";
 import {
   fetchListing,
   fetchDivisionCategories,
@@ -8,6 +9,7 @@ import {
   type StoreProduct,
 } from "@/lib/commerce";
 import { parseListingParams, prettifyHandle, listingQuery, type ListingParams } from "@/lib/listing-params";
+import { parseListingConfig, listingEntryFor, type FacetKey } from "@/lib/listing-config";
 import type { CategoryImageTile, CategoryLink } from "@/components/site/category-body";
 
 export const DIVISION_NAMES: Record<string, string> = {
@@ -28,13 +30,15 @@ export interface ListingPageProps {
   categoryLinks: CategoryLink[];
   /** Whether to show the "Category" facet group (broad collections only). */
   showCategory: boolean;
-  /** Single-type collection → lead the rail with Style instead of Category. */
-  leadStyle: boolean;
+  /** Order the filter groups render in the rail (admin-config, else derived). */
+  facetOrder: FacetKey[];
   products: StoreProduct[];
   total: number;
   page: number;
   totalPages: number;
   categoryImageRow?: CategoryImageTile[];
+  /** Optional heading above the curated tile row. */
+  categoryRowHeading?: string;
 }
 
 export async function buildListing(opts: {
@@ -129,9 +133,50 @@ export async function buildListing(opts: {
     breadcrumb.push({ label: "Shop All" });
   }
 
-  // ---- Tops special: curated tile row (style shortcuts) before the grid ----
+  // ---- admin-managed per-listing config (facet visibility/order + special row) ----
+  const config = await getSiteSetting("listingConfig")
+    .then(parseListingConfig)
+    .catch(() => parseListingConfig(null));
+  const entry = listingEntryFor(config, handle);
+
+  // Category facet visibility — admin override of the derived default.
+  let effShowCategory = showCategory;
+  if (entry.categoryFacet === "show") effShowCategory = categoryLinks.length > 0;
+  else if (entry.categoryFacet === "hide") effShowCategory = false;
+
+  // Filter-group order — admin override, else derived default (Style leads on a
+  // single-type content category; Category leads on broad listings).
+  const defaultOrder: FacetKey[] = leadStyle
+    ? ["style", "size", "color", "occasion", "trend"]
+    : ["category", "size", "color", "occasion", "style", "trend"];
+  let facetOrder = entry.facetOrder.length > 0 ? [...entry.facetOrder] : defaultOrder;
+  if (!effShowCategory) facetOrder = facetOrder.filter((k) => k !== "category");
+
+  // ---- curated tile row before the grid ----
+  // Admin "special" config generalises the legacy Tops row to any listing; when
+  // unset, the Tops content category keeps its original derived row.
   let categoryImageRow: CategoryImageTile[] | undefined;
-  if (isContentCat && handle === "tops" && result.facets.style.length > 0 && result.products.length > 0) {
+  let categoryRowHeading: string | undefined;
+  if (entry.special.enabled && result.products.length > 0) {
+    const src = entry.special.source;
+    const values: { label: string; value: string }[] =
+      src === "category"
+        ? result.facets.categories.map((c) => ({ label: c.name, value: c.handle }))
+        : result.facets[src].map((v) => ({ label: v, value: v }));
+    const tiles = values.slice(0, entry.special.limit).map((v, i) => ({
+      label: v.label,
+      image: result.products[i % result.products.length]!.thumbnail,
+      href:
+        src === "category"
+          ? `${basePath}${listingQuery(params, { category: v.value, page: 1 })}`
+          : `${basePath}${listingQuery(params, { [src]: [v.value], page: 1 } as Partial<ListingParams>)}`,
+    }));
+    const withImage = tiles.filter((t) => t.image);
+    if (withImage.length > 0) {
+      categoryImageRow = withImage;
+      categoryRowHeading = entry.special.heading || undefined;
+    }
+  } else if (isContentCat && handle === "tops" && result.facets.style.length > 0 && result.products.length > 0) {
     categoryImageRow = result.facets.style.slice(0, 7).map((s, i) => ({
       label: s,
       image: result.products[i % result.products.length]!.thumbnail,
@@ -146,12 +191,13 @@ export async function buildListing(opts: {
     params,
     facets: result.facets,
     categoryLinks,
-    showCategory,
-    leadStyle,
+    showCategory: effShowCategory,
+    facetOrder,
     products: result.products,
     total: result.total,
     page: result.page,
     totalPages: result.totalPages,
     categoryImageRow,
+    categoryRowHeading,
   };
 }

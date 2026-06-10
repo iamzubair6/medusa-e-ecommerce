@@ -7,6 +7,7 @@ import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { ListingFacets, StoreProduct } from "@/lib/commerce";
 import { listingQuery, type ListingParams } from "@/lib/listing-params";
+import { FACET_KEYS, type FacetKey } from "@/lib/listing-config";
 import { ProductCard } from "./product-card";
 
 export interface CategoryLink {
@@ -29,13 +30,16 @@ interface Props {
   facets: ListingFacets;
   categoryLinks: CategoryLink[];
   showCategory?: boolean;
-  leadStyle?: boolean;
+  facetOrder?: FacetKey[];
   products: StoreProduct[];
   total: number;
   page: number;
   totalPages: number;
   categoryImageRow?: CategoryImageTile[];
+  categoryRowHeading?: string;
 }
+
+const DEFAULT_FACET_ORDER: FacetKey[] = [...FACET_KEYS];
 
 const GRID_COLS: Record<number, string> = {
   3: "grid-cols-2 md:grid-cols-3",
@@ -51,12 +55,13 @@ export function CategoryBody({
   facets,
   categoryLinks,
   showCategory = true,
-  leadStyle = false,
+  facetOrder = DEFAULT_FACET_ORDER,
   products,
   total,
   page,
   totalPages,
   categoryImageRow,
+  categoryRowHeading,
 }: Props) {
   const router = useRouter();
   const [mobileFilters, setMobileFilters] = useState(false);
@@ -67,6 +72,79 @@ export function CategoryBody({
   const activeCount =
     params.colors.length + params.sizes.length + params.occasion.length + params.style.length + params.trend.length;
 
+  const renderFacet = (k: FacetKey) => {
+    switch (k) {
+      case "category":
+        return showCategory && categoryLinks.length > 0 ? (
+          <FilterSection key="category" title="Category">
+            <ul className="flex flex-col gap-2">
+              {categoryLinks.map((c) => (
+                <li key={c.href}>
+                  <Link
+                    href={c.href}
+                    className={cn(
+                      "flex items-center justify-between transition-colors hover:text-accent",
+                      c.active ? "font-semibold text-foreground" : "text-foreground/75",
+                    )}
+                  >
+                    <span>{c.label}</span>
+                    {typeof c.count === "number" && <span className="text-xs text-muted-foreground">{c.count}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </FilterSection>
+        ) : null;
+      case "size":
+        return facets.sizes.length > 0 ? (
+          <FilterSection key="size" title="Size">
+            <div className="flex flex-wrap gap-1.5">
+              {facets.sizes.map((s) => (
+                <Link
+                  key={s}
+                  href={url({ sizes: toggle(params.sizes, s) })}
+                  scroll={false}
+                  className={cn(
+                    "min-w-9 rounded-sm border px-2 py-1.5 text-center text-xs font-medium transition-colors",
+                    params.sizes.includes(s) ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+                  )}
+                >
+                  {s}
+                </Link>
+              ))}
+            </div>
+          </FilterSection>
+        ) : null;
+      case "color":
+        return facets.colors.length > 0 ? (
+          <FilterSection key="color" title="Color">
+            <div className="flex flex-wrap gap-2">
+              {facets.colors.map((c) => (
+                <Link
+                  key={c.name}
+                  href={url({ colors: toggle(params.colors, c.name) })}
+                  scroll={false}
+                  title={c.name}
+                  className={cn(
+                    "h-7 w-7 rounded-full border p-0.5 transition",
+                    params.colors.includes(c.name) ? "border-foreground" : "border-border hover:border-foreground/60",
+                  )}
+                >
+                  <span className="block h-full w-full rounded-full" style={{ backgroundColor: c.swatch }} />
+                </Link>
+              ))}
+            </div>
+          </FilterSection>
+        ) : null;
+      case "occasion":
+        return <FacetLinks key="occasion" title="Occasion" values={facets.occasion} selected={params.occasion} keyName="occasion" url={url} />;
+      case "style":
+        return <FacetLinks key="style" title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />;
+      case "trend":
+        return <FacetLinks key="trend" title="Trend" values={facets.trend} selected={params.trend} keyName="trend" url={url} />;
+    }
+  };
+
   const Rail = (
     <div className="flex flex-col gap-1 text-sm">
       <div className="pb-2">
@@ -74,73 +152,7 @@ export function CategoryBody({
         <p className="mt-1 text-xs text-muted-foreground">{total.toLocaleString()} products</p>
       </div>
 
-      {showCategory && categoryLinks.length > 0 && (
-        <FilterSection title="Category">
-          <ul className="flex flex-col gap-2">
-            {categoryLinks.map((c) => (
-              <li key={c.href}>
-                <Link
-                  href={c.href}
-                  className={cn(
-                    "flex items-center justify-between transition-colors hover:text-accent",
-                    c.active ? "font-semibold text-foreground" : "text-foreground/75",
-                  )}
-                >
-                  <span>{c.label}</span>
-                  {typeof c.count === "number" && <span className="text-xs text-muted-foreground">{c.count}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </FilterSection>
-      )}
-
-      {leadStyle && <FacetLinks title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />}
-
-      {facets.sizes.length > 0 && (
-        <FilterSection title="Size">
-          <div className="flex flex-wrap gap-1.5">
-            {facets.sizes.map((s) => (
-              <Link
-                key={s}
-                href={url({ sizes: toggle(params.sizes, s) })}
-                scroll={false}
-                className={cn(
-                  "min-w-9 rounded-sm border px-2 py-1.5 text-center text-xs font-medium transition-colors",
-                  params.sizes.includes(s) ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
-                )}
-              >
-                {s}
-              </Link>
-            ))}
-          </div>
-        </FilterSection>
-      )}
-
-      {facets.colors.length > 0 && (
-        <FilterSection title="Color">
-          <div className="flex flex-wrap gap-2">
-            {facets.colors.map((c) => (
-              <Link
-                key={c.name}
-                href={url({ colors: toggle(params.colors, c.name) })}
-                scroll={false}
-                title={c.name}
-                className={cn(
-                  "h-7 w-7 rounded-full border p-0.5 transition",
-                  params.colors.includes(c.name) ? "border-foreground" : "border-border hover:border-foreground/60",
-                )}
-              >
-                <span className="block h-full w-full rounded-full" style={{ backgroundColor: c.swatch }} />
-              </Link>
-            ))}
-          </div>
-        </FilterSection>
-      )}
-
-      <FacetLinks title="Occasion" values={facets.occasion} selected={params.occasion} keyName="occasion" url={url} />
-      {!leadStyle && <FacetLinks title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />}
-      <FacetLinks title="Trend" values={facets.trend} selected={params.trend} keyName="trend" url={url} />
+      {facetOrder.map((k) => renderFacet(k))}
 
       {activeCount > 0 && (
         <Link
@@ -218,18 +230,23 @@ export function CategoryBody({
         <aside className="hidden w-56 shrink-0 lg:block">{Rail}</aside>
 
         <div className="flex-1">
-          {/* Curated tile row (themed collections, e.g. Tops) — right of the filter rail, above the grid */}
+          {/* Curated tile row (admin "special" section, e.g. Tops) — above the grid */}
           {categoryImageRow && categoryImageRow.length > 0 && (
-            <div className="mb-8 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7">
-              {categoryImageRow.map((t) => (
-                <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 text-center">
-                  <span className="aspect-square w-full overflow-hidden rounded-full bg-muted">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={t.image} alt={t.label} className="h-full w-full object-cover transition group-hover:scale-105" />
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-wide">{t.label}</span>
-                </Link>
-              ))}
+            <div className="mb-8">
+              {categoryRowHeading && (
+                <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">{categoryRowHeading}</h2>
+              )}
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7">
+                {categoryImageRow.map((t) => (
+                  <Link key={t.href} href={t.href} className="group flex flex-col items-center gap-2 text-center">
+                    <span className="aspect-square w-full overflow-hidden rounded-full bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.image} alt={t.label} className="h-full w-full object-cover transition group-hover:scale-105" />
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wide">{t.label}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
 
