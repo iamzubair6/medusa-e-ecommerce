@@ -51,21 +51,21 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | # | Task | Type | Status |
 |---|------|------|--------|
 | 19 | Restore curated landing (homepage no longer prefers stale seeded CMS home) | fix | ✅ `3e50050` |
-| 20 | CMS-manage full landing — editable blocks | add | 🟡 `a2dfd74`,`4da9987` hero/promo/feature/sale + trend-card & brand-tile arrays editable; remaining: collab carousel slides, optional generic-section home |
+| 20 | CMS-manage full landing — editable blocks | add | ✅ `c70705e` hero/promo/feature/sale + trend-card, brand-tile & **collab carousel slides** all editable (`landing.collabSlides` + `CollabSlideArray` editor); `/` renders a PUBLISHED `home` PageLayout via `SectionRenderer` when it has sections, else curated `<Landing>` (#19-safe); optional `BRAND_CAROUSEL` SectionType (schema+renderer) — **needs cms `db push` to add the enum to the DB before a BRAND_CAROUSEL section is created**. Prior: `a2dfd74`,`4da9987` |
 | 21 | Section manager: add Create + Delete sections (dynamic) | add | ✅ `(phase1)` create/delete/reorder/edit live |
 | 22 | Divisions as admin-managed pages `/pages/{division}` (underline active; per-division mega) | add | ✅ `fd226e8`,`71e9fa1` routing + underline + admin labels/badges (per-division landing content = future) |
 | 23 | Admin collection → multi-column popover builder (data-driven mega menu) | add | ✅ `71e9fa1` /admin/navigation builds divisions→collections→columns→links; navbar renders it (fallback to auto) |
 | 24 | Listing: generalize category checkboxes + special sub-type section (admin-config) | update | ✅ `listingConfig` SiteSetting + `/admin/listings`: per-listing Category facet show/hide, filter-group reorder, and curated tile row (any source/limit) — replaces the hardcoded Tops row |
-| 25 | Migrate remaining admin SelectField → Combobox | update | 🟡 `3e50050` product-creator division done; section editors/price-list/campaign remain |
-| 26 | Dynamic payment methods management in admin | add | ⬜ Phase 4 |
-| 27 | Dynamic shipping methods/zones management in admin | add | ⬜ Phase 4 |
+| 25 | Migrate remaining admin SelectField → Combobox | update | ✅ `c9bb0d7` all section editors + price-list (incl. searchable category/collection) + campaign + product-creator now use Combobox; `EnumCombobox` helper narrows to the option union (no casts) |
+| 26 | Dynamic payment methods management in admin | add | ✅ `a3c7437` `/admin/payments` — CMS `checkout` SiteSetting `paymentMethods[]` (id/label/description/enabled), Zod-validated, checkout renders enabled methods; `/complete` validates chosen method. Live Medusa providers shown read-only (BDT region). |
+| 27 | Dynamic shipping methods/zones management in admin | add | ✅ `a3c7437` `/admin/shipping` — live Medusa option amounts (edit via Admin API) + per-option zone display + CMS `checkout.shippingMethods[]` note/visibility override; checkout shipping list filters hidden + shows notes. |
 | 28 | Fix hero slide editor design/alignment issue | fix | ✅ `3e50050` |
 | 29 | Product form: richer material & care (rich text) | update | ✅ `3e50050` |
 | 30 | Move persona into checkout contact-info step | update | ✅ `3e50050` |
 | 31 | PDP accordions: max-height + scroll | fix | ✅ `3e50050` |
 | 32 | Admin-editable Shipping & Returns content | add | ✅ `3e50050` |
 
-**Phase 0–3 done** (#19, #28–#32, #25 started; #20, #21 page builder; #22, #23 nav/IA; #24 listing config). Remaining: finish #20/#25, then Phase 4 (#26, #27 dynamic payment/shipping).
+**Round 2 complete: #19–#32 all ✅** (Phases 0–3 + Phase 4 #26/#27 payments/shipping). Only remaining open item across the whole project is **#18 (multi-user admin auth + roles)**, now in progress. Follow-up: run a cms `db push` so the `BRAND_CAROUSEL` enum lands before anyone creates that section type.
 
 _Verified gap analysis backing these is in this session; build order proposed below
 once the architecture is confirmed with the owner._
