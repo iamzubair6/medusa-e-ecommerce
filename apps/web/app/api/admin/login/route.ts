@@ -1,26 +1,66 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ADMIN_COOKIE, sessionValue, verifyPassword } from "@/lib/admin-auth";
+import { authenticateAdmin, countAdminUsers, createAdminUser, markAdminLogin } from "@ecom/cms/admin-users";
+import { ADMIN_COOKIE, SESSION_TTL_SECONDS } from "@/lib/admin-auth";
+import { signSession } from "@/lib/session";
 
-const schema = z.object({ password: z.string().min(1) });
+const schema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(1, "Password required"),
+});
+
+function sessionSecret(): string {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  if (!secret) throw new Error("ADMIN_SESSION_SECRET is not set");
+  return secret;
+}
+
+/**
+ * First-run bootstrap: when no admin users exist yet, the legacy
+ * ADMIN_PASSWORD + ADMIN_BOOTSTRAP_EMAIL can create the first ADMIN account.
+ * Once any user exists, this path is dead — login is per-user only.
+ */
+async function bootstrapFirstAdmin(email: string, password: string) {
+  if ((await countAdminUsers()) > 0) return null;
+  const bootstrapEmail = (process.env.ADMIN_BOOTSTRAP_EMAIL ?? "").toLowerCase();
+  const bootstrapPassword = process.env.ADMIN_PASSWORD;
+  if (!bootstrapEmail || !bootstrapPassword) return null;
+  if (email.toLowerCase() !== bootstrapEmail || password !== bootstrapPassword) return null;
+  return createAdminUser({
+    email: bootstrapEmail,
+    name: "Owner",
+    password: bootstrapPassword,
+    role: "ADMIN",
+  });
+}
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  const parsed = schema.safeParse(body);
+  const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Password required" }, { status: 422 });
+    return NextResponse.json({ error: "Email and password required" }, { status: 422 });
   }
-  if (!verifyPassword(parsed.data.password)) {
-    return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
+  const { email, password } = parsed.data;
+
+  const user = (await authenticateAdmin(email, password)) ?? (await bootstrapFirstAdmin(email, password));
+  if (!user) {
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, sessionValue(), {
+  await markAdminLogin(user.id);
+
+  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const token = await signSession(
+    { uid: user.id, email: user.email, name: user.name, role: user.role, exp },
+    sessionSecret(),
+  );
+
+  const res = NextResponse.json({ ok: true, user: { name: user.name, role: user.role } });
+  res.cookies.set(ADMIN_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8h
+    maxAge: SESSION_TTL_SECONDS,
   });
   return res;
 }

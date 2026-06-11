@@ -1,28 +1,29 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { verifySession, type AdminSession } from "./session";
 
 export const ADMIN_COOKIE = "admin_session";
+export const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8h
 
-/** The opaque session value set after a successful login (httpOnly cookie). */
 function sessionSecret(): string {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret) throw new Error("ADMIN_SESSION_SECRET is not set");
   return secret;
 }
 
-/** Verify the submitted password against ADMIN_PASSWORD. */
-export function verifyPassword(password: string): boolean {
-  const expected = process.env.ADMIN_PASSWORD;
-  return !!expected && password === expected;
-}
-
-/** The value to store in the session cookie. */
-export function sessionValue(): string {
-  return sessionSecret();
-}
-
-/** Whether the current request carries a valid admin session. */
-export async function isAuthed(): Promise<boolean> {
+/** The verified admin session for the current request, or null. */
+export async function getAdminSession(): Promise<AdminSession | null> {
   const store = await cookies();
-  return store.get(ADMIN_COOKIE)?.value === sessionSecret();
+  return verifySession(store.get(ADMIN_COOKIE)?.value, sessionSecret());
+}
+
+/** Whether the current request carries any valid admin session. */
+export async function isAuthed(): Promise<boolean> {
+  return (await getAdminSession()) !== null;
+}
+
+/** The session only if the user is an ADMIN (user management), else null. */
+export async function requireAdmin(): Promise<AdminSession | null> {
+  const session = await getAdminSession();
+  return session?.role === "ADMIN" ? session : null;
 }

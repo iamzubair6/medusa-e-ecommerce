@@ -7,7 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Card, CardContent, Input } from "@ecom/ui";
 
-const schema = z.object({ password: z.string().min(1, "Enter the admin password") });
+const schema = z.object({
+  email: z.string().email("Enter your email"),
+  password: z.string().min(1, "Enter your password"),
+});
 type Values = z.infer<typeof schema>;
 
 export default function AdminLoginPage() {
@@ -53,6 +56,13 @@ function LoginForm() {
             <p className="mt-1 text-sm text-muted-foreground">Admin sign in</p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <Input
+              type="email"
+              label="Email"
+              autoComplete="username"
+              error={errors.email?.message}
+              {...register("email")}
+            />
             <Input
               type="password"
               label="Password"
