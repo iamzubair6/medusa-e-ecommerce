@@ -32,9 +32,9 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 15 | Admin — persona builder (title/bracket/questions/promo code) | ✅ `b876f5b` |
 | 16 | Required-field red star (*) across storefront + admin forms | ✅ `de2c591` product/discount/auth/reviews/phone/checkout (admin `required` prop available for any field) |
 | 17 | Fix Vercel build fail — time-box sitemap product fetch (cold Medusa hung past 60s) | ✅ `32fc21b` |
-| 18 | Multi-user admin auth + roles (replace single-password `ADMIN_PASSWORD` gate) | ⬜ planned (future) |
+| 18 | Multi-user admin auth + roles (replace single-password `ADMIN_PASSWORD` gate) | ✅ built (typecheck + build green; pending commit/deploy) — CMS `AdminUser` + `AdminRole` (ADMIN/EDITOR), scrypt-hashed passwords, HMAC-signed session cookie (`lib/session.ts`, edge-safe), `/admin/users` Team & Roles manager, role-gated middleware; first-run bootstraps an ADMIN from `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_PASSWORD` then retires it |
 
-**Done: 17/18 · Planned: #18 (multi-user admin auth + roles).**
+**Done: 18/18.** Multi-user admin auth + roles (#18) is implemented; see `docs/SMOKE_TEST_18-32.md` for the visual verification checklist. Follow-up: production needs a cms `db push` (adds `AdminUser`/`AdminRole`) — same as the `BRAND_CAROUSEL` enum note below.
 
 > Full day-by-day history of the whole project: [BUILD_LOG.md](./BUILD_LOG.md).
 
@@ -65,7 +65,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 31 | PDP accordions: max-height + scroll | fix | ✅ `3e50050` |
 | 32 | Admin-editable Shipping & Returns content | add | ✅ `3e50050` |
 
-**Round 2 complete: #19–#32 all ✅** (Phases 0–3 + Phase 4 #26/#27 payments/shipping). Only remaining open item across the whole project is **#18 (multi-user admin auth + roles)**, now in progress. Follow-up: run a cms `db push` so the `BRAND_CAROUSEL` enum lands before anyone creates that section type.
+**Round 2 complete: #19–#32 all ✅** (Phases 0–3 + Phase 4 #26/#27 payments/shipping). **#18 (multi-user admin auth + roles) is now built too** — so every tracked task #1–#32 is implemented. Follow-ups before/at deploy: run a cms `db push` so both the new `AdminUser`/`AdminRole` tables **and** the `BRAND_CAROUSEL` enum land in the production DB.
 
 _Verified gap analysis backing these is in this session; build order proposed below
 once the architecture is confirmed with the owner._

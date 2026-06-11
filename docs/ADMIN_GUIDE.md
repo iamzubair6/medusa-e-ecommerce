@@ -11,7 +11,7 @@ Your store is managed from **two** places. This split is intentional:
 | Panel | URL | Login | Use it for |
 |---|---|---|---|
 | **Medusa Admin** (commerce) | `http://localhost:9000/app` | email + password | Products, prices, inventory, **orders**, fulfilment & tracking, discounts, regions/shipping |
-| **CMS Admin** (content) | `http://localhost:3000/admin` | password only | The **look** of the storefront: landing page, hero, navigation, popups, campaigns, guest leads, image-search index |
+| **CMS Admin** (content) | `http://localhost:3000/admin` | email + password (per-user, roles) | The **look** of the storefront: landing page, hero, navigation, popups, campaigns, guest leads, image-search index |
 
 Rule of thumb:
 - **Selling something / an order came in?** → Medusa Admin.
@@ -30,13 +30,19 @@ Rule of thumb:
   ```
   Then that person can log in at `/app`.
 
-### CMS Admin (content)
-- Go to `http://localhost:3000/admin` → enter the password.
-- The password is the `ADMIN_PASSWORD` value in `apps/web/.env`. To change it, a
-  developer edits that file (and `ADMIN_SESSION_SECRET`) and restarts the app.
-- This is a shared password (MVP). Per-user accounts/roles are a future upgrade.
+### CMS Admin (content) — now multi-user with roles
+- Go to `http://localhost:3000/admin` → sign in with **email + password** (your own account).
+- **First-time setup (once):** before any account exists, sign in with the
+  `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_PASSWORD` from `apps/web/.env`. That creates the first
+  **Admin** account; afterwards login is per-person and the shared password stops working.
+- **Add / manage people:** sidebar → **Team & Roles** (`/admin/users`). Two roles:
+  - **Admin** — full access, *including* adding/removing users and changing roles.
+  - **Editor** — content, catalog and orders, but **cannot** manage users.
+- You can reset a member's password, deactivate/reactivate, or remove them. The **last
+  active Admin can't be demoted, deactivated or removed**, so you can never lock yourself out.
 
-> Keep both credentials private. Change the defaults before going live.
+> Keep credentials private. Passwords are stored hashed (never plaintext); the session
+> cookie is signed with `ADMIN_SESSION_SECRET`. Change the defaults before going live.
 
 ---
 

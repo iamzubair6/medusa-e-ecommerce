@@ -48,5 +48,38 @@ The whole platform stood up in one day.
 - **#12 Checkout shipping/payment** verified (BD ৳60 + COD) + payment card surfaced in admin settings.
 - **Docs system**: README (start-here map), IMPLEMENTATION_STATUS (canonical status + 16-task board), BUILD_LOG (this file), DATABASE (dev↔live migrations), LOCAL_DEV; CLAUDE.md rules + memory.
 
+## 2026-06-10 — Round 2: fully dynamic Shopify-style CMS (#19–#32)
+> Vision: every storefront surface (nav/IA, mega-menu, landing, listing config, PDP,
+> shipping/payment, settings) is admin-managed and dynamic — no hardcoding.
+- **#19** restore curated landing (homepage no longer prefers a stale seeded CMS home) — `3e50050`.
+- **#20** CMS-manage the full landing — hero/promo/feature/sale + trend-card, brand-tile, and **collab carousel slides** all editable; `/` renders a published `home` PageLayout when it has sections, else the curated landing; optional `BRAND_CAROUSEL` section type — `c70705e` (+ `a2dfd74`, `4da9987`).
+- **#21** section manager: create / delete / reorder / edit live.
+- **#22** divisions as admin pages `/pages/{division}` (active underline; per-division mega; editable labels/badges) — `fd226e8`, `71e9fa1`.
+- **#23** collection → multi-column mega-menu builder at `/admin/navigation` (navbar renders it, auto fallback) — `71e9fa1`.
+- **#24** listing config: `listingConfig` SiteSetting + `/admin/listings` — per-listing Category facet show/hide, filter-group reorder, curated tile row (any source/limit) replacing the hardcoded Tops row.
+- **#25** finish admin SelectField → searchable **Combobox** (section editors + price-list + campaign + product creator; `EnumCombobox` narrows the union, no casts) — `c9bb0d7`.
+- **#26** dynamic payment methods — `/admin/payments` manages CMS `checkout.paymentMethods[]` (id/label/description/enabled); checkout renders enabled ones; live Medusa providers shown read-only — `a3c7437`.
+- **#27** dynamic shipping — `/admin/shipping` edits live Medusa option amounts + per-option zone + CMS note/visibility override; checkout filters hidden + shows notes — `a3c7437`.
+- **#28** hero slide editor alignment fix · **#29** product material & care rich text · **#30** persona moved into the checkout contact-info step · **#31** PDP accordions max-height + inner scroll · **#32** admin-editable Shipping & Returns content — all `3e50050`.
+
+## 2026-06-12 — #18 multi-user admin auth + roles  →  ALL TASKS #1–#32 BUILT
+- Replaced the single shared `ADMIN_PASSWORD` gate with **per-person admin accounts + roles**.
+- **CMS**: `AdminUser` model + `AdminRole` enum (**ADMIN** = full incl. user mgmt; **EDITOR** = content/catalog/orders, no user mgmt). Passwords **scrypt-hashed** via Node `crypto` (no new deps).
+- **Session**: `admin_session` cookie is an **HMAC-SHA256 signed token** (uid+role) in `apps/web/lib/session.ts` (Web-Crypto, runs in edge middleware AND Node). `lib/admin-auth.ts` exposes `getAdminSession` / `isAuthed` / `requireAdmin`.
+- **Middleware** verifies the token and role-gates `/admin/users` (+ API) to ADMIN; editors are redirected.
+- **First-run bootstrap**: with 0 users, `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_PASSWORD` seed the first ADMIN, then that path retires. Login page now takes **email + password**.
+- **Admin UI**: `/admin/users` ("Team & Roles") — create/role/reset-password/activate/delete; **last active admin can't be demoted/deactivated/removed** (lock-out guard). Sidebar shows the signed-in user; the Users link is ADMIN-only.
+- **Gotcha**: `@ecom/cms` barrel must NOT export `node:crypto` code (breaks Next client/edge bundle); the scrypt service is on the server-only subpath **`@ecom/cms/admin-users`**. Schemas/types stay in the barrel.
+- **Gates**: `bun run typecheck` clean (all packages) + `bun run build` passes (middleware 34 kB). Local CMS DB pushed.
+- **Verification checklist**: `docs/SMOKE_TEST_18-32.md` (per-task: what changed + click-through smoke test).
+- **Deploy follow-ups (not yet done)**: (1) production cms `db push` to add `AdminUser`/`AdminRole` **and** the `BRAND_CAROUSEL` enum; (2) set `ADMIN_BOOTSTRAP_EMAIL` in prod env before first admin login. Pushing #18 code to master auto-deploys web→Vercel, so run the prod `db push` first or admin login breaks.
+
+### Recovery snapshot (read this first if memory/context is lost)
+- **Project**: fashion e-commerce + custom CMS. Stack: Next.js App Router (`apps/web`, storefront + `/admin`), Medusa commerce (`apps/medusa`, Node 20), Prisma CMS (`packages/cms`, Postgres `cms` schema), `packages/ui` design system. Bun workspaces (Medusa is npm/separate).
+- **Status**: **every tracked task #1–#32 is implemented.** #19–#32 are committed & deployed; **#18 is built locally (typecheck+build green) but not yet committed/deployed.**
+- **Canonical status** = `docs/IMPLEMENTATION_STATUS.md` (task board with commit hashes). **Full history** = this file. **Deploy** = `docs/GO_LIVE_GUIDE.md` (Neon+Render+Vercel, auto-deploy on push to master).
+- **Run locally**: web → `cd apps/web && bunx next dev -p 3200`; Medusa → Node 20, `cd apps/medusa/apps/backend && npm run dev` (:9000). Typecheck `bun run typecheck`; build `bun run build`.
+- **Open follow-ups only**: prod `db push` (AdminUser/AdminRole + BRAND_CAROUSEL enum) and set `ADMIN_BOOTSTRAP_EMAIL` before deploying #18. No other tasks pending.
+
 ---
 _Append a new dated section as work continues. Source of truth for status is the task board in IMPLEMENTATION_STATUS.md._
