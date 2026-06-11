@@ -253,6 +253,33 @@ model SiteSetting {
 }
 
 // ---------------------------------------------------------------------------
+// Admin access
+// ---------------------------------------------------------------------------
+
+/// A back-office user who can sign into /admin. Replaces the single shared
+/// ADMIN_PASSWORD gate. Passwords are stored as a scrypt hash (never plaintext).
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole @default(EDITOR)
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@schema("cms")
+}
+
+enum AdminRole {
+  ADMIN // full access incl. user management
+  EDITOR // content / catalog / orders, but not user management
+
+  @@schema("cms")
+}
+
+// ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------
 

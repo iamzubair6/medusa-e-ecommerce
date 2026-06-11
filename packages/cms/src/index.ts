@@ -12,6 +12,8 @@ type CampaignStatus = "SCHEDULED" | "ACTIVE" | "ENDED" | "PAUSED";
 
 export { prisma } from "./client";
 export * from "./schemas/index";
+// NOTE: admin-users uses `node:crypto` (scrypt) and must NOT enter client
+// bundles. Import it from "@ecom/cms/admin-users" (server-only) — never here.
 
 /**
  * Fetch a published page layout with its sections in order. Returns null if the

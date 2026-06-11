@@ -6,6 +6,7 @@ export * from "./sections";
 export * from "./nav";
 export * from "./popup";
 export * from "./campaign";
+export * from "./admin-user";
 
 /**
  * Validate a section's `config` against the schema for its type.
