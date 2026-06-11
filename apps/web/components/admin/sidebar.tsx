@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck } from "lucide-react";
 import { cn } from "@ecom/ui";
+import type { AdminRole } from "@ecom/cms";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -25,11 +26,13 @@ const items = [
   { href: "/admin/visual-search", label: "Visual Search", icon: ScanSearch, exact: false },
   { href: "/admin/leads", label: "Guest Leads", icon: Users, exact: false },
   { href: "/admin/settings", label: "Settings", icon: Settings, exact: false },
+  { href: "/admin/users", label: "Team & Roles", icon: ShieldCheck, exact: false, adminOnly: true },
 ] as const;
 
-export function AdminSidebar() {
+export function AdminSidebar({ user }: { user: { name: string; role: AdminRole } }) {
   const pathname = usePathname();
   const router = useRouter();
+  const visibleItems = items.filter((item) => !("adminOnly" in item && item.adminOnly) || user.role === "ADMIN");
 
   const logout = async () => {
     await fetch("/api/admin/login", { method: "DELETE" });
@@ -44,7 +47,7 @@ export function AdminSidebar() {
         <span className="ml-2 text-[0.625rem] uppercase tracking-[0.18em] text-muted-foreground">Admin</span>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
@@ -63,6 +66,17 @@ export function AdminSidebar() {
         })}
       </nav>
       <div className="flex flex-col gap-1 border-t border-border p-3">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold uppercase text-primary">
+            {user.name.charAt(0)}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="text-[0.625rem] uppercase tracking-[0.14em] text-muted-foreground">
+              {user.role === "ADMIN" ? "Admin" : "Editor"}
+            </p>
+          </div>
+        </div>
         <Link
           href="/"
           target="_blank"
