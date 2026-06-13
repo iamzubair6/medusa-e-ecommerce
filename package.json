@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "bun run --filter web test:e2e",
     "test:e2e:install": "bun run --filter web test:e2e:install",
-    "admin:create": "bun run --filter @ecom/cms admin:create",
+    "admin:create": "bun packages/cms/scripts/create-admin.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {
