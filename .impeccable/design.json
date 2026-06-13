@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-13T12:53:46Z",
+  "title": "Design System: Maison",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "primary", "displayName": "Atelier Ink", "canonical": "hsl(24 14% 12%)", "tonalRamp": ["#0f0c0a", "#1a1613", "#231e1a", "#352d27", "#4b403a", "#6b5d54", "#9a8a7e", "#cabcae"] },
+      "claret": { "role": "secondary", "displayName": "Wax-Seal Claret", "canonical": "hsl(356 46% 32%)", "tonalRamp": ["#3a1417", "#4f1c20", "#641f25", "#772c31", "#974048", "#b95a63", "#d18b91", "#e8c2c5"] },
+      "brass": { "role": "tertiary", "displayName": "Foil Brass", "canonical": "hsl(35 32% 50%)", "tonalRamp": ["#3f3018", "#5a4524", "#74592f", "#a88657", "#bf9d6e", "#d1b894", "#e3d3ba", "#f1ebde"] },
+      "bone-bg": { "role": "neutral", "displayName": "Parchment", "canonical": "hsl(40 33% 94%)", "tonalRamp": ["#2a261f", "#48413a", "#6a6158", "#9a9087", "#cabfb3", "#e8e2d9", "#f5f1eb", "#fbf9f4"] },
+      "card": { "role": "neutral", "displayName": "Pressed Card", "canonical": "hsl(42 42% 97%)", "tonalRamp": ["#2a261f", "#48413a", "#6a6158", "#9a9087", "#cabfb3", "#e8e2d9", "#f5f1eb", "#fbf9f4"] },
+      "muted-foreground": { "role": "neutral", "displayName": "Muted Ink", "canonical": "hsl(30 9% 38%)", "tonalRamp": ["#1a1713", "#2e2a25", "#48413a", "#58514b", "#6a6158", "#8a8077", "#b0a89e", "#d8d2c8"] },
+      "destructive": { "role": "neutral", "displayName": "Alert", "canonical": "hsl(2 62% 42%)", "tonalRamp": ["#3d0f0e", "#561614", "#74201d", "#ad2d29", "#c64b47", "#d9716e", "#e89e9c", "#f3c9c8"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero and section headlines on the storefront, Fraunces. Capped at ~5.5rem." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles, PDP product name, page headers." },
+      "title": { "displayName": "Title", "purpose": "Card titles, group headings, admin section labels." },
+      "body": { "displayName": "Body", "purpose": "All running text, Hanken Grotesk. Measure capped 65-75ch." },
+      "label": { "displayName": "Label", "purpose": "Uppercase 0.14em labels for buttons, inputs, badges, eyebrows." }
+    },
+    "shadows": [
+      { "name": "overlay", "value": "0 24px 60px -20px rgba(35, 30, 26, 0.35)", "purpose": "Floating layers only — popups, dialogs, cart drawer. Never on resting page surfaces." }
+    ],
+    "motion": [
+      { "name": "ease-fluid", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Premium fluid ease-out for hero/large motion and all state transitions. No bounce." },
+      { "name": "ease-fluid-in", "value": "cubic-bezier(0.65, 0, 0.35, 1)", "purpose": "Symmetric in-out easing for reversible motion." },
+      { "name": "fade-up", "value": "fade-up 0.6s cubic-bezier(0.22,1,0.36,1) both", "purpose": "Default entrance for hero copy, section headings, cards (opacity 0 + 24px rise)." },
+      { "name": "kenburns", "value": "kenburns 12s ease-out both", "purpose": "Slow 1.0->1.08 scale on hero imagery." },
+      { "name": "marquee", "value": "marquee 30s linear infinite", "purpose": "Announcement bar / brand ticker." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "container-max", "value": "1400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Solid Button",
+      "kind": "button",
+      "refersTo": "button-solid",
+      "description": "Default action — warm ink fill that warms to claret on hover.",
+      "html": "<button class=\"ds-btn-solid\">ADD TO CART</button>",
+      "css": ".ds-btn-solid { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 28px; background: #231e1a; color: #f8f6f1; font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; border: none; border-radius: 0; cursor: pointer; transition: background 0.3s cubic-bezier(0.22,1,0.36,1); } .ds-btn-solid:hover { background: #772c31; } .ds-btn-solid:focus-visible { outline: none; box-shadow: 0 0 0 2px #f5f1eb, 0 0 0 4px #772c31; }"
+    },
+    {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "Single most important action — claret fill.",
+      "html": "<button class=\"ds-btn-accent\">CHECKOUT</button>",
+      "css": ".ds-btn-accent { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 28px; background: #772c31; color: #f8f6f1; font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; border: none; border-radius: 0; cursor: pointer; transition: filter 0.3s cubic-bezier(0.22,1,0.36,1); } .ds-btn-accent:hover { filter: brightness(1.1); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action — hairline on parchment, inverts on hover.",
+      "html": "<button class=\"ds-btn-outline\">CONTINUE SHOPPING</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 28px; background: transparent; color: #231e1a; font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; border: 1px solid rgba(35,30,26,0.4); border-radius: 0; cursor: pointer; transition: background 0.3s cubic-bezier(0.22,1,0.36,1), color 0.3s; } .ds-btn-outline:hover { background: #231e1a; color: #f5f1eb; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled field — square, hairline border, quiet claret focus ring.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">EMAIL</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; } .ds-field-label { font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: #6a6158; } .ds-input { height: 48px; padding: 0 14px; background: rgba(251,249,244,0.6); color: #231e1a; font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; border: 1px solid #dcd5cb; border-radius: 0; transition: border-color 0.2s, box-shadow 0.2s; } .ds-input::placeholder { color: rgba(106,97,88,0.5); } .ds-input:hover { border-color: rgba(35,30,26,0.4); } .ds-input:focus-visible { outline: none; border-color: #231e1a; box-shadow: 0 0 0 1px #772c31; }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The lone softened corner (4px). Depth from tonal step + hairline, no shadow.",
+      "html": "<article class=\"ds-card\"><h3 class=\"ds-card-title\">Wool Overcoat</h3><p class=\"ds-card-price\">$340</p></article>",
+      "css": ".ds-card { background: #fbf9f4; color: #231e1a; border: 1px solid #dcd5cb; border-radius: 4px; padding: 20px; } .ds-card-title { font-family: Fraunces, Georgia, serif; font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px; } .ds-card-price { font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 1rem; color: #772c31; margin: 0; }"
+    },
+    {
+      "name": "Brass Badge",
+      "kind": "chip",
+      "refersTo": "badge-brass",
+      "description": "Signature tag — 15% brass tint fill with brass text, square.",
+      "html": "<span class=\"ds-badge-brass\">NEW</span>",
+      "css": ".ds-badge-brass { display: inline-flex; align-items: center; padding: 2px 8px; background: rgba(168,134,87,0.15); color: #a88657; font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; font-size: 0.625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; border-radius: 0; }"
+    },
+    {
+      "name": "Brass Rule",
+      "kind": "custom",
+      "refersTo": "rule-brass",
+      "description": "Signature divider — a 1px brass gradient that fades at both ends.",
+      "html": "<hr class=\"ds-rule-brass\" />",
+      "css": ".ds-rule-brass { height: 1px; width: 100%; border: none; background: linear-gradient(90deg, transparent, rgba(168,134,87,0.6), transparent); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Atelier Letterpress",
+    "overview": "Maison is the printed matter of a couture house translated to screen: bone stock, square-set type, a claret wax seal, a single brass foil hairline. Every surface should feel pressed rather than rendered — precise, tactile, made by hand. The warm near-black ink and parchment canvas are owner-approved and non-negotiable; they carry the warmth so nothing else has to fake it. Restraint is the luxury: premium reads through space, a confident type hierarchy, and one well-placed accent, never through more. The system serves two registers from one identity: the storefront (brand) is image-forward and motion-rich, while the admin/CMS inherits the exact same ink, claret, brass, and Fraunces/Hanken pairing at higher density — calm, legible, unmistakably the same house behind the curtain.",
+    "keyCharacteristics": [
+      "Bone/parchment canvas (#f5f1eb), warm near-black ink (#231e1a) — never pure black on white.",
+      "Square corners by doctrine (0px on buttons, inputs, badges); only cards soften to 4px.",
+      "Claret (#772c31) as a rare signature; brass (#a88657) only as a hairline.",
+      "Fraunces serif display + Hanken Grotesk body — contrast pairing, never two sans.",
+      "Fine-grain texture (5% opacity) and brass gradient rules carry depth; the system is flat.",
+      "Fluid cubic-bezier(0.22, 1, 0.36, 1) easing; motion is polish, reduced-motion always honored."
+    ],
+    "rules": [
+      { "name": "The One Seal Rule", "body": "Claret is a wax seal, not a coat of paint. It appears on ≤10% of any screen — a price, a CTA hover, a focus ring. Its rarity is the point; the moment two claret elements compete, one is wrong.", "section": "colors" },
+      { "name": "The Hairline-Only Brass Rule", "body": "Brass is foil, never fill. It exists as a 1px gradient rule or a 15%-tint badge. A solid brass button or panel is prohibited.", "section": "colors" },
+      { "name": "The Contrast-Pairing Rule", "body": "Always Fraunces against Hanken — serif drama over sans calm. Never pair two sans-serifs, never set body copy in Fraunces, never set a hero in the grotesque.", "section": "typography" },
+      { "name": "The Earned Uppercase Rule", "body": "Uppercase + 0.14em tracking is reserved for the label role (buttons, input labels, badges). It is a system signal, not decoration — it must never become a tracked-caps eyebrow stamped above every section.", "section": "typography" },
+      { "name": "The Flat-Page Rule", "body": "Surfaces on the page are flat at rest and flat on hover. Shadow is permitted only for elements that genuinely float above the document (modal, popup, drawer, toast). A resting card with a drop shadow looks like a 2014 app.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep claret to ≤10% of any screen — a price, a CTA hover, a focus ring (The One Seal Rule).",
+      "Do use Atelier Ink (#231e1a) for \"black,\" never pure #000 — it reads cold on parchment.",
+      "Do pair Fraunces display against Hanken body; contrast is the system (The Contrast-Pairing Rule).",
+      "Do convey depth with the bone→card tonal step and a 1px Hairline, not a shadow (The Flat-Page Rule).",
+      "Do keep corners square (0px) everywhere except cards (4px).",
+      "Do use brass only as a hairline rule or a 15% tint (The Hairline-Only Brass Rule).",
+      "Do give every animation a prefers-reduced-motion alternative and check body text ≥4.5:1.",
+      "Do ease motion with cubic-bezier(0.22, 1, 0.36, 1) — fluid ease-out, no bounce."
+    ],
+    "donts": [
+      "Don't build the admin like a generic SaaS dashboard — no blue-gray cards, system fonts, or hero-metric templates.",
+      "Don't lapse into cheap fast-fashion — no neon sale badges, no loud red everywhere, no cluttered grids, no aggressive interruptive popups.",
+      "Don't go cold-minimalist — no stark black-on-white brutalism; the warm canvas and claret keep it human.",
+      "Don't ship AI-slop scaffolding — no tracked-uppercase eyebrow above every section, no identical icon-heading-text card grids, no gradient text, no cream-default-as-laziness.",
+      "Don't use border-left/border-right > 1px as a colored accent stripe; use a full Hairline border or a tonal fill.",
+      "Don't put a drop shadow on a resting card — if it needs one to separate, the tonal step or border is wrong.",
+      "Don't fill large areas with brass or pair two sans-serifs.",
+      "Don't let muted-ink body text or muted-foreground/50 placeholders slip below 4.5:1 on the parchment."
+    ]
+  }
+}
