@@ -32,9 +32,20 @@ Rule of thumb:
 
 ### CMS Admin (content) — now multi-user with roles
 - Go to `http://localhost:3000/admin` → sign in with **email + password** (your own account).
-- **First-time setup (once):** before any account exists, sign in with the
-  `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_PASSWORD` from `apps/web/.env`. That creates the first
-  **Admin** account; afterwards login is per-person and the shared password stops working.
+- **First-time setup (recommended) — create an admin from the CLI** (like Django's
+  `createsuperuser`), which writes straight to the database:
+  ```bash
+  bun run admin:create                       # interactive: prompts for email, name, role, password
+  bun run admin:create -- --list             # list existing admins
+  bun run --filter @ecom/cms admin:create -- --email you@x.com --name "Owner" --role ADMIN
+  ```
+  It needs no special env vars (reads `CMS_DATABASE_URL` from `apps/web/.env`) and works
+  any time, not just on an empty database.
+- **First-time setup (alternative) — env bootstrap:** before any account exists, you can
+  instead sign in with `ADMIN_BOOTSTRAP_EMAIL` + `ADMIN_PASSWORD` from `apps/web/.env`.
+  That creates the first **Admin** account; afterwards login is per-person and the bootstrap
+  values stop working. (If both are unset and no admin exists, login returns *“Invalid email
+  or password.”* — use the CLI above.)
 - **Add / manage people:** sidebar → **Team & Roles** (`/admin/users`). Two roles:
   - **Admin** — full access, *including* adding/removing users and changing roles.
   - **Editor** — content, catalog and orders, but **cannot** manage users.
