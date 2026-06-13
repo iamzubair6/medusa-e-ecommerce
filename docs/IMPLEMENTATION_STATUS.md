@@ -64,6 +64,7 @@ Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold
 | 30 | Move persona into checkout contact-info step | update | ✅ `3e50050` |
 | 31 | PDP accordions: max-height + scroll | fix | ✅ `3e50050` |
 | 32 | Admin-editable Shipping & Returns content | add | ✅ `3e50050` |
+| 33 | Automated test setup — Vitest (unit/component) + Playwright (e2e) | infra | ✅ built (pending commit) — root `vitest.config.ts` (jsdom + RTL, React 19, `@/`→apps/web) + `vitest.setup.ts`; sample tests for `cn`, `Button`, `parseSiteSettings` (9 passing); Playwright `apps/web/playwright.config.ts` + `e2e/home.spec.ts` smoke (auto-starts `next dev` :3200, passes on placeholder data; 1 passing). Scripts: `test`, `test:watch`, `test:e2e`, `test:e2e:install`. Test files excluded from `tsc`/`build` (typecheck green). |
 
 **Round 2 complete: #19–#32 all ✅** (Phases 0–3 + Phase 4 #26/#27 payments/shipping). **#18 (multi-user admin auth + roles) is now built too** — so every tracked task #1–#32 is implemented. Follow-ups before/at deploy: run a cms `db push` so both the new `AdminUser`/`AdminRole` tables **and** the `BRAND_CAROUSEL` enum land in the production DB.
 

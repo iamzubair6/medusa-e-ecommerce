@@ -34,3 +34,17 @@ packages/cms/prisma/*.db
 # misc
 coverage/
 .turbo/
+
+# test / e2e artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# vendored agent skills installed via `npx skills add` (re-installable; don't commit)
+.agents/
+.claude/skills/*
+!.claude/skills/cms-section/
+
+# impeccable live-mode transient session state
+.impeccable/live/sessions/
