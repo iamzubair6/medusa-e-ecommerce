@@ -3,6 +3,45 @@
 Scalable fashion e-commerce storefront with a custom CMS/admin. See `docs/PLAN.md`,
 `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` for the full plan and phasing.
 
+## Design Context (impeccable)
+- **`PRODUCT.md`** (root) — strategic design brief: register, users, brand personality,
+  anti-references, design principles. **`DESIGN.md`** (root) — visual system (palette,
+  type, components, motion). Both are read by every `/impeccable` command.
+- **Register: `brand`** is the default (the customer storefront, where design IS the
+  product). Override to `product` per-task on admin/CMS surfaces (`apps/web/app/admin/*`).
+- Brand is **editorial luxury, restrained** — bone/parchment canvas, warm near-black ink,
+  claret accent, brass hairlines, Fraunces + Hanken Grotesk. Preserve this identity;
+  it's owner-approved. Anti-refs: generic SaaS dashboard, cheap fast-fashion, cold tech
+  minimalism, AI-slop templates.
+
+## Auto-routing & the build pipeline (plain prompts — no manual skill calls)
+The user gives plain-language prompts ("do a Fashion-Nova mega nav", "fix the cart
+badge", "make the PDP gallery feel premium"). **Read the intent and route automatically
+— the user should not have to name skills or commands.**
+
+**Route by intent:**
+- **UI build / polish / animation / responsive** → `frontend-ui` agent + skills
+  `impeccable`, `ui-ux-pro-max`, `high-end-visual-design`, and (storefront/brand surfaces
+  ONLY, never admin) `design-taste-frontend`; for upgrading existing pages,
+  `redesign-existing-projects`. MCP `magic` (21st) to scaffold, `playwright` to
+  screenshot-verify. Always render into `packages/ui` + Tailwind tokens.
+- **Clone/match an external site** → `firecrawl-scrape` / `firecrawl-website-design-clone`
+  to capture the reference, then build on-brand via `impeccable` (honor DESIGN.md anti-refs).
+- **Commerce** (products, pricing, inventory, orders, regions, shipping) → `medusa-backend`.
+- **CMS content / section types / hero / nav / popups / leads** → `cms-prisma` + `cms-section` skill.
+- **Bug fix** → locate (Explore), then the owning agent.
+- **Research / scrape / SEO / QA a live page** → the matching `firecrawl-*` skill.
+
+**Pipeline (orchestrated by the main agent; user sends one prompt):**
+`planner` (classify + plan, grounds from IMPLEMENTATION_STATUS.md) → build agent →
+`code-reviewer` (hard-rules review) → in parallel: `test-writer` (typecheck/build/lint +
+smoke-test checklist — no test runner installed yet) and `doc-writer` (IMPLEMENTATION_STATUS
++ guides). Run independent steps in parallel; chain dependent ones. Scale the pipeline to the
+task — a tiny fix skips planner; a feature runs the whole chain.
+
+**Register:** storefront = brand (motion-rich, editorial); admin (`apps/web/app/admin/*`)
+= product (denser, no storefront-only skills). See PRODUCT.md / DESIGN.md.
+
 ## Stack (do not introduce alternatives without asking)
 - **Monorepo**: **bun workspaces** = `apps/web` (Next.js) + `packages/*`
   (`ui` design system, `cms` Prisma+domain, `config`). `apps/medusa` (commerce) is
