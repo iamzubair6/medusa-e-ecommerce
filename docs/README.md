@@ -18,6 +18,7 @@ reference. Keep docs updated **in the same change** as the code (see CLAUDE.md
 | PLAN.md | Product vision / scope (historical baseline) | vision/scope changes |
 | ARCHITECTURE.md | System structure, data flow, modules, routes | structure/routes/modules change |
 | DEVELOPER_GUIDE.md | How to run/build/work on the project | dev workflow/commands change |
+| **SCRIPTS.md** | 🧰 Catalog of every runnable script (dev, tests, DB, admin, seeds, live deploy) — what/when/why | a script is added/changed |
 | LOCAL_DEV.md | Run + verify **locally** before deploy (fast path = live data at :3200) | local-run steps change |
 | DATABASE.md | DB topology + **dev↔live migrations** (Medusa + Prisma), seeding, safety | schema/migration/seed flow changes |
 | GO_LIVE_GUIDE.md | Beginner deploy walkthrough (Neon + Render + Vercel) | deploy/env/setup changes |
