@@ -13,11 +13,19 @@ export default async function ListingsPage() {
     listCategories().catch(() => []),
   ]);
 
+  // Division handles can collide with same-named category handles (e.g. "women"
+  // is both a division and a category), so dedupe by handle keeping the first
+  // occurrence — division entries win over same-handle categories.
+  const seen = new Set<string>();
   const targets: ListingTarget[] = [
     { handle: "all", label: "All products" },
     ...DIVISION_HANDLES.map((h) => ({ handle: h, label: `${DIVISION_NAMES[h] ?? h} · division` })),
     ...cats.map((c) => ({ handle: c.handle, label: `${c.name} · category` })),
-  ];
+  ].filter((t) => {
+    if (seen.has(t.handle)) return false;
+    seen.add(t.handle);
+    return true;
+  });
 
   return (
     <>

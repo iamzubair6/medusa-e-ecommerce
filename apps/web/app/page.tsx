@@ -1,6 +1,8 @@
 import { getActivePopup, getPublishedPage, getSiteSetting, popupConfigSchema } from "@ecom/cms";
 import { getLandingData } from "@/lib/commerce";
 import { parseSiteSettings } from "@/lib/site-settings";
+import { parsePhoneCaptureSettings } from "@/lib/phone-capture-settings";
+import { parseLandingMode, landingModeFor } from "@/lib/landing-mode";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { Landing } from "@/components/site/landing";
@@ -39,24 +41,28 @@ async function loadPopup(): Promise<Popup> {
 }
 
 export default async function HomePage() {
-  const [landing, popup, site, cmsHome] = await Promise.all([
+  const [landing, popup, site, phoneCapture, landingMode, cmsHome] = await Promise.all([
     getLandingData(),
     loadPopup(),
     getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
+    getSiteSetting("phoneCapture").then(parsePhoneCaptureSettings).catch(() => parsePhoneCaptureSettings(null)),
+    getSiteSetting("landingMode").then(parseLandingMode).catch(() => parseLandingMode(null)),
     loadCmsHome(),
   ]);
-  // Section-driven home is optional: render a published `home` PageLayout when
-  // present, otherwise fall back to the curated <Landing> (#19/#20).
+  // Per-page render mode (admin → /admin/landing-style). "curated" always renders
+  // the Fashion-Nova <Landing>; "sections" (the default) renders a published
+  // `home` PageLayout when present, else falls back to <Landing> (#19/#20).
+  const sectionPage = landingModeFor(landingMode, "home") === "sections" ? cmsHome : null;
   return (
     <main>
       <SiteNavbar />
-      {cmsHome ? (
-        cmsHome.sections.map((section) => <SectionRenderer key={section.id} section={section} />)
+      {sectionPage ? (
+        sectionPage.sections.map((section) => <SectionRenderer key={section.id} section={section} />)
       ) : (
         <Landing data={landing} site={site} />
       )}
       <Footer />
-      <PhoneCapturePopup />
+      <PhoneCapturePopup settings={phoneCapture} />
       {popup && <PromoPopup id={popup.id} trigger={popup.trigger} config={popup.config} />}
     </main>
   );

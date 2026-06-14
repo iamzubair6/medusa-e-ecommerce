@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { AdminRole } from "@ecom/cms";
 
@@ -17,9 +17,11 @@ const items = [
   { href: "/admin/shipping", label: "Shipping", icon: Truck, exact: false },
   { href: "/admin/customers", label: "Customers", icon: UserRound, exact: false },
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate, exact: false },
+  { href: "/admin/landing-style", label: "Landing Style", icon: LayoutPanelTop, exact: false },
   { href: "/admin/navigation", label: "Navigation", icon: Navigation, exact: false },
   { href: "/admin/listings", label: "Listings", icon: ListFilter, exact: false },
   { href: "/admin/popups", label: "Popups", icon: Megaphone, exact: false },
+  { href: "/admin/phone-popup", label: "Phone Popup", icon: Smartphone, exact: false },
   { href: "/admin/campaigns", label: "Campaigns", icon: Rocket, exact: false },
   { href: "/admin/persona", label: "Persona", icon: ClipboardList, exact: false },
   { href: "/admin/site", label: "Storefront", icon: LayoutTemplate, exact: false },
@@ -41,12 +43,12 @@ export function AdminSidebar({ user }: { user: { name: string; role: AdminRole }
   };
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col self-start border-r border-border bg-card">
       <div className="border-b border-border px-6 py-5">
         <span className="font-display text-xl font-medium">Maison</span>
         <span className="ml-2 text-[0.625rem] uppercase tracking-[0.18em] text-muted-foreground">Admin</span>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         {visibleItems.map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           const Icon = item.icon;
