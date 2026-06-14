@@ -2,10 +2,14 @@ import {
   bannerConfigSchema,
   brandCarouselConfigSchema,
   categoryGridConfigSchema,
+  countdownConfigSchema,
   editorialConfigSchema,
   heroConfigSchema,
   marqueeConfigSchema,
   productRowConfigSchema,
+  promoSplitConfigSchema,
+  trendRailConfigSchema,
+  valuePropsConfigSchema,
 } from "@ecom/cms";
 import { fetchProducts } from "@/lib/commerce";
 import { Marquee } from "./marquee";
@@ -15,6 +19,10 @@ import { CategoryGrid } from "./category-grid";
 import { Editorial } from "./editorial";
 import { Banner } from "./banner";
 import { BrandCarousel, type BrandSlide } from "./brand-carousel";
+import { PromoSplit } from "./promo-split";
+import { TrendRail } from "./trend-rail";
+import { ValueProps } from "./value-props";
+import { Countdown } from "./countdown";
 
 export interface SectionData {
   id: string;
@@ -77,6 +85,26 @@ export async function SectionRenderer({ section }: { section: SectionData }) {
         cta: s.cta,
       }));
       return <BrandCarousel slides={slides} intervalMs={r.data.intervalMs} />;
+    }
+    case "PROMO_SPLIT": {
+      const r = promoSplitConfigSchema.safeParse(section.config);
+      if (!r.success) return logInvalid(section, r.error.flatten()), null;
+      return <PromoSplit config={r.data} />;
+    }
+    case "TREND_RAIL": {
+      const r = trendRailConfigSchema.safeParse(section.config);
+      if (!r.success) return logInvalid(section, r.error.flatten()), null;
+      return <TrendRail config={r.data} />;
+    }
+    case "VALUE_PROPS": {
+      const r = valuePropsConfigSchema.safeParse(section.config);
+      if (!r.success) return logInvalid(section, r.error.flatten()), null;
+      return <ValueProps config={r.data} />;
+    }
+    case "COUNTDOWN": {
+      const r = countdownConfigSchema.safeParse(section.config);
+      if (!r.success) return logInvalid(section, r.error.flatten()), null;
+      return <Countdown config={r.data} />;
     }
     default:
       return null;

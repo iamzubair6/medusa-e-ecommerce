@@ -55,6 +55,10 @@ enum SectionType {
   BANNER
   MARQUEE
   BRAND_CAROUSEL // full-bleed auto-advancing collab/brand slides
+  PROMO_SPLIT // 2-up/3-up large promo image cards with overlay text
+  TREND_RAIL // horizontally-scrolling rail of tall labeled image cards
+  VALUE_PROPS // strip of trust badges (icon + label + sublabel)
+  COUNTDOWN // urgency sale banner with a live countdown
 
   @@schema("cms")
 }

@@ -7,10 +7,14 @@ import { Badge, Button, Card, cn } from "@ecom/ui";
 import {
   bannerConfigSchema,
   categoryGridConfigSchema,
+  countdownConfigSchema,
   editorialConfigSchema,
   heroConfigSchema,
   marqueeConfigSchema,
   productRowConfigSchema,
+  promoSplitConfigSchema,
+  trendRailConfigSchema,
+  valuePropsConfigSchema,
   SECTION_TYPES,
 } from "@ecom/cms";
 import { HeroEditor } from "./editors/hero-editor";
@@ -19,6 +23,10 @@ import { BannerEditor } from "./editors/banner-editor";
 import { ProductRowEditor } from "./editors/product-row-editor";
 import { CategoryGridEditor } from "./editors/category-grid-editor";
 import { EditorialEditor } from "./editors/editorial-editor";
+import { PromoSplitEditor } from "./editors/promo-split-editor";
+import { TrendRailEditor } from "./editors/trend-rail-editor";
+import { ValuePropsEditor } from "./editors/value-props-editor";
+import { CountdownEditor } from "./editors/countdown-editor";
 
 export interface AdminSection {
   id: string;
@@ -52,6 +60,22 @@ function Editor({ section }: { section: AdminSection }) {
     case "EDITORIAL": {
       const r = editorialConfigSchema.safeParse(section.config);
       return r.success ? <EditorialEditor sectionId={section.id} config={r.data} /> : <Invalid />;
+    }
+    case "PROMO_SPLIT": {
+      const r = promoSplitConfigSchema.safeParse(section.config);
+      return r.success ? <PromoSplitEditor sectionId={section.id} config={r.data} /> : <Invalid />;
+    }
+    case "TREND_RAIL": {
+      const r = trendRailConfigSchema.safeParse(section.config);
+      return r.success ? <TrendRailEditor sectionId={section.id} config={r.data} /> : <Invalid />;
+    }
+    case "VALUE_PROPS": {
+      const r = valuePropsConfigSchema.safeParse(section.config);
+      return r.success ? <ValuePropsEditor sectionId={section.id} config={r.data} /> : <Invalid />;
+    }
+    case "COUNTDOWN": {
+      const r = countdownConfigSchema.safeParse(section.config);
+      return r.success ? <CountdownEditor sectionId={section.id} config={r.data} /> : <Invalid />;
     }
     default:
       return <Invalid />;

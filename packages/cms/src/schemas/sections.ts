@@ -113,6 +113,79 @@ export const marqueeConfigSchema = z.object({
 });
 export type MarqueeConfig = z.infer<typeof marqueeConfigSchema>;
 
+/** PROMO_SPLIT — a 2-up/3-up row of large promo image cards with overlay text. */
+export const promoSplitConfigSchema = z.object({
+  heading: z.string().max(80).optional(),
+  columns: z.union([z.literal(2), z.literal(3)]).default(2),
+  cards: z
+    .array(
+      z.object({
+        media: mediaRefSchema,
+        eyebrow: z.string().max(40).optional(),
+        heading: z.string().min(1).max(80),
+        subheading: z.string().max(120).optional(),
+        cta: ctaSchema.optional(),
+      }),
+    )
+    .min(1)
+    .max(3),
+});
+export type PromoSplitConfig = z.infer<typeof promoSplitConfigSchema>;
+
+/** TREND_RAIL — a horizontally-scrolling rail of tall labeled image cards. */
+export const trendRailConfigSchema = z.object({
+  heading: z.string().max(80).optional(),
+  cards: z
+    .array(
+      z.object({
+        media: mediaRefSchema,
+        label: z.string().min(1).max(40),
+        href: z.string().min(1),
+      }),
+    )
+    .min(2)
+    .max(12),
+});
+export type TrendRailConfig = z.infer<typeof trendRailConfigSchema>;
+
+/** Icon keys for VALUE_PROPS badges (mapped to lucide-react in the renderer). */
+export const valuePropIcons = [
+  "truck",
+  "shield",
+  "refresh",
+  "credit-card",
+  "headset",
+  "tag",
+  "gift",
+  "sparkles",
+] as const;
+export type ValuePropIcon = (typeof valuePropIcons)[number];
+
+/** VALUE_PROPS — a strip of trust badges (icon + label + sublabel). */
+export const valuePropsConfigSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        icon: z.enum(valuePropIcons),
+        label: z.string().min(1).max(40),
+        sublabel: z.string().max(80).optional(),
+      }),
+    )
+    .min(2)
+    .max(6),
+});
+export type ValuePropsConfig = z.infer<typeof valuePropsConfigSchema>;
+
+/** COUNTDOWN — an urgency sale banner with a live countdown to a target time. */
+export const countdownConfigSchema = z.object({
+  heading: z.string().min(1).max(120),
+  subheading: z.string().max(160).optional(),
+  endsAt: z.string().datetime(),
+  cta: ctaSchema.optional(),
+  theme: z.enum(["light", "dark", "claret"]).default("dark"),
+});
+export type CountdownConfig = z.infer<typeof countdownConfigSchema>;
+
 /**
  * Map of SectionType -> its config Zod schema. Use `sectionConfigFor(type)` to
  * validate a section's `config` Json on write.
@@ -125,6 +198,10 @@ export const sectionConfigSchemas = {
   BANNER: bannerConfigSchema,
   MARQUEE: marqueeConfigSchema,
   BRAND_CAROUSEL: brandCarouselConfigSchema,
+  PROMO_SPLIT: promoSplitConfigSchema,
+  TREND_RAIL: trendRailConfigSchema,
+  VALUE_PROPS: valuePropsConfigSchema,
+  COUNTDOWN: countdownConfigSchema,
 } as const;
 
 export type SectionTypeKey = keyof typeof sectionConfigSchemas;
@@ -151,5 +228,36 @@ export function defaultSectionConfig(type: SectionTypeKey): unknown {
       return { items: ["Free shipping over ৳2,000"], speedSeconds: 30 };
     case "BRAND_CAROUSEL":
       return { slides: [{ media: { url: PLACEHOLDER_IMG }, eyebrow: "Collab", title: "Maison × Active", href: "/collections/sale" }], intervalMs: 5000 };
+    case "PROMO_SPLIT":
+      return {
+        columns: 2,
+        cards: [
+          { media: { url: PLACEHOLDER_IMG }, eyebrow: "New", heading: "Women", cta: { label: "Shop", href: "/c/women" } },
+          { media: { url: PLACEHOLDER_IMG }, eyebrow: "New", heading: "Men", cta: { label: "Shop", href: "/c/men" } },
+        ],
+      };
+    case "TREND_RAIL":
+      return {
+        heading: "Trending now",
+        cards: [
+          { media: { url: PLACEHOLDER_IMG }, label: "Dresses", href: "/c/dresses" },
+          { media: { url: PLACEHOLDER_IMG }, label: "Denim", href: "/c/denim" },
+        ],
+      };
+    case "VALUE_PROPS":
+      return {
+        items: [
+          { icon: "truck", label: "Free shipping", sublabel: "On orders over ৳2,000" },
+          { icon: "refresh", label: "30-day returns", sublabel: "Hassle-free" },
+        ],
+      };
+    case "COUNTDOWN":
+      return {
+        heading: "Flash sale ends soon",
+        subheading: "Up to 50% off selected styles.",
+        endsAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+        cta: { label: "Shop the sale", href: "/collections/sale", variant: "solid" },
+        theme: "dark",
+      };
   }
 }
