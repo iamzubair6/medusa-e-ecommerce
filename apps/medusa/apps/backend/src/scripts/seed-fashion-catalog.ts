@@ -23,13 +23,112 @@ import {
 
 const img = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&h=1125&q=80`;
 
-// Reliable Unsplash photo ids (validated). Reused across products for stable images.
-const POOL = [
-  "1490481651871-ab68de25d43d", "1485462537746-965f33f7f6a7", "1483985988355-763728e1935b",
-  "1525507119028-ed4c629a60a3", "1551232864-3f0890e580d9", "1542272604-787c3835535d",
-  "1469334031218-e382a71b716b", "1483118714900-540cf339fd46",
-];
-const pair = (i: number): string[] => [img(POOL[i % POOL.length]!), img(POOL[(i + 3) % POOL.length]!)];
+/**
+ * Category-appropriate Unsplash photo sets. Each key maps to a curated pool of
+ * real Unsplash photo ids whose subject genuinely matches that product type, so
+ * a jacket gets jacket photos, a heel gets footwear photos, etc. — instead of a
+ * generic pool rotated by index (which used to mismatch product types).
+ */
+const IMAGE_SETS: Record<string, string[]> = {
+  // Outerwear: jackets, bombers, coats
+  outerwear: [
+    "1551028719-00167b16eac5", "1591047139829-d91aecb6caea", "1520975954732-35dd22299614",
+    "1544022613-e87ca75a784a", "1578681994506-b8f463449011", "1495105787522-5334e3ffa0ef",
+  ],
+  // Dresses: midi, maxi, slip, bodycon dresses
+  dresses: [
+    "1595777457583-95e059d581b8", "1572804013309-59a88b7e92f1", "1566174053879-31528523f8ae",
+    "1583496661160-fb5886a0aaaa", "1539008835657-9e8e9680c956", "1502716119720-b23a93e5fe1b",
+  ],
+  // Tops: blouses, tees, tanks, shirts
+  tops: [
+    "1521572163474-6864f9cf17ab", "1583743814966-8936f5b7be1a", "1576566588028-4147f3842f27",
+    "1618354691373-d851c5c3a990", "1622445275576-721325763afe", "1564257631407-4deb1f99d992",
+  ],
+  // Bodysuits
+  bodysuits: [
+    "1571513722275-4b41940f54b8", "1618244972963-dbee1a7edc95", "1581044777550-4cfa60707c03",
+    "1602810318383-e386cc2a3ccf", "1583744946564-b52ac1c389c8", "1617922001439-4a2e6562f328",
+  ],
+  // Jeans / denim
+  jeans: [
+    "1542272604-787c3835535d", "1582552938357-32b906df40cb", "1541099649105-f69ad21f3246",
+    "1604176354204-9268737828e4", "1475178626620-a4d074967452", "1598554747436-c9293d6a588f",
+  ],
+  // Bottoms: trousers, chinos, pants
+  bottoms: [
+    "1594633312681-425c7b97ccd1", "1624378439575-d8705ad7ae80", "1473966968600-fa801b869a1a",
+    "1582418702059-97ebafb35d09", "1517445312882-bc9910d016b7", "1506629082955-511b1aa562c8",
+  ],
+  // Swim / swimwear
+  swim: [
+    "1570976447640-ac859083963f", "1571513800374-df1bbe650e56", "1582639510494-c80b5de9f148",
+    "1556228578-8c89e6adf883", "1535914254981-b5012eebbd15", "1556228720-195a672e8a03",
+  ],
+  // Activewear / athletic
+  activewear: [
+    "1518611012118-696072aa579a", "1571019613454-1cb2f99b2d8b", "1506629082955-511b1aa562c8",
+    "1538805060514-97d9cc17730c", "1517836357463-d25dfeac3438", "1483721310020-03333e577078",
+  ],
+  // Shoes: heels, sneakers, footwear
+  shoes: [
+    "1543163521-1bf539c55dd2", "1549298916-b41d501d3772", "1525966222134-fcfa99b8ae77",
+    "1535043934128-cf0b28d52f95", "1560769629-975ec94e6a86", "1595950653106-6c9ebd614d3a",
+  ],
+  // Accessories: bags, jewelry
+  accessories: [
+    "1584917865442-de89df76afd3", "1591561954557-26941169b49e", "1548036328-c9fa89d128fa",
+    "1606760227091-3dd870d97f1d", "1611652022419-a9419f74343d", "1559563458-527698bf5295",
+  ],
+  // Beauty / cosmetics
+  beauty: [
+    "1596462502278-27bfdc403348", "1512496015851-a90fb38ba796", "1571781926291-c477ebfd024b",
+    "1522338242992-e1a54906a8da", "1596704017254-9b121068fb31", "1487412947147-5cebf100ffc2",
+  ],
+  // Kids apparel
+  kids: [
+    "1519238263530-99bdd11df2ea", "1503454537195-1dcabb73ffb9", "1622290291468-a28f7a7dc6a8",
+    "1518831959646-742c3a14ebf7", "1471286174890-9c112ffca5b4", "1607453998774-d533f65dac99",
+  ],
+};
+
+// Generic fallback (rarely used) — neutral apparel shots.
+const FALLBACK = ["1490481651871-ab68de25d43d", "1485462537746-965f33f7f6a7", "1483985988355-763728e1935b"];
+
+/**
+ * Resolve a product to its image-set key. Most specific category wins:
+ * shoes/swim/outerwear/jeans/beauty/accessories are distinct subjects; kids
+ * apparel overrides generic apparel sets via the division.
+ */
+const imageSetKey = (p: ProdDef): string => {
+  const cats = p.categories;
+  // Truly distinct subjects win regardless of division.
+  if (cats.includes("shoes")) return "shoes";
+  if (cats.includes("swim")) return "swim";
+  if (cats.includes("beauty-products")) return "beauty";
+  // Kids apparel should look like kids' clothing, not adult garments.
+  if (p.division === "kids") return "kids";
+  if (cats.includes("outerwear")) return "outerwear";
+  if (cats.includes("jeans")) return "jeans";
+  if (cats.includes("activewear")) return "activewear";
+  if (cats.includes("dresses")) return "dresses";
+  if (cats.includes("bodysuits")) return "bodysuits";
+  if (cats.includes("tops")) return "tops";
+  if (cats.includes("bottoms")) return "bottoms";
+  if (cats.includes("accessories")) return "accessories";
+  return "tops";
+};
+
+/**
+ * Two images per (product, color), drawn from the product's own category set so
+ * the photos always match the garment type. Offsets keep variety across colors.
+ */
+const pairFor = (p: ProdDef, colorIndex: number): string[] => {
+  const set = IMAGE_SETS[imageSetKey(p)] ?? FALLBACK;
+  const a = set[(colorIndex * 2) % set.length]!;
+  const b = set[(colorIndex * 2 + 1) % set.length]!;
+  return [img(a), img(b)];
+};
 
 const SWATCH: Record<string, string> = {
   Black: "#1b1b1b", White: "#f2efe9", Sand: "#d8c4a0", Olive: "#5b6b3a", Sage: "#9aa789",
@@ -217,7 +316,7 @@ export default async function seedFashionCatalog({ container }: ExecArgs) {
       material: p.material,
       care: p.care,
       swatches: Object.fromEntries(p.colors.map((c) => [c, SWATCH[c] ?? "#cccccc"])),
-      colorImages: Object.fromEntries(p.colors.map((c, ci) => [c, pair(idx + ci)])),
+      colorImages: Object.fromEntries(p.colors.map((c, ci) => [c, pairFor(p, ci)])),
       colorPrices: Object.fromEntries(p.colors.map((c) => [c, p.price])),
       colorOriginalPrices: p.original ? Object.fromEntries(p.colors.map((c) => [c, p.original])) : {},
       sizeStock,
@@ -230,7 +329,7 @@ export default async function seedFashionCatalog({ container }: ExecArgs) {
       status: ProductStatus.PUBLISHED,
       shipping_profile_id: shippingProfileId,
       weight: 350,
-      images: p.colors.flatMap((c, ci) => pair(idx + ci)).map((url) => ({ url })),
+      images: p.colors.flatMap((c, ci) => pairFor(p, ci)).map((url) => ({ url })),
       options: [
         { title: "Size", values: sizes },
         { title: "Color", values: p.colors },
