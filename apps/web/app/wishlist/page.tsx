@@ -5,6 +5,8 @@ import { WishlistView } from "@/components/site/wishlist-view";
 
 export const metadata: Metadata = { title: "Wishlist" };
 
+export const dynamic = "force-dynamic";
+
 export default function WishlistPage() {
   return (
     <main>

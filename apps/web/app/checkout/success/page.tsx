@@ -7,6 +7,8 @@ import { Footer } from "@/components/site/footer";
 
 export const metadata: Metadata = { title: "Order Confirmed" };
 
+export const dynamic = "force-dynamic";
+
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {

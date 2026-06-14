@@ -6,6 +6,8 @@ import { TrackClient } from "@/components/track/track-client";
 
 export const metadata: Metadata = { title: "Track Order" };
 
+export const dynamic = "force-dynamic";
+
 export default function TrackPage() {
   return (
     <main>
