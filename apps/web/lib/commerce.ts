@@ -335,12 +335,21 @@ function mapDetail(p: MedusaProduct): StoreProductDetail {
   };
 }
 
+// Time-box every Store API call. A cold Render backend *hangs* the connection
+// (it doesn't error), so without this the request blocks indefinitely and the
+// catch below never fires — which is what hung static prerender past Vercel's
+// 60s budget on `/` and `/cart` (#17, #46). On timeout the fetch aborts, we
+// return null, and callers fall back to placeholders; ISR fills in real data on
+// a later render once the backend is warm.
+const MEDUSA_FETCH_TIMEOUT_MS = 10_000;
+
 async function medusaFetch(path: string, tags: string[]): Promise<unknown | null> {
   if (!medusaEnabled()) return null;
   try {
     const res = await fetch(`${BACKEND}${path}`, {
       headers: { "x-publishable-api-key": PUBLISHABLE_KEY as string },
       next: { revalidate: 15, tags },
+      signal: AbortSignal.timeout(MEDUSA_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     return (await res.json()) as unknown;
