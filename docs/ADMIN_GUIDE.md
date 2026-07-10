@@ -103,6 +103,12 @@ Terms. Edit the title/content (rich text), hide a page, or **Add page** to creat
 a brand-new URL (e.g. `help/faq` → `/help/faq`) — no deploy needed. "View page"
 opens the live page.
 
+### Shop the Look
+Tag the pieces in a product's model photo (top, bottom, shoes, accessories):
+pick the product, click the photo to drop numbered dots, link each dot to a
+product. Shoppers see the dots on that product's page and click through to
+each piece. One look per product, up to 8 tags.
+
 ### Popups
 The promotional popup: heading, body, **email capture**, **preference chips**
 (Women/Men/Curve/Kids/Beauty), **trigger** (after delay / on scroll / exit-intent /

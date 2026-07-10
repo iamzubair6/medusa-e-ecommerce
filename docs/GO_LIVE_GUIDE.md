@@ -186,6 +186,17 @@ normal; you won't see them).
    ADMIN_PASSWORD                     = <password for /admin>
    ADMIN_SESSION_SECRET               = <random 64-hex>
    NEXT_PUBLIC_SITE_URL               = https://<your-app>.vercel.app   (add after first deploy)
+
+   # Optional — real email (Brevo free tier; see docs/smoke-tests/50-email-brevo.md)
+   BREVO_API_KEY                      = xkeysib-…
+   EMAIL_FROM                         = <Brevo-verified sender address>
+   EMAIL_FROM_NAME                    = Maison
+   OTP_DEMO_CODES                     = true   (ONLY until Brevo is set up; then remove)
+
+   # Optional — online payment (SSLCommerz free sandbox; see docs/smoke-tests/51-payment-sslcommerz.md)
+   SSLCOMMERZ_STORE_ID                = <sandbox store id>
+   SSLCOMMERZ_STORE_PASSWORD          = <sandbox store password>
+   # SSLCOMMERZ_LIVE=true only for a real production SSLCommerz store
    ```
 4. **Deploy.** Copy your Vercel URL when it's green.
 
