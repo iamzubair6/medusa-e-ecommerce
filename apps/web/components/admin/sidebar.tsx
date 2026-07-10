@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, Sparkles } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { AdminRole } from "@ecom/cms";
 
@@ -19,6 +19,7 @@ const items = [
   { href: "/admin/pages", label: "Pages", icon: LayoutTemplate, exact: false },
   { href: "/admin/landing-style", label: "Landing Style", icon: LayoutPanelTop, exact: false },
   { href: "/admin/content-pages", label: "Content Pages", icon: FileText, exact: false },
+  { href: "/admin/shop-the-look", label: "Shop the Look", icon: Sparkles, exact: false },
   { href: "/admin/navigation", label: "Navigation", icon: Navigation, exact: false },
   { href: "/admin/listings", label: "Listings", icon: ListFilter, exact: false },
   { href: "/admin/popups", label: "Popups", icon: Megaphone, exact: false },

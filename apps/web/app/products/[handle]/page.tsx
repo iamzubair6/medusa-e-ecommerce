@@ -5,6 +5,8 @@ import { Container, Reveal } from "@ecom/ui";
 import { getReviewSummary, listReviews, getSiteSetting } from "@ecom/cms";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { fetchProductByHandle, fetchRelatedProducts, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
+import { lookForProduct, parseShopTheLook } from "@/lib/shop-the-look";
+import { ShopTheLook } from "@/components/site/shop-the-look";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { PdpClient } from "@/components/site/pdp-client";
@@ -33,13 +35,15 @@ export default async function ProductPage({ params }: { params: Params }) {
 
   const divSet = new Set<string>(DIVISION_HANDLES);
   const primaryCat = (product.categoryHandles ?? []).find((h) => !divSet.has(h));
-  const [related, trendingResult, reviewSummary, reviewsData, site] = await Promise.all([
+  const [related, trendingResult, reviewSummary, reviewsData, site, lookRaw] = await Promise.all([
     fetchRelatedProducts(handle, { category: primaryCat, division: product.division, limit: 4 }),
     fetchListing({ collection: "trending" }, { limit: 5 }),
     getReviewSummary(handle),
     listReviews(handle, { take: 20 }),
     getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
+    getSiteSetting("shopTheLook").catch(() => null),
   ]);
+  const look = lookForProduct(parseShopTheLook(lookRaw), handle);
   const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
   const priceNumber = Number(product.price.replace(/[^0-9.]/g, "")) || undefined;
@@ -75,6 +79,8 @@ export default async function ProductPage({ params }: { params: Params }) {
         </nav>
 
         <PdpClient product={product} reviewSummary={reviewSummary} deliveryLine={site.deliveryLine} sizeGuideContent={site.sizeGuide} shippingReturns={site.shippingReturns} />
+
+        {look && <ShopTheLook look={look} />}
 
         <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 
