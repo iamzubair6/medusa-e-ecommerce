@@ -127,6 +127,25 @@ add or change products — it builds the image fingerprints used to find lookali
 Everyone who entered an email in the popup **or** started checkout but didn't finish.
 Use this list for remarketing. Paginated, newest first.
 
+### Orders
+Open an order to see the **status stepper** — Ordered → Processing → Shipped →
+Delivered — with one button for the next step: **Start processing** (fulfils the
+items), then **Mark shipped** (enter the courier tracking number), then **Mark
+delivered** (for COD this confirms the cash was collected). **Cancel order** is
+available until the order ships. Everything updates the live Medusa order, so the
+customer's `/track` page always matches.
+
+### Shipping
+Manage delivery **zones and options** without leaving the admin:
+- **Add zone** — name it and list the countries it covers (2-letter codes, e.g.
+  `BD, IN`). Edit a zone's name/countries with the pencil; delete a zone once it
+  has no options.
+- **Add shipping option** inside a zone — a name and a flat ৳ rate; it appears at
+  checkout immediately. Edit an option's amount inline, or delete it (trash icon).
+- Per-option **checkout note** and **"Show at checkout"** are display-only
+  overrides (they don't change Medusa) — use the checkbox to hide an option
+  without deleting it.
+
 ---
 
 ## 5. How it all fits together (plain English)
