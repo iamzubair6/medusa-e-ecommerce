@@ -689,6 +689,7 @@ interface RawOrderFull extends RawOrderListItem {
   } | null;
   fulfillments?: {
     id: string;
+    packed_at?: string | null;
     shipped_at?: string | null;
     delivered_at?: string | null;
     labels?: { tracking_number?: string | null }[];
@@ -736,6 +737,7 @@ export async function getOrderDetail(id: string): Promise<AdminOrderDetail | nul
       : undefined,
     fulfillments: (o.fulfillments ?? []).map((f) => ({
       id: f.id,
+      packedAt: f.packed_at ?? undefined,
       shippedAt: f.shipped_at ?? undefined,
       deliveredAt: f.delivered_at ?? undefined,
       trackingNumbers: (f.labels ?? []).map((l) => l.tracking_number).filter((t): t is string => !!t),
@@ -1005,6 +1007,8 @@ export interface AdminShippingRate {
   amount: number; // BDT
   /** Service zone the option is scoped to (its delivery zone), best-effort. */
   zone?: string;
+  /** Service zone id — used to group options under their zone card. */
+  zoneId?: string;
 }
 
 export async function listShippingRates(): Promise<AdminShippingRate[]> {
@@ -1012,16 +1016,167 @@ export async function listShippingRates(): Promise<AdminShippingRate[]> {
     shipping_options?: {
       id: string;
       name: string;
+      service_zone_id?: string | null;
       prices?: { amount: number; currency_code: string }[];
       service_zone?: { name?: string } | null;
     }[];
-  }>("/admin/shipping-options?fields=id,name,*prices,service_zone.name");
+  }>("/admin/shipping-options?fields=id,name,service_zone_id,*prices,service_zone.name");
   return (data?.shipping_options ?? []).map((o) => ({
     id: o.id,
     name: o.name,
     amount: o.prices?.find((p) => p.currency_code === "bdt")?.amount ?? 0,
     zone: o.service_zone?.name ?? undefined,
+    zoneId: o.service_zone_id ?? undefined,
   }));
+}
+
+// --- Shipping zones & option management ---------------------------------------
+// Medusa v2 has no GET /admin/fulfillment-sets list route; zones are read off the
+// stock locations (verified against the local backend). Zone mutations go through
+// POST/DELETE /admin/fulfillment-sets/:id/service-zones[/:zoneId].
+
+export interface AdminShippingZone {
+  id: string;
+  name: string;
+  fulfillmentSetId: string;
+  /** ISO-2 country codes (lowercase, as Medusa stores them). */
+  countries: string[];
+}
+
+interface RawStockLocationZones {
+  stock_locations?: {
+    fulfillment_sets?: {
+      id: string;
+      type: string;
+      service_zones?: {
+        id: string;
+        name: string;
+        geo_zones?: { type: string; country_code?: string | null }[];
+      }[];
+    }[];
+  }[];
+}
+
+const ZONE_FIELDS =
+  "id,name,*fulfillment_sets,*fulfillment_sets.service_zones,*fulfillment_sets.service_zones.geo_zones";
+
+/** Service zones of every "shipping" fulfillment set (pickup sets are excluded). */
+export async function listShippingZones(): Promise<AdminShippingZone[]> {
+  const data = await adminFetch<RawStockLocationZones>(
+    `/admin/stock-locations?fields=${encodeURIComponent(ZONE_FIELDS)}&limit=50`,
+  );
+  const zones: AdminShippingZone[] = [];
+  for (const loc of data?.stock_locations ?? []) {
+    for (const fs of loc.fulfillment_sets ?? []) {
+      if (fs.type !== "shipping") continue;
+      for (const z of fs.service_zones ?? []) {
+        zones.push({
+          id: z.id,
+          name: z.name,
+          fulfillmentSetId: fs.id,
+          countries: (z.geo_zones ?? [])
+            .filter((g) => g.type === "country" && g.country_code)
+            .map((g) => (g.country_code as string).toLowerCase()),
+        });
+      }
+    }
+  }
+  return zones;
+}
+
+/** The shipping fulfillment set new zones are created under (the store has one). */
+async function getShippingFulfillmentSetId(): Promise<string> {
+  const data = await adminFetch<RawStockLocationZones>(
+    `/admin/stock-locations?fields=${encodeURIComponent(ZONE_FIELDS)}&limit=50`,
+  );
+  for (const loc of data?.stock_locations ?? []) {
+    const fs = (loc.fulfillment_sets ?? []).find((f) => f.type === "shipping");
+    if (fs) return fs.id;
+  }
+  throw new Error("No shipping fulfillment set found — set up a stock location first.");
+}
+
+const toGeoZones = (countries: string[]) =>
+  countries.map((c) => ({ type: "country" as const, country_code: c.toLowerCase() }));
+
+export async function createShippingZone(name: string, countries: string[]): Promise<void> {
+  const fulfillmentSetId = await getShippingFulfillmentSetId();
+  await adminPost(`/admin/fulfillment-sets/${fulfillmentSetId}/service-zones`, {
+    name,
+    geo_zones: toGeoZones(countries),
+  });
+}
+
+/** Rename a zone and/or replace its country list (geo_zones without ids replace). */
+export async function updateShippingZone(
+  zoneId: string,
+  patch: { name?: string; countries?: string[] },
+): Promise<void> {
+  const zone = (await listShippingZones()).find((z) => z.id === zoneId);
+  if (!zone) throw new Error("Zone not found");
+  await adminPost(`/admin/fulfillment-sets/${zone.fulfillmentSetId}/service-zones/${zoneId}`, {
+    name: patch.name ?? zone.name,
+    ...(patch.countries ? { geo_zones: toGeoZones(patch.countries) } : {}),
+  });
+}
+
+export async function deleteShippingZone(zoneId: string): Promise<void> {
+  const zone = (await listShippingZones()).find((z) => z.id === zoneId);
+  if (!zone) throw new Error("Zone not found");
+  await adminDelete(`/admin/fulfillment-sets/${zone.fulfillmentSetId}/service-zones/${zoneId}`);
+}
+
+export interface NewShippingOptionInput {
+  name: string;
+  amount: number; // BDT, flat
+  serviceZoneId: string;
+}
+
+/**
+ * Create a flat-rate shipping option in a zone. Mirrors the seeded options
+ * (verified against the local backend): manual provider, default profile, a
+ * BDT currency price plus a BDT-region price, and the storefront rules
+ * (enabled_in_store=true, is_return=false) checkout needs to list it.
+ */
+export async function createShippingOption(input: NewShippingOptionInput): Promise<{ id: string }> {
+  const [profiles, regions] = await Promise.all([
+    adminFetch<{ shipping_profiles?: { id: string }[] }>("/admin/shipping-profiles?limit=1"),
+    adminFetch<{ regions?: { id: string; currency_code: string }[] }>(
+      "/admin/regions?fields=id,currency_code&limit=50",
+    ),
+  ]);
+  const shippingProfileId = profiles?.shipping_profiles?.[0]?.id;
+  if (!shippingProfileId) throw new Error("No shipping profile found.");
+  const bdtRegionId = (regions?.regions ?? []).find((r) => r.currency_code === STORE_CURRENCY)?.id;
+
+  const { shipping_option } = await adminPost<{ shipping_option: { id: string } }>(
+    "/admin/shipping-options",
+    {
+      name: input.name,
+      service_zone_id: input.serviceZoneId,
+      shipping_profile_id: shippingProfileId,
+      provider_id: "manual_manual",
+      price_type: "flat",
+      type: {
+        label: "Standard",
+        code: slugify(input.name) || `option-${Date.now()}`,
+        description: input.name,
+      },
+      prices: [
+        { currency_code: STORE_CURRENCY, amount: input.amount },
+        ...(bdtRegionId ? [{ region_id: bdtRegionId, amount: input.amount }] : []),
+      ],
+      rules: [
+        { attribute: "enabled_in_store", operator: "eq", value: "true" },
+        { attribute: "is_return", operator: "eq", value: "false" },
+      ],
+    },
+  );
+  return shipping_option;
+}
+
+export async function deleteShippingOption(id: string): Promise<void> {
+  await adminDelete(`/admin/shipping-options/${id}`);
 }
 
 /** Payment providers attached to the selling regions (read-only — enabling new
