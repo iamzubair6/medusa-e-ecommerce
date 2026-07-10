@@ -18,12 +18,9 @@ export default async function AccountPage() {
   return (
     <main>
       <SiteNavbar />
-      <Container className="py-12">
-        <h1 className="mb-8 font-display text-3xl font-bold tracking-tight">
-          Hello{customer.firstName ? `, ${customer.firstName}` : ""}
-        </h1>
+      <Container className="py-12 lg:py-16">
         <AccountClient customer={customer} orders={orders} />
-        <div className="mt-8">
+        <div className="mt-12">
           <AddressBook addresses={addresses} />
         </div>
       </Container>
