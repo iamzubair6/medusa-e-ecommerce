@@ -4,12 +4,12 @@ import { verifyOtp } from "@ecom/cms";
 import { setPhoneSession } from "@/lib/phone-session";
 import { loginOrCreateByPhone } from "@/lib/customer-auth";
 
-const schema = z.object({ phone: z.string().min(6).max(20), code: z.string().length(4) });
+const schema = z.object({ phone: z.string().min(6).max(20), code: z.string().length(6) });
 
 /** Verify OTP → auto-create + log in a real customer (passwordless). */
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Enter the 4-digit code" }, { status: 422 });
+  if (!parsed.success) return NextResponse.json({ error: "Enter the 6-digit code" }, { status: 422 });
 
   const phone = parsed.data.phone.trim();
   const ok = await verifyOtp(phone, parsed.data.code);

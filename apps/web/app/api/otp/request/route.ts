@@ -16,7 +16,7 @@ const demoCodesAllowed = () =>
   process.env.OTP_DEMO_CODES === "true" || process.env.NODE_ENV !== "production";
 
 /**
- * Generate + send a 4-digit OTP for a phone. Delivery, best first:
+ * Generate + send a 6-digit OTP for a phone. Delivery, best first:
  * 1. real email (Brevo) — to the phone's REGISTERED email when an account
  *    exists (the caller's email is never trusted for existing accounts, or the
  *    code could be exfiltrated to take the account over); the supplied email

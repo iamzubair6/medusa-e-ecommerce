@@ -7,7 +7,7 @@ import { cn } from "@ecom/ui";
 export function OtpInput({
   value,
   onChange,
-  length = 4,
+  length = 6,
   autoFocus,
 }: {
   value: string;
@@ -54,7 +54,7 @@ export function OtpInput({
             }
           }}
           className={cn(
-            "h-14 w-12 rounded-sm border border-input bg-card text-center text-2xl font-semibold outline-none focus:border-foreground focus:ring-1 focus:ring-ring",
+            "h-12 w-10 rounded-sm border border-input bg-card text-center text-xl font-semibold outline-none focus:border-foreground focus:ring-1 focus:ring-ring",
           )}
         />
       ))}
