@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { updateShippingRate } from "@/lib/medusa-admin";
+import { deleteShippingOption, updateShippingRate } from "@/lib/medusa-admin";
 
 const schema = z.object({ amount: z.number().int().min(0).max(100000) });
 
@@ -13,6 +13,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   try {
     await updateShippingRate(id, parsed.data.amount);
+    revalidatePath("/");
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 502 });
+  }
+}
+
+/** Delete a shipping option (removes it from checkout). Admin-gated by middleware. */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  try {
+    await deleteShippingOption(id);
     revalidatePath("/");
     return NextResponse.json({ ok: true });
   } catch (error) {
