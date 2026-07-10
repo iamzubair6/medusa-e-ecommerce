@@ -60,6 +60,13 @@ interface RawCart {
   shipping_methods?: { id: string }[];
   discount_total?: number;
   promotions?: { code?: string | null }[];
+  shipping_address?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    phone?: string | null;
+    address_1?: string | null;
+    city?: string | null;
+  } | null;
 }
 
 function fmt(amount: number | undefined, currency: string): string {
@@ -198,6 +205,39 @@ export async function addShippingMethod(id: string, optionId: string): Promise<C
 }
 
 /** Tag the cart with the chosen payment method (carried onto the order). */
+/** Raw amounts + customer details a payment gateway needs (formatted CartView hides them). */
+export interface CartPaymentInfo {
+  id: string;
+  amount: number;
+  currency: string;
+  email: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  itemCount: number;
+}
+
+export async function getCartPaymentInfo(id: string): Promise<CartPaymentInfo | null> {
+  try {
+    const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}?${CART_FIELDS}`);
+    const addr = cart.shipping_address;
+    return {
+      id: cart.id,
+      amount: cart.total ?? 0,
+      currency: cart.currency_code.toUpperCase(),
+      email: cart.email ?? "",
+      name: [addr?.first_name, addr?.last_name].filter(Boolean).join(" ") || "Customer",
+      phone: addr?.phone ?? "",
+      address: addr?.address_1 ?? "",
+      city: addr?.city ?? "",
+      itemCount: (cart.items ?? []).reduce((n, i) => n + i.quantity, 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function setCartMetadata(id: string, metadata: Record<string, unknown>): Promise<void> {
   await api(`/store/carts/${id}`, { method: "POST", body: JSON.stringify({ metadata }) });
 }
