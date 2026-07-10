@@ -70,6 +70,7 @@ Run with: `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` then
 |---|---|---|
 | `bash scripts/setup-live-db.sh <email> [name] [role]` | Syncs the **live** CMS schema (`prisma db push`, additive) **and** creates a live admin. Reads the live DB URL from `.env.deploy-secrets`, confirms before touching prod | After deploying a CMS schema change (new model/column/SectionType), or to fix the live `/admin` login 500. |
 | `bash scripts/setup-live-db.sh --schema-only` | Same, but only the schema push (no admin created) | When live just needs the schema synced. |
+| `bash scripts/seed-live-catalog.sh` | Seeds the **live** storefront: ⚠️ **WIPES & rebuilds** the live Medusa catalog (Fashion-Nova: products/categories/collections/prices/images) **and** rebuilds the live CMS `home` layout. Typed `seed live` confirmation; needs Node 20 | To make production look like local. **Destructive** on the Medusa catalog — run only when you want to replace live products. Safest alternative for step 1: run the Medusa seed from the Render service **Shell** (its `DATABASE_URL` is already live). |
 
 > **Push = deploy.** Pushing to `master` auto-deploys web → Vercel and Medusa →
 > Render. Code is additive/safe, but a CMS schema change also needs
