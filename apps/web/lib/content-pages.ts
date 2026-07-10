@@ -119,6 +119,10 @@ export const DEFAULT_CONTENT_PAGES: ContentPages = {
         ]) +
         p("Why we exist", [
           "Great style should not require a stylist's budget. Every Maison piece is designed to photograph beautifully, wear comfortably and last beyond the trend cycle.",
+        ]) +
+        "<h2>The Maison standard</h2><ul><li><strong>Fit first</strong> — every style is wear-tested on real bodies before it ships.</li><li><strong>Fabric that earns it</strong> — hand-feel is approved in the studio, never from a swatch card.</li><li><strong>Finish</strong> — pressed seams, clean hems and hardware that survives the wash.</li></ul>" +
+        p("Come see for yourself", [
+          'New drops land every week. Questions about a piece? The <a href="/contact">Contact</a> page reaches the studio directly.',
         ]),
     },
     {
@@ -130,7 +134,8 @@ export const DEFAULT_CONTENT_PAGES: ContentPages = {
           "We are a small, fast team building the future of fashion retail in Bangladesh — across design, merchandising, engineering and content.",
           "There are no open roles right now, but we are always happy to meet exceptional people.",
         ]) +
-        p("Introduce yourself", ['Send your portfolio or CV via the <a href="/contact">Contact</a> page with the subject "Careers".']),
+        "<h2>How we work</h2><ul><li>Small teams, real ownership — you ship things customers touch the same week.</li><li>Taste matters here: design, engineering and merchandising sit at one table.</li><li>We hire for craft and curiosity over years on a CV.</li></ul>" +
+        p("Introduce yourself", ['Send your portfolio or CV via the <a href="/contact">Contact</a> page with the subject "Careers". Tell us the best thing you have made — we read every note.']),
     },
     {
       slug: "contact",
@@ -143,6 +148,10 @@ export const DEFAULT_CONTENT_PAGES: ContentPages = {
         ]) +
         p("Before you write", [
           'Order questions move fastest when you include your order ID — you can also self-serve from <a href="/track">Track Order</a>.',
+          'For sizing, delivery windows and returns, the <a href="/help">Help Center</a> answers most questions instantly.',
+        ]) +
+        p("Wholesale &amp; press", [
+          'Stockist, collaboration or press enquiries are welcome — write with "Press" or "Wholesale" in the subject and the right person will pick it up.',
         ]),
     },
     {
@@ -151,11 +160,11 @@ export const DEFAULT_CONTENT_PAGES: ContentPages = {
       enabled: true,
       body:
         p("Fashion, responsibly", [
-          "We produce in small, demand-led runs to avoid dead stock, and we re-use studio samples across shoots instead of discarding them.",
-          "Packaging is plastic-light: recycled mailers and paper tape wherever our couriers allow it.",
+          "We believe the most sustainable garment is the one you keep wearing — so we design for longevity first, then work on everything around it.",
         ]) +
+        "<h2>What we do today</h2><ul><li><strong>Demand-led runs</strong> — we cut what sells, not what a forecast hopes will.</li><li><strong>Sample re-use</strong> — studio samples work across shoots, then go to the team, never the bin.</li><li><strong>Plastic-light packaging</strong> — recycled mailers and paper tape wherever couriers allow.</li></ul>" +
         p("Where we are honest", [
-          "We are early in this journey. As we grow we will publish supplier standards and material sourcing on this page.",
+          "We are early in this journey. As we grow we will publish supplier standards and material sourcing on this page — measured, not marketed.",
         ]),
     },
     {
@@ -164,8 +173,12 @@ export const DEFAULT_CONTENT_PAGES: ContentPages = {
       enabled: true,
       body:
         p("Give them the choice", [
+          "The perfect gift for someone whose taste you trust more than your own guess.",
           "Digital gift cards are <strong>coming soon</strong> — instant delivery by email or SMS, redeemable at checkout.",
-          'Want to be first to know? Join the list from the signup box in the footer, or <a href="/contact">contact us</a> to reserve one.',
+        ]) +
+        "<h2>How it will work</h2><ul><li>Pick an amount and add a personal note.</li><li>Delivered instantly by email or SMS — or scheduled for the day itself.</li><li>Redeemable on anything at checkout, with <strong>no expiry</strong>.</li></ul>" +
+        p("Be first in line", [
+          'Join the list from the signup box in the footer, or <a href="/contact">contact us</a> to reserve one.',
         ]),
     },
     {
