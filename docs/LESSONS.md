@@ -11,3 +11,5 @@
 | 4 | 2026-07-10 | Pipeline agents (code-reviewer, test-writer, doc-writer) sometimes skipped | Run them properly on every feature before "done" |
 | 5 | 2026-07-10 | Risk of editing code without knowing its role | Read file structure + purpose first; change only what's needed |
 | 6 | 2026-07-10 | Relying on assistant-side memory for project state | Repo docs are the source of truth (IMPLEMENTATION_STATUS, LESSONS, guides); write context there |
+| 7 | 2026-07-11 | Auth built as combined sign-in/sign-up tabs with a "Send code" button and 4-digit OTP — owner wants dedicated pages and a guided flow | Auth-like flows: separate pages per intent, multi-step (details → Next → verify screen), 6-digit OTP |
+| 8 | 2026-07-11 | A failing step after OTP verification burned the code (user stuck: 500 then 401 on retry) | Never consume one-time tokens before the whole operation succeeds; keep them retryable until expiry |
