@@ -13,7 +13,7 @@ const KEY = "maison_phone_prompt";
 export const PHONE_RESOLVED_EVENT = "maison:phone-resolved";
 
 /**
- * First-visit phone capture (optional). Phone → 4-digit OTP → passwordless
+ * First-visit phone capture (optional). Phone → 6-digit OTP → passwordless
  * verified-phone session. On resolve (verify OR skip) it fires
  * PHONE_RESOLVED_EVENT so the promo popup can show afterwards. SMS is mocked —
  * the dev code is shown inline until a real gateway is wired. All visible copy
@@ -76,7 +76,7 @@ export function PhoneCapturePopup({ settings = DEFAULT_PHONE_CAPTURE_SETTINGS }:
 
   const verify = async () => {
     setError(null);
-    if (code.trim().length !== 4) return setError("Enter the 4-digit code.");
+    if (code.trim().length !== 6) return setError("Enter the 6-digit code.");
     setLoading(true);
     try {
       const res = await fetch("/api/otp/verify", {

@@ -17,7 +17,7 @@ export const phoneCaptureSettingsSchema = z.object({
     .default("Add your phone for offers + faster checkout. We'll text a quick code."),
   buttonLabel: z.string().min(1).max(40).default("Send code"),
   codeHeading: z.string().min(1).max(60).default("Enter code"),
-  codeSubtext: z.string().min(1).max(200).default("We sent a 4-digit code to {phone}."),
+  codeSubtext: z.string().min(1).max(200).default("We sent a 6-digit code to {phone}."),
   successText: z.string().min(1).max(40).default("Verify & continue"),
 });
 
