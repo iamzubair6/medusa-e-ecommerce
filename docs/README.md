@@ -14,6 +14,7 @@ reference. Keep docs updated **in the same change** as the code (see CLAUDE.md
 | **BUILD_LOG.md** | Full day-by-day history of everything built since project start | append a dated section as work continues |
 | **LESSONS.md** | 🚫 Do-not-repeat log of owner corrections — **read at session start** | the owner corrects a mistake |
 | SMOKE_TEST_18-32.md | Click-through visual verification for tasks #18–#32 (what changed + what to test) | when a #18–#32 behaviour changes |
+| **smoke-tests/** | 📋 One owner-facing test checklist per task (#49+), incl. free-account setup steps | every new task ships with one |
 | PRODUCTION_DECISIONS.md | Deferred prod choices (upload storage, SMS gateway, hosting) — built mocked for now | a mock is added or a real provider is wired |
 | ROADMAP.md | Original platform phases 0–5 (historical) | rarely — points to IMPLEMENTATION_STATUS for current work |
 | PLAN.md | Product vision / scope (historical baseline) | vision/scope changes |

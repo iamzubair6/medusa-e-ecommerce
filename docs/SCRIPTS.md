@@ -37,6 +37,7 @@ One place for every runnable script in the repo. For deeper DB/migration flow se
 | `bun run --filter @ecom/cms db:migrate` | Creates/applies a dev migration | When you want a tracked migration instead of a push. |
 | `bun run --filter @ecom/cms db:seed` | Seeds baseline CMS content | Fresh local CMS setup. |
 | `bun run --filter @ecom/cms db:seed-home` | (Re)builds the rich **home** PageLayout (10 Fashion-Nova sections) | To restore/refresh the demo home layout. Scoped to `home` only. |
+| `bun run --filter @ecom/cms db:seed-divisions` | (Re)builds the 6 **division** PageLayouts (women/men/plus/sport/kids/beauty) | To restore/refresh division landings. Scoped to those 6 slugs only. |
 | `bun run --filter @ecom/cms db:studio` | Opens Prisma Studio (DB browser) | To inspect/edit CMS rows visually. |
 
 > After a **local** `db:push`, restart `bun run dev` so the running server loads the
