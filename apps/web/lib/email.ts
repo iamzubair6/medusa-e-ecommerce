@@ -39,38 +39,61 @@ export async function sendEmail({ to, toName, subject, html }: SendArgs): Promis
 }
 
 /* ------------------------------------------------------------------------- */
-/* Templates — inline-styled to survive email clients, on-brand (bone/ink).   */
+/* Rendering — the branded shell is fixed in code; subject/heading/body come  */
+/* from the admin-editable "emailTemplates" SiteSetting (/admin/email-templates). */
 /* ------------------------------------------------------------------------- */
 
-const shell = (inner: string) => `
-<div style="background:#f5f1e8;padding:32px 16px;font-family:Georgia,'Times New Roman',serif;color:#1c1a17;">
-  <div style="max-width:520px;margin:0 auto;background:#fbf8f1;border:1px solid #d8cfbc;padding:32px;">
-    <p style="margin:0 0 24px;font-size:22px;letter-spacing:2px;font-weight:bold;text-transform:uppercase;">Maison</p>
-    ${inner}
-    <p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #d8cfbc;font-size:12px;color:#8a8272;">
-      Maison · editorial luxury, every day. Questions? Just reply to this email.
+import { getSiteSetting } from "@ecom/cms";
+import {
+  fillPlaceholders,
+  parseEmailTemplates,
+  type EmailTemplates,
+  type EmailTemplateType,
+} from "./email-templates";
+
+/** On-brand shell: ink logo band, claret accent rule, parchment card, footer. */
+export function emailShell(heading: string, bodyHtml: string): string {
+  return `
+<div style="background:#eae4d6;padding:36px 16px;font-family:Georgia,'Times New Roman',serif;color:#1c1a17;">
+  <div style="max-width:540px;margin:0 auto;">
+    <div style="background:#1c1a17;padding:22px 32px;text-align:center;">
+      <span style="font-size:24px;letter-spacing:6px;font-weight:bold;text-transform:uppercase;color:#f5f1e8;">Maison</span>
+    </div>
+    <div style="height:3px;background:#7a1f2b;"></div>
+    <div style="background:#fbf8f1;border:1px solid #d8cfbc;border-top:0;padding:36px 32px;">
+      <h1 style="margin:0 0 18px;font-size:26px;line-height:1.25;font-weight:bold;">${heading}</h1>
+      ${bodyHtml}
+    </div>
+    <p style="margin:18px 8px 0;text-align:center;font-size:12px;color:#8a8272;">
+      Maison · editorial luxury, every day.<br/>Questions? Just reply to this email — a human reads it.
     </p>
   </div>
 </div>`;
-
-export function otpEmailHtml(code: string): string {
-  return shell(`
-    <p style="margin:0 0 8px;font-size:16px;">Your verification code</p>
-    <p style="margin:0 0 16px;font-size:34px;letter-spacing:10px;font-weight:bold;color:#7a1f2b;">${code}</p>
-    <p style="margin:0;font-size:14px;color:#5c564a;">It expires in 5 minutes. If you didn't request it, you can ignore this email.</p>
-  `);
 }
 
-export function orderConfirmationHtml(order: { displayId: number; total: string }): string {
-  return shell(`
-    <p style="margin:0 0 8px;font-size:20px;font-weight:bold;">Order confirmed — thank you!</p>
-    <p style="margin:0 0 16px;font-size:15px;">
-      Your order <strong>#${order.displayId}</strong> (${order.total}) is being prepared.
-    </p>
-    <p style="margin:0 0 16px;font-size:14px;color:#5c564a;">
-      We'll be in touch when it ships. You can follow it anytime on the
-      <a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/track" style="color:#7a1f2b;">Track Order</a> page
-      using your order ID and phone number.
-    </p>
-  `);
+/**
+ * Render a transactional email from the admin-managed templates.
+ * `templates` may be passed in when the caller already fetched the setting.
+ */
+export async function renderEmail(
+  type: EmailTemplateType,
+  vars: Record<string, string>,
+  templates?: EmailTemplates,
+): Promise<{ subject: string; html: string }> {
+  const t = (templates ?? parseEmailTemplates(await getSiteSetting("emailTemplates").catch(() => null)))[type];
+  return {
+    subject: fillPlaceholders(t.subject, vars),
+    html: emailShell(fillPlaceholders(t.heading, vars), fillPlaceholders(t.body, vars)),
+  };
+}
+
+/** Convenience: render + send in one call. Never throws; false = not sent. */
+export async function sendTemplateEmail(
+  type: EmailTemplateType,
+  to: string,
+  vars: Record<string, string>,
+): Promise<boolean> {
+  if (emailMockMode()) return false;
+  const { subject, html } = await renderEmail(type, vars);
+  return sendEmail({ to, subject, html });
 }
