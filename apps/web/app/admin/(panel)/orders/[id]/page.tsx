@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatOrderId } from "@/lib/order-id";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -17,7 +18,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   return (
     <>
       <AdminHeader
-        title={`Order #${order.displayId}`}
+        title={`Order ${formatOrderId(order.displayId)}`}
         description={`${order.email} · ${new Date(order.createdAt).toLocaleString()}`}
         action={
           <Link href="/admin/orders" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -65,7 +66,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         <div className="flex flex-col gap-6">
           <Card className="p-5">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fulfilment</h3>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order status</h3>
             <OrderActions order={order} />
           </Card>
 

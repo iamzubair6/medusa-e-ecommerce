@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatOrderId } from "@/lib/order-id";
 import { Badge, Card } from "@ecom/ui";
 import { listOrders } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
@@ -42,7 +43,7 @@ export default async function AdminOrdersPage({
               {orders.map((o) => (
                 <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/30 [&>td]:px-4 [&>td]:py-3">
                   <td className="font-semibold">
-                    <Link href={`/admin/orders/${o.id}`} className="hover:text-accent">#{o.displayId}</Link>
+                    <Link href={`/admin/orders/${o.id}`} className="hover:text-accent">{formatOrderId(o.displayId)}</Link>
                   </td>
                   <td className="text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</td>
                   <td>{o.email}</td>
