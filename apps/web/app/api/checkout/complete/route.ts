@@ -5,6 +5,7 @@ import { clearCartId, getCartId } from "@/lib/cart-cookie";
 import { completeCart, initPayment, setCartMetadata } from "@/lib/medusa-store";
 import { transferCartToCustomer } from "@/lib/customer-auth";
 import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
+import { orderConfirmationHtml, sendEmail } from "@/lib/email";
 
 const schema = z.object({ method: z.string().min(1).max(24).optional() });
 
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
   }
   // Use the requested method only if it's currently enabled; else the first one.
   const method = requested && allowed.includes(requested) ? requested : allowed[0]!;
+  // Gateway methods must go through /api/checkout/pay (validated payment) —
+  // completing here would place an unpaid order marked as paid online.
+  if (method === "sslcommerz") {
+    return NextResponse.json({ error: "Online payments start at /api/checkout/pay." }, { status: 409 });
+  }
 
   try {
     // Link the order to the signed-in customer (no-op for guests).
@@ -36,6 +42,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
     await clearCartId();
+    // Confirmation email (Brevo) — sendEmail never throws; false = not sent.
+    if (result.order.email) {
+      await sendEmail({
+        to: result.order.email,
+        subject: `Order #${result.order.displayId} confirmed — Maison`,
+        html: orderConfirmationHtml(result.order),
+      });
+    }
     return NextResponse.json({ order: result.order, method });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });

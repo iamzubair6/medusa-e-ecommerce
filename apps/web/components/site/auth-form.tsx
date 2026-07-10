@@ -18,6 +18,7 @@ export function AuthForm() {
   const [code, setCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [sentByEmail, setSentByEmail] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +31,13 @@ export function AuthForm() {
       const res = await fetch("/api/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.trim() }),
+        // Email included so the code can be delivered for real (Brevo) when configured.
+        body: JSON.stringify({ phone: phone.trim(), ...(email.trim() ? { email: email.trim() } : {}) }),
       });
-      const d = (await res.json()) as { ok?: boolean; devCode?: string; error?: string };
+      const d = (await res.json()) as { ok?: boolean; devCode?: string; channel?: string; sentTo?: string; error?: string };
       if (!res.ok) throw new Error(d.error ?? "Could not send code");
       setDevCode(d.devCode ?? null);
+      setSentByEmail(d.channel === "email" ? (d.sentTo ?? "your email") : null);
       setOtpSent(true);
     } catch (e) {
       setError((e as Error).message);
@@ -123,6 +126,7 @@ export function AuthForm() {
                 <div className="flex flex-col gap-1">
                   <OtpInput value={code} onChange={setCode} />
                   {devCode && <p className="text-center text-xs text-muted-foreground">Demo code: <span className="font-bold">{devCode}</span></p>}
+                  {sentByEmail && <p className="text-center text-xs text-muted-foreground">We emailed the code to <span className="font-bold">{sentByEmail}</span> — check your inbox.</p>}
                 </div>
               )}
               <Req><input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Req>
