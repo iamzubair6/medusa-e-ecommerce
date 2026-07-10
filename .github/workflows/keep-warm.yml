@@ -1,0 +1,20 @@
+name: Keep Medusa warm
+
+on:
+  schedule:
+    # Render free dynos sleep after ~15 min idle, so 30-min pings would hit a
+    # cold dyno every time. 10-min cadence keeps it warm (GH cron can drift a
+    # few minutes). Note: on a PRIVATE repo this burns ~3000 free Actions
+    # minutes/month (cap 2000) — a free UptimeRobot monitor (5-min pings) is
+    # the better long-term option; see docs/smoke-tests/54-polish-trio.md.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      # Medusa exposes a built-in /health endpoint (verified: returns 200 "OK").
+      # Any response wakes the Render dyno, so the step never fails the job.
+      - name: Ping Medusa
+        run: curl -s -o /dev/null -m 60 https://medusabd.onrender.com/health || true
