@@ -15,6 +15,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed-home": "tsx prisma/seed-home.ts",
+    "db:seed-divisions": "tsx prisma/seed-divisions.ts",
     "db:studio": "prisma studio",
     "admin:create": "bun scripts/create-admin.ts",
     "typecheck": "tsc --noEmit"
