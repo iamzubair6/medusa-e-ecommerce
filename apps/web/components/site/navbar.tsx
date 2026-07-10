@@ -301,7 +301,8 @@ function SearchAutocomplete({
   const suggestions = enabled && !isError ? (data ?? []) : [];
   // Options = suggestion rows + the trailing "See all results" row.
   const optionCount = suggestions.length > 0 ? suggestions.length + 1 : 0;
-  const showPanel = open && enabled && !isError;
+  // Errors show an honest row instead of silently hiding the panel.
+  const showPanel = open && enabled;
 
   const close = () => {
     setOpen(false);
@@ -381,7 +382,9 @@ function SearchAutocomplete({
             transition={{ duration: 0.16, ease: "easeOut" }}
             className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden border border-border bg-card shadow-xl"
           >
-            {isPending ? (
+            {isError ? (
+              <p className="px-3 py-3 text-xs text-muted-foreground">Search unavailable — press Enter to search</p>
+            ) : isPending ? (
               <p className="px-3 py-3 text-xs text-muted-foreground">Searching…</p>
             ) : suggestions.length === 0 ? (
               <p className="px-3 py-3 text-xs text-muted-foreground">No matches — press Enter to search</p>
