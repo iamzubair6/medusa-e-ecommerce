@@ -12,7 +12,12 @@ import { CheckoutClient } from "@/components/checkout/checkout-client";
 export const metadata: Metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ payment?: string }>;
+}) {
+  const { payment } = await searchParams;
   const [customer, phone, personaRaw, checkoutRaw] = await Promise.all([
     getCustomer().catch(() => null),
     getPhoneSession().catch(() => null),
@@ -33,6 +38,13 @@ export default async function CheckoutPage() {
     <main>
       <SiteNavbar />
       <Container className="py-10">
+        {(payment === "failed" || payment === "cancelled") && (
+          <div className="mb-6 border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {payment === "cancelled"
+              ? "Payment was cancelled — your bag is untouched. Pick a payment method to try again."
+              : "The payment didn't go through and nothing was charged. Please try again or choose Cash on Delivery."}
+          </div>
+        )}
         <CheckoutClient
           prefill={prefill}
           persona={parsePersona(personaRaw)}

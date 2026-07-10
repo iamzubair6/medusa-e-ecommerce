@@ -48,7 +48,9 @@ export const checkoutConfigSchema = z.object({
     .max(8)
     .default([
       { id: "cod", label: "Cash on Delivery", description: "Pay in cash when your order is delivered.", enabled: true },
-      { id: "card", label: "Card / Online Payment", description: "Coming soon.", enabled: false },
+      // id "sslcommerz" is special-cased: checkout redirects to the hosted gateway
+      // (/api/checkout/pay) instead of completing directly. Enable once creds are set.
+      { id: "sslcommerz", label: "Pay Online — bKash / Card", description: "Secure payment via SSLCommerz.", enabled: false },
     ]),
   shippingMethods: z.array(shippingMethodSchema).max(24).default([]),
 });

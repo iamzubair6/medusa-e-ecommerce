@@ -144,9 +144,18 @@ export function CheckoutClient({
     },
   });
 
-  // Step 3 — place the order.
+  // Step 3 — place the order. Gateway methods (sslcommerz) redirect to the
+  // hosted payment page instead; the order completes in the validated callback.
   const placeOrder = useMutation({
     mutationFn: async () => {
+      if (payMethod === "sslcommerz") {
+        const payRes = await fetch("/api/checkout/pay", { method: "POST" });
+        const pay = (await payRes.json()) as { url?: string; error?: string };
+        if (!payRes.ok || !pay.url) throw new Error(pay.error ?? "Could not start online payment");
+        window.location.assign(pay.url);
+        // Keep the mutation pending while the browser navigates away.
+        return new Promise<never>(() => {});
+      }
       const res = await fetch("/api/checkout/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
