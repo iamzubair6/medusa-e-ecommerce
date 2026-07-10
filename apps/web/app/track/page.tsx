@@ -12,7 +12,7 @@ export default function TrackPage() {
   return (
     <main>
       <SiteNavbar />
-      <Container className="py-12">
+      <Container className="py-14 lg:py-20">
         <TrackClient />
       </Container>
       <Footer />
