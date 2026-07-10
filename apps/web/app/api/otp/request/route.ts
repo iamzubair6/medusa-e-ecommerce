@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requestOtp } from "@ecom/cms";
 import { sendOtp, otpMockMode } from "@/lib/otp-sms";
-import { emailMockMode, otpEmailHtml, sendEmail } from "@/lib/email";
+import { emailMockMode, renderEmail, sendEmail } from "@/lib/email";
 import { findCustomerEmailByPhone } from "@/lib/medusa-admin";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
@@ -46,9 +46,11 @@ export async function POST(request: Request) {
     const target = stored ? (placeholder(stored) ? undefined : stored) : parsed.data.email?.trim();
 
     const { code } = await requestOtp(phone);
-    const emailed = target && !emailMockMode()
-      ? await sendEmail({ to: target, subject: "Your Maison verification code", html: otpEmailHtml(code) })
-      : false;
+    let emailed = false;
+    if (target && !emailMockMode()) {
+      const { subject, html } = await renderEmail("otp", { code, name: "there" });
+      emailed = await sendEmail({ to: target, subject, html });
+    }
     if (!emailed) await sendOtp(phone, code);
 
     const delivered = emailed || !otpMockMode();

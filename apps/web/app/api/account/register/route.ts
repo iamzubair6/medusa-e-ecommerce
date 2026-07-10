@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyOtp } from "@ecom/cms";
 import { registerCustomer } from "@/lib/customer-auth";
+import { sendTemplateEmail } from "@/lib/email";
+import { requestOrigin } from "@/lib/origin";
 
 const schema = z.object({
   email: z.string().email().max(120),
@@ -27,6 +29,12 @@ export async function POST(request: Request) {
 
     const result = await registerCustomer({ email, password, firstName, lastName: lastName ?? "", phone });
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+
+    // Welcome email (admin-editable template) — best-effort, never blocks signup.
+    await sendTemplateEmail("welcome", email, {
+      name: firstName,
+      trackUrl: `${requestOrigin(request)}/collections/new`,
+    });
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch {
     // e.g. the commerce backend is unreachable — never a bare 500.
