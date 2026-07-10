@@ -79,8 +79,16 @@ export function Footer() {
         </div>
       </Container>
 
-      <Container className="border-t border-white/10 py-6 text-xs text-white/40">
-        © 2026 Maison. All rights reserved.
+      <Container className="flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-white/40 md:flex-row md:items-center md:justify-between">
+        <span>© 2026 Maison. All rights reserved.</span>
+        <span className="flex gap-4">
+          <Link href="/privacy-policy" className="transition-colors hover:text-gold-soft">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="transition-colors hover:text-gold-soft">
+            Terms of Service
+          </Link>
+        </span>
       </Container>
     </footer>
   );
