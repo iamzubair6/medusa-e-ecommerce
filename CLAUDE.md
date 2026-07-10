@@ -54,6 +54,30 @@ task — a tiny fix skips planner; a feature runs the whole chain.
   Query on the client. Never `useEffect` + fetch.
 - **Forms**: React Hook Form + Zod. Never raw `useState` for form state.
 
+## Commit rules (owner mandate — never break)
+- **NO co-author / AI attribution lines in commits.** No `Co-Authored-By`, no
+  "Generated with Claude" — plain Conventional Commit messages only.
+- **Small commits: 2–3 files at a time**, each a coherent unit. Never one giant commit.
+- Update `docs/IMPLEMENTATION_STATUS.md` **in the same change** as the work it records.
+
+## Working discipline (owner mandate)
+- **Session start:** read `docs/README.md` → `docs/IMPLEMENTATION_STATUS.md` (+ the
+  docs relevant to the task) BEFORE any work, to recover current state and goals.
+- **Never edit code blind.** First read the file(s), understand the structure and what
+  they serve; only then change what's needed. No random/speculative edits.
+- **Do proper R&D per task** — research the approach (web search / firecrawl skills /
+  official docs) before building; don't guess APIs.
+- **Confused → ask first** (short question, options). Confident → just start; don't
+  re-ask what's already decided.
+- **Run the full pipeline agents properly** on features: code-reviewer after building,
+  test-writer (typecheck/build/tests) + doc-writer before "done". Don't skip them.
+- **Never repeat a proven mistake.** `docs/LESSONS.md` is the do-not-repeat log —
+  read it at session start, append to it whenever the owner corrects something.
+- **Replies to the owner: minimal, simple words.** Lead with the result, few short
+  bullets, no long essays.
+- **Project memory lives in the repo docs** (IMPLEMENTATION_STATUS, LESSONS, guides) —
+  never rely on assistant-side memory alone; assume chat memory can be wiped anytime.
+
 ## Hard rules
 - TypeScript: no `any`, no `@ts-ignore`, no unsafe `as`. Derive types from Zod.
 - Every async UI handles loading + error + empty states.
