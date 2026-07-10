@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Camera, ChevronDown, Heart, Menu, Search, User, X } from "lucide-react";
+import { Camera, ChevronDown, Heart, Loader2, Menu, Search, User, X } from "lucide-react";
 import { Container, cn } from "@ecom/ui";
+import { z } from "zod";
 import type { NavCategory, NavData } from "@/lib/nav-data";
 import type { NavColumn } from "@/lib/navigation";
 import { CartButton } from "@/components/cart/cart-button";
@@ -117,26 +119,7 @@ export function Navbar({ navData }: NavbarProps) {
 
             {/* search + utilities */}
             <div className="ml-auto flex items-center gap-2">
-              <form
-                action="/products"
-                className="hidden items-center gap-2 rounded-sm border border-border bg-muted/50 px-3 py-2 md:flex"
-              >
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  name="q"
-                  placeholder={`Search within ${divLabel}'s`}
-                  aria-label="Search"
-                  className="w-40 bg-transparent text-sm outline-none lg:w-56"
-                />
-                <button
-                  type="button"
-                  aria-label="Search by image"
-                  onClick={openUpload}
-                  className="cursor-pointer text-muted-foreground hover:text-accent"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
-              </form>
+              <SearchAutocomplete divLabel={divLabel} onVisualSearch={openUpload} reduce={!!reduce} />
               <button type="button" aria-label="Search" className="cursor-pointer p-2 md:hidden">
                 <Search className="h-5 w-5" />
               </button>
@@ -252,6 +235,206 @@ export function Navbar({ navData }: NavbarProps) {
       <CartDrawer />
       <ShopSimilarModal />
     </header>
+  );
+}
+
+// --- Search autocomplete ------------------------------------------------------
+
+const suggestionSchema = z.object({
+  id: z.string(),
+  handle: z.string(),
+  title: z.string(),
+  thumbnail: z.string(),
+  price: z.string(),
+});
+const suggestionsResponseSchema = z.object({ results: z.array(suggestionSchema) });
+type Suggestion = z.infer<typeof suggestionSchema>;
+
+const SUGGEST_DEBOUNCE_MS = 250;
+const SUGGEST_MIN_CHARS = 2;
+const SUGGEST_LIMIT = 6;
+
+/** Desktop search box with a product-suggestion dropdown (combobox pattern). */
+function SearchAutocomplete({
+  divLabel,
+  onVisualSearch,
+  reduce,
+}: {
+  divLabel: string;
+  onVisualSearch: () => void;
+  reduce: boolean;
+}) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [term, setTerm] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+
+  // Debounce the typed value; the debounced value drives useQuery below.
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(term.trim()), SUGGEST_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [term]);
+
+  // Close on outside click.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (formRef.current && !formRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  const enabled = debounced.length >= SUGGEST_MIN_CHARS;
+  const { data, isPending, isFetching, isError } = useQuery({
+    queryKey: ["search-suggestions", debounced],
+    enabled,
+    staleTime: 60_000,
+    queryFn: async ({ signal }): Promise<Suggestion[]> => {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(debounced)}&limit=${SUGGEST_LIMIT}`, { signal });
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
+      return suggestionsResponseSchema.parse(await res.json()).results;
+    },
+  });
+
+  const suggestions = enabled && !isError ? (data ?? []) : [];
+  // Options = suggestion rows + the trailing "See all results" row.
+  const optionCount = suggestions.length > 0 ? suggestions.length + 1 : 0;
+  const showPanel = open && enabled && !isError;
+
+  const close = () => {
+    setOpen(false);
+    setActive(-1);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      close();
+      return;
+    }
+    if (!showPanel || optionCount === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => (a + 1) % optionCount);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => (a - 1 + optionCount) % optionCount);
+    } else if (e.key === "Enter" && active >= 0) {
+      if (active < suggestions.length) {
+        e.preventDefault();
+        const s = suggestions[active]!;
+        close();
+        router.push(`/products/${s.handle}`);
+      }
+      // active === "See all results" → fall through to the form's GET submit.
+    }
+  };
+
+  return (
+    <form
+      ref={formRef}
+      action="/products"
+      role="search"
+      onSubmit={close}
+      className="relative hidden items-center gap-2 rounded-sm border border-border bg-muted/50 px-3 py-2 md:flex"
+    >
+      <Search className="h-4 w-4 text-muted-foreground" />
+      <input
+        name="q"
+        value={term}
+        onChange={(e) => {
+          setTerm(e.target.value);
+          setActive(-1);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+        placeholder={`Search within ${divLabel}'s`}
+        aria-label="Search"
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={showPanel}
+        aria-controls="search-suggestions"
+        aria-autocomplete="list"
+        aria-activedescendant={active >= 0 ? `search-option-${active}` : undefined}
+        className="w-40 bg-transparent text-sm outline-none lg:w-56"
+      />
+      {enabled && isFetching && (
+        <Loader2 aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground motion-safe:animate-spin" />
+      )}
+      <button
+        type="button"
+        aria-label="Search by image"
+        onClick={onVisualSearch}
+        className="cursor-pointer text-muted-foreground hover:text-accent"
+      >
+        <Camera className="h-4 w-4" />
+      </button>
+
+      <AnimatePresence>
+        {showPanel && (
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: 4 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden border border-border bg-card shadow-xl"
+          >
+            {isPending ? (
+              <p className="px-3 py-3 text-xs text-muted-foreground">Searching…</p>
+            ) : suggestions.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-muted-foreground">No matches — press Enter to search</p>
+            ) : (
+              <ul id="search-suggestions" role="listbox" aria-label="Product suggestions">
+                {suggestions.map((s, i) => (
+                  // role="option" sits on the interactive element itself — ARIA
+                  // options must not have interactive descendants.
+                  <li key={s.id}>
+                    <Link
+                      href={`/products/${s.handle}`}
+                      id={`search-option-${i}`}
+                      role="option"
+                      aria-selected={active === i}
+                      onClick={close}
+                      onMouseEnter={() => setActive(i)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted",
+                        active === i && "bg-muted",
+                      )}
+                    >
+                      {s.thumbnail ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={s.thumbnail} alt="" className="h-12 w-10 shrink-0 object-cover" />
+                      ) : (
+                        <span aria-hidden className="h-12 w-10 shrink-0 bg-muted" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-sm">{s.title}</span>
+                      <span className="shrink-0 text-xs font-semibold">{s.price}</span>
+                    </Link>
+                  </li>
+                ))}
+                <li className="border-t border-border">
+                  <button
+                    type="submit"
+                    id={`search-option-${suggestions.length}`}
+                    role="option"
+                    aria-selected={active === suggestions.length}
+                    onMouseEnter={() => setActive(suggestions.length)}
+                    className={cn(
+                      "w-full cursor-pointer px-3 py-2.5 text-left text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground/75 transition-colors hover:bg-muted hover:text-accent",
+                      active === suggestions.length && "bg-muted text-accent",
+                    )}
+                  >
+                    See all results for &ldquo;{term.trim()}&rdquo;
+                  </button>
+                </li>
+              </ul>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </form>
   );
 }
 
