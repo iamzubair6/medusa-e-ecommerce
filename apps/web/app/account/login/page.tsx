@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCustomer } from "@/lib/customer-auth";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
-import { AuthForm } from "@/components/site/auth-form";
+import { LoginForm } from "@/components/site/login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function LoginPage() {
   return (
     <main>
       <SiteNavbar />
-      <AuthForm />
+      <LoginForm />
       <Footer />
     </main>
   );
