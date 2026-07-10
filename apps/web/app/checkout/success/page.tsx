@@ -4,6 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { buttonVariants, Card, Container } from "@ecom/ui";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
+import { formatOrderId, parseOrderId } from "@/lib/order-id";
 
 export const metadata: Metadata = { title: "Order Confirmed" };
 
@@ -17,6 +18,8 @@ export default async function CheckoutSuccessPage({
   const { order, email, total, method, payLabel: payLabelParam } = await searchParams;
   // Prefer the admin-managed label the client passed; fall back for older links.
   const payLabel = payLabelParam || (method === "card" ? "Card / Online" : "Cash on Delivery");
+  const orderNo = order ? parseOrderId(order) : null;
+  const brandedOrder = orderNo !== null ? formatOrderId(orderNo) : order;
 
   return (
     <main>
@@ -27,7 +30,7 @@ export default async function CheckoutSuccessPage({
           <h1 className="font-display text-2xl font-bold tracking-tight">Thank you for your order</h1>
           {order ? (
             <p className="mt-2 text-muted-foreground">
-              Order <span className="font-semibold text-foreground">#{order}</span> is confirmed.
+              Order <span className="font-semibold text-foreground">{brandedOrder}</span> is confirmed.
             </p>
           ) : (
             <p className="mt-2 text-muted-foreground">Your order is confirmed.</p>

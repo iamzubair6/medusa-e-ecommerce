@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminConfigured, getOrderTracking } from "@/lib/medusa-admin";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { parseOrderId } from "@/lib/order-id";
 
 const schema = z.object({
-  orderNumber: z.coerce.number().int().positive(),
+  // Accepts branded formats too: "MSN-00042", "#42", "42".
+  orderNumber: z
+    .union([z.string().max(30), z.number()])
+    .transform((v) => parseOrderId(String(v)))
+    .refine((n): n is number => n !== null, "Enter a valid order number"),
   email: z.string().email(),
 });
 
