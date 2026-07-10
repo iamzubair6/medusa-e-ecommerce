@@ -21,23 +21,54 @@ payment server-side, then completes the order. COD is untouched.
    **`sslcommerz`** exists and is **enabled** (label e.g. "Pay Online — bKash / Card").
    If your saved config predates this task, add it: id `sslcommerz`.
 
+## Official sandbox test credentials
+
+**Cards** (from the [SSLCommerz v4 docs](https://developer.sslcommerz.com/doc/v4/)):
+
+| Method | Number | Expiry | CVV |
+| --- | --- | --- | --- |
+| VISA | `4111 1111 1111 1111` | 12/26 (any future works) | 111 |
+| Mastercard | `5111 1111 1111 1111` | 12/26 | 111 |
+| American Express | `3711 1111 1111 111` | 12/26 | 111 |
+
+- **Bank page OTP** (after the card form): `111111` (or `123456`).
+- **Mobile banking (bKash / Nagad / Rocket):** pick it on the gateway page —
+  the sandbox shows a simulated wallet screen; use any wallet number and
+  OTP `111111` or `123456`. (No real bKash app involved; it's a simulator.)
+- **Simulating outcomes:** the sandbox bank page shows **Success / Fail**
+  buttons after the OTP — press Success for a paid order, Fail for a declined
+  one, or use the gateway's Cancel/back link for the cancel path.
+
+## What should happen after paying (the success page)
+
+Payment done → SSLCommerz sends your browser back to
+`/api/checkout/pay/callback` → we verify the payment server-side → you are
+redirected to **`/checkout/success`** showing the branded order number
+(MSN-000XX), total and payment method. You never stay on the callback URL.
+
+> If you were redirected to **port 3000** before: fixed — callback URLs now use
+> the exact origin you're browsing on (`localhost:3200` in dev, the live domain
+> in production), regardless of env settings.
+
 ## Test checklist
 
 - [ ] Checkout shows **two** payment choices: Cash on Delivery + Pay Online.
 - [ ] Choose Pay Online → Place order. Expect: redirect to the SSLCommerz sandbox
-      payment page showing the correct amount in BDT.
-- [ ] Pay with a **test card**: `4111 1111 1111 1111`, any future expiry, CVV 111,
-      any OTP (sandbox accepts it). Expect: redirected back to our success page
-      with the order number; order appears in **/admin/orders**; confirmation
-      email arrives (if #50 is set up).
-- [ ] **Cancel path:** start again, press Cancel on the gateway page. Expect:
-      back at checkout with "Payment was cancelled" and the bag intact.
-- [ ] **Fail path:** use the sandbox "Failure" card `4111 1111 1111 1112` (or the
-      Fail button if shown). Expect: "The payment didn't go through" banner,
-      nothing charged, no order created.
+      page showing the correct BDT amount.
+- [ ] **Card success:** VISA `4111 1111 1111 1111` · 12/26 · CVV 111 → OTP
+      `111111` → press **Success**. Expect: our **success page** with the
+      MSN-order number; order in **/admin/orders**; confirmation email (if #50
+      is set up).
+- [ ] **Mobile banking:** repeat choosing bKash on the gateway → OTP `111111`.
+      Same success flow.
+- [ ] **Cancel path:** start again, press Cancel on the gateway. Expect: back at
+      checkout with "Payment was cancelled" and the bag intact.
+- [ ] **Fail path:** press **Fail** on the bank page. Expect: "The payment didn't
+      go through" banner, nothing charged, no order created.
 - [ ] **COD unchanged:** a COD order still completes exactly as before.
 
 ## If something is wrong
+
 - "Online payment is not configured" → env vars missing where you're testing.
 - "Online payment is not enabled" → step 4 (admin payments) not done.
 - Redirect works but order never completes → check the SSLCommerz sandbox panel

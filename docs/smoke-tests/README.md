@@ -11,5 +11,6 @@ you go. Files that need a free account signup say so at the top.
 | #52 Shop the Look | [52-shop-the-look.md](./52-shop-the-look.md) | No |
 | #53 Division landings | [53-division-landings.md](./53-division-landings.md) | No |
 | #54 Autocomplete / 404 / keep-warm | [54-polish-trio.md](./54-polish-trio.md) | No |
+| #59–#68 Order IDs, emails, redesigns | [59-68-round4.md](./59-68-round4.md) | No |
 
 Older rounds: [../SMOKE_TEST_18-32.md](../SMOKE_TEST_18-32.md).
