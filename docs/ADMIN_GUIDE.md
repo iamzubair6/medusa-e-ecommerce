@@ -96,6 +96,13 @@ The landing page is built from **blocks** you can reorder and edit:
 Edit the top menu: add/remove/reorder links, and optionally attach a **mega-menu**
 (columns of links + a featured image) via a small JSON field.
 
+### Content Pages
+Every static page linked from the footer — Help Center, Size Guide, Shipping,
+Returns, About, Careers, Contact, Sustainability, Gift Cards, Privacy Policy,
+Terms. Edit the title/content (rich text), hide a page, or **Add page** to create
+a brand-new URL (e.g. `help/faq` → `/help/faq`) — no deploy needed. "View page"
+opens the live page.
+
 ### Popups
 The promotional popup: heading, body, **email capture**, **preference chips**
 (Women/Men/Curve/Kids/Beauty), **trigger** (after delay / on scroll / exit-intent /
