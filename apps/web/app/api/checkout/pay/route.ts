@@ -4,6 +4,7 @@ import { getCartId } from "@/lib/cart-cookie";
 import { getCartPaymentInfo } from "@/lib/medusa-store";
 import { createSslcommerzSession, sslcommerzMockMode } from "@/lib/sslcommerz";
 import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
+import { requestOrigin } from "@/lib/origin";
 
 /**
  * Start an online payment: creates an SSLCommerz session for the current cart
@@ -28,7 +29,9 @@ export async function POST(request: Request) {
   const cart = await getCartPaymentInfo(id);
   if (!cart || cart.amount <= 0) return NextResponse.json({ error: "Cart is empty." }, { status: 409 });
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  // The origin the SHOPPER is on (localhost:3200 in dev, live domain in prod) —
+  // env-based origins sent gateway redirects to the wrong port locally.
+  const origin = requestOrigin(request);
   const callback = (state: string) => `${origin}/api/checkout/pay/callback?state=${state}`;
   const session = await createSslcommerzSession(cart, {
     success: callback("success"),

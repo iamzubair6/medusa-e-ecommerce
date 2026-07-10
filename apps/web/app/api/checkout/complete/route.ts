@@ -5,7 +5,9 @@ import { clearCartId, getCartId } from "@/lib/cart-cookie";
 import { completeCart, initPayment, setCartMetadata } from "@/lib/medusa-store";
 import { transferCartToCustomer } from "@/lib/customer-auth";
 import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
-import { orderConfirmationHtml, sendEmail } from "@/lib/email";
+import { sendTemplateEmail } from "@/lib/email";
+import { formatOrderId } from "@/lib/order-id";
+import { requestOrigin } from "@/lib/origin";
 
 const schema = z.object({ method: z.string().min(1).max(24).optional() });
 
@@ -42,12 +44,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
     await clearCartId();
-    // Confirmation email (Brevo) — sendEmail never throws; false = not sent.
+    // Confirmation email (admin-editable template) — never throws; false = not sent.
     if (result.order.email) {
-      await sendEmail({
-        to: result.order.email,
-        subject: `Order #${result.order.displayId} confirmed — Maison`,
-        html: orderConfirmationHtml(result.order),
+      await sendTemplateEmail("orderConfirmation", result.order.email, {
+        orderId: formatOrderId(result.order.displayId),
+        total: result.order.total,
+        trackUrl: `${requestOrigin(request)}/track`,
+        name: "there",
       });
     }
     return NextResponse.json({ order: result.order, method });

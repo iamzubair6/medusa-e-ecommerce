@@ -3,7 +3,9 @@ import { getSiteSetting } from "@ecom/cms";
 import { completeCart, getCartPaymentInfo, initPayment, setCartMetadata } from "@/lib/medusa-store";
 import { validateSslcommerzPayment } from "@/lib/sslcommerz";
 import { parseCheckoutConfig } from "@/lib/checkout-config";
-import { orderConfirmationHtml, sendEmail } from "@/lib/email";
+import { sendTemplateEmail } from "@/lib/email";
+import { formatOrderId } from "@/lib/order-id";
+import { requestOrigin } from "@/lib/origin";
 
 /**
  * SSLCommerz posts the shopper's browser back here after the gateway page.
@@ -11,7 +13,7 @@ import { orderConfirmationHtml, sendEmail } from "@/lib/email";
  * id travels in value_a and the payment is verified with the validator API.
  */
 export async function POST(request: Request) {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const origin = requestOrigin(request);
   const state = new URL(request.url).searchParams.get("state");
   const form = await request.formData().catch(() => null);
   const valId = form?.get("val_id");
@@ -47,10 +49,11 @@ export async function POST(request: Request) {
     if (!result.ok) return NextResponse.redirect(`${origin}/checkout?payment=failed`, 303);
 
     if (result.order.email) {
-      await sendEmail({
-        to: result.order.email,
-        subject: `Order #${result.order.displayId} confirmed — Maison`,
-        html: orderConfirmationHtml(result.order),
+      await sendTemplateEmail("orderConfirmation", result.order.email, {
+        orderId: formatOrderId(result.order.displayId),
+        total: result.order.total,
+        trackUrl: `${origin}/track`,
+        name: "there",
       });
     }
 
