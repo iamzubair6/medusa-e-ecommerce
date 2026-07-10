@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Container } from "@ecom/ui";
+import { Button } from "@ecom/ui";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Enter your email or phone"),
@@ -47,8 +47,7 @@ export function LoginForm() {
   };
 
   return (
-    <Container className="flex min-h-[60vh] items-center justify-center py-16">
-      <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm">
         <h1 className="text-center font-display text-3xl font-bold tracking-tight">Welcome back</h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">Sign in with your email or phone number.</p>
 
@@ -68,8 +67,7 @@ export function LoginForm() {
           <Button asChild variant="outline" size="lg" className="mt-3 w-full">
             <Link href="/account/register">Create an account</Link>
           </Button>
-        </div>
       </div>
-    </Container>
+    </div>
   );
 }
