@@ -329,19 +329,24 @@ export async function listGuestLeads(opts: { skip?: number; take?: number } = {}
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const OTP_MAX_ATTEMPTS = 5;
 
-/** Create a 4-digit OTP for a phone; replaces any prior pending challenge. */
+/** Create a 6-digit OTP for a phone; replaces any prior pending challenge. */
 export async function requestOtp(phone: string): Promise<{ code: string; expiresAt: Date }> {
-  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const code = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
   await prisma.otpChallenge.deleteMany({ where: { phone } });
   await prisma.otpChallenge.create({ data: { phone, code, expiresAt } });
   return { code, expiresAt };
 }
 
-/** Verify an OTP. Returns true on success (and marks it verified). */
+/**
+ * Verify an OTP. Returns true on success (and marks it verified). A correct,
+ * unexpired code stays verifiable until expiry — so when the step AFTER
+ * verification fails (e.g. the store backend was down mid-registration), the
+ * user can retry without the code being burned.
+ */
 export async function verifyOtp(phone: string, code: string): Promise<boolean> {
   const challenge = await prisma.otpChallenge.findFirst({
-    where: { phone, verified: false },
+    where: { phone },
     orderBy: { createdAt: "desc" },
   });
   if (!challenge) return false;
@@ -353,7 +358,9 @@ export async function verifyOtp(phone: string, code: string): Promise<boolean> {
     await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } });
     return false;
   }
-  await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { verified: true } });
+  if (!challenge.verified) {
+    await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { verified: true } });
+  }
   return true;
 }
 
