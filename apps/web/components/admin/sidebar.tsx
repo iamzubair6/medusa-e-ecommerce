@@ -2,41 +2,82 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, Sparkles } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, Sparkles, Mail, type LucideIcon } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { AdminRole } from "@ecom/cms";
 
-const items = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/orders", label: "Orders", icon: Receipt, exact: false },
-  { href: "/admin/products", label: "Products", icon: ShoppingBag, exact: false },
-  { href: "/admin/categories", label: "Categories", icon: FolderTree, exact: false },
-  { href: "/admin/discounts", label: "Discounts", icon: Tag, exact: false },
-  { href: "/admin/price-lists", label: "Sales", icon: TicketPercent, exact: false },
-  { href: "/admin/payments", label: "Payments", icon: CreditCard, exact: false },
-  { href: "/admin/shipping", label: "Shipping", icon: Truck, exact: false },
-  { href: "/admin/customers", label: "Customers", icon: UserRound, exact: false },
-  { href: "/admin/pages", label: "Pages", icon: LayoutTemplate, exact: false },
-  { href: "/admin/landing-style", label: "Landing Style", icon: LayoutPanelTop, exact: false },
-  { href: "/admin/content-pages", label: "Content Pages", icon: FileText, exact: false },
-  { href: "/admin/shop-the-look", label: "Shop the Look", icon: Sparkles, exact: false },
-  { href: "/admin/navigation", label: "Navigation", icon: Navigation, exact: false },
-  { href: "/admin/listings", label: "Listings", icon: ListFilter, exact: false },
-  { href: "/admin/popups", label: "Popups", icon: Megaphone, exact: false },
-  { href: "/admin/phone-popup", label: "Phone Popup", icon: Smartphone, exact: false },
-  { href: "/admin/campaigns", label: "Campaigns", icon: Rocket, exact: false },
-  { href: "/admin/persona", label: "Persona", icon: ClipboardList, exact: false },
-  { href: "/admin/site", label: "Storefront", icon: LayoutTemplate, exact: false },
-  { href: "/admin/visual-search", label: "Visual Search", icon: ScanSearch, exact: false },
-  { href: "/admin/leads", label: "Guest Leads", icon: Users, exact: false },
-  { href: "/admin/settings", label: "Settings", icon: Settings, exact: false },
-  { href: "/admin/users", label: "Team & Roles", icon: ShieldCheck, exact: false, adminOnly: true },
-] as const;
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  adminOnly?: boolean;
+};
+
+type NavGroup = {
+  heading: string;
+  items: NavItem[];
+};
+
+const groups: NavGroup[] = [
+  {
+    heading: "Overview",
+    items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true }],
+  },
+  {
+    heading: "Sales",
+    items: [
+      { href: "/admin/orders", label: "Orders", icon: Receipt },
+      { href: "/admin/customers", label: "Customers", icon: UserRound },
+      { href: "/admin/discounts", label: "Discounts", icon: Tag },
+      { href: "/admin/price-lists", label: "Sales", icon: TicketPercent },
+      { href: "/admin/payments", label: "Payments", icon: CreditCard },
+      { href: "/admin/shipping", label: "Shipping", icon: Truck },
+    ],
+  },
+  {
+    heading: "Catalog",
+    items: [
+      { href: "/admin/products", label: "Products", icon: ShoppingBag },
+      { href: "/admin/categories", label: "Categories", icon: FolderTree },
+    ],
+  },
+  {
+    heading: "Content",
+    items: [
+      { href: "/admin/pages", label: "Pages", icon: LayoutTemplate },
+      { href: "/admin/landing-style", label: "Landing Style", icon: LayoutPanelTop },
+      { href: "/admin/content-pages", label: "Content Pages", icon: FileText },
+      { href: "/admin/email-templates", label: "Email Templates", icon: Mail },
+      { href: "/admin/navigation", label: "Navigation", icon: Navigation },
+      { href: "/admin/listings", label: "Listings", icon: ListFilter },
+      { href: "/admin/shop-the-look", label: "Shop the Look", icon: Sparkles },
+      { href: "/admin/site", label: "Storefront", icon: LayoutTemplate },
+    ],
+  },
+  {
+    heading: "Marketing",
+    items: [
+      { href: "/admin/popups", label: "Popups", icon: Megaphone },
+      { href: "/admin/phone-popup", label: "Phone Popup", icon: Smartphone },
+      { href: "/admin/campaigns", label: "Campaigns", icon: Rocket },
+      { href: "/admin/persona", label: "Persona", icon: ClipboardList },
+      { href: "/admin/leads", label: "Guest Leads", icon: Users },
+      { href: "/admin/visual-search", label: "Visual Search", icon: ScanSearch },
+    ],
+  },
+  {
+    heading: "System",
+    items: [
+      { href: "/admin/settings", label: "Settings", icon: Settings },
+      { href: "/admin/users", label: "Team & Roles", icon: ShieldCheck, adminOnly: true },
+    ],
+  },
+];
 
 export function AdminSidebar({ user }: { user: { name: string; role: AdminRole } }) {
   const pathname = usePathname();
   const router = useRouter();
-  const visibleItems = items.filter((item) => !("adminOnly" in item && item.adminOnly) || user.role === "ADMIN");
 
   const logout = async () => {
     await fetch("/api/admin/login", { method: "DELETE" });
@@ -50,22 +91,35 @@ export function AdminSidebar({ user }: { user: { name: string; role: AdminRole }
         <span className="font-display text-xl font-medium">Maison</span>
         <span className="ml-2 text-[0.625rem] uppercase tracking-[0.18em] text-muted-foreground">Admin</span>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-        {visibleItems.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-          const Icon = item.icon;
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto p-3">
+        {groups.map((group) => {
+          const visibleItems = group.items.filter((item) => !item.adminOnly || user.role === "ADMIN");
+          if (visibleItems.length === 0) return null;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                active ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-muted",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
+            <div key={group.heading}>
+              <p className="px-3 pb-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {group.heading}
+              </p>
+              <div className="flex flex-col gap-1">
+                {visibleItems.map((item) => {
+                  const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        active ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-muted",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
