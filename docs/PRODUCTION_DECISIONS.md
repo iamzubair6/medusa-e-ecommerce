@@ -43,3 +43,11 @@ small, isolated change. Revisit these together when planning the production depl
 - **Registration:** first name, last name (optional), phone, email, password → phone verified by OTP.
 - **Login:** email **or** phone + password.
 - Phone auto-fills at checkout. Promo popup shows **after** phone capture/verify.
+
+## Rate limiting — in-memory vs shared store (2026-07-12)
+
+`lib/rate-limit.ts` is per-instance in-memory. Fine on a single Vercel region /
+low traffic, but multi-instance serverless weakens every limit (OTP sends, promo
+SMS, search) by a factor of the instance count. When traffic grows: move the
+counters to a shared store (Upstash Redis free tier works with Vercel) behind
+the same `rateLimit()` signature.

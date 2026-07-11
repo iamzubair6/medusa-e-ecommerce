@@ -205,6 +205,13 @@ normal; you won't see them).
    SSLCOMMERZ_STORE_ID                = <sandbox store id>
    SSLCOMMERZ_STORE_PASSWORD          = <sandbox store password>
    # SSLCOMMERZ_LIVE=true only for a real production SSLCommerz store
+
+   # Optional — Steadfast Courier handover (steadfastcourier.com merchant account)
+   STEADFAST_API_KEY                  = <portal.packzy.com → API → Api Key>
+   STEADFAST_SECRET_KEY               = <portal.packzy.com → API → Secret Key>
+   # STEADFAST_BASE_URL               = https://portal.packzy.com/api/v1   (default — set only to override)
+   # Without the two keys the "Send to Steadfast" button simply doesn't appear
+   # on /admin/orders/[id]; manual tracking-number handover keeps working.
    ```
 4. **Deploy.** Copy your Vercel URL when it's green.
 
