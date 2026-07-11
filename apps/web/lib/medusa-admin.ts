@@ -175,6 +175,8 @@ export interface NewProductInput {
   trend?: string[];
   material?: string;
   care?: string;
+  /** Optional collection to file the product under (e.g. resolved from a handle on bulk import). */
+  collectionId?: string;
 }
 
 /** Resolve free-text tag values → ids, creating any that don't exist yet. */
@@ -364,6 +366,7 @@ export async function createProduct(input: NewProductInput): Promise<{ id: strin
     ],
     variants,
     ...(salesChannelId ? { sales_channels: [{ id: salesChannelId }] } : {}),
+    ...(input.collectionId ? { collection_id: input.collectionId } : {}),
     ...(input.categoryIds?.length ? { categories: input.categoryIds.map((id) => ({ id })) } : {}),
     ...(tagIds.length ? { tags: tagIds.map((id) => ({ id })) } : {}),
     ...(typeId ? { type_id: typeId } : {}),
@@ -629,6 +632,12 @@ function money(amount: number | undefined, currency?: string): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format(amount ?? 0);
 }
 
+interface RawOrderMetadata {
+  payment_method?: string;
+  steadfast_consignment_id?: string;
+  steadfast_tracking_code?: string;
+}
+
 interface RawOrderListItem {
   id: string;
   display_id: number;
@@ -638,7 +647,7 @@ interface RawOrderListItem {
   payment_status: string;
   fulfillment_status: string;
   created_at: string;
-  metadata?: { payment_method?: string } | null;
+  metadata?: RawOrderMetadata | null;
   items?: { id: string }[];
 }
 
@@ -710,6 +719,7 @@ export async function getOrderDetail(id: string): Promise<AdminOrderDetail | nul
     displayId: o.display_id,
     email: o.email,
     total: money(o.total, cur),
+    totalAmount: o.total ?? 0,
     subtotal: money(o.subtotal, cur),
     shippingTotal: money(o.shipping_total, cur),
     createdAt: o.created_at,
@@ -744,7 +754,25 @@ export async function getOrderDetail(id: string): Promise<AdminOrderDetail | nul
     })),
     fulfilled: o.fulfillment_status !== "not_fulfilled",
     canceled: o.status === "canceled",
+    courier:
+      o.metadata?.steadfast_consignment_id && o.metadata?.steadfast_tracking_code
+        ? {
+            consignmentId: o.metadata.steadfast_consignment_id,
+            trackingCode: o.metadata.steadfast_tracking_code,
+          }
+        : undefined,
   };
+}
+
+/**
+ * Merge keys into an order's metadata (POST /admin/orders/:id). Reads the
+ * current blob first so existing keys (e.g. payment_method) survive.
+ */
+export async function setOrderMetadata(id: string, patch: Record<string, string>): Promise<void> {
+  const data = await adminFetch<{ order?: { metadata?: Record<string, unknown> | null } }>(
+    `/admin/orders/${id}?fields=metadata`,
+  );
+  await adminPost(`/admin/orders/${id}`, { metadata: { ...(data?.order?.metadata ?? {}), ...patch } });
 }
 
 /** Cancel an order (e.g. customer no-show on COD). Blocked by Medusa once shipped. */
@@ -1218,6 +1246,7 @@ interface RawCustomer {
   email: string;
   first_name?: string | null;
   last_name?: string | null;
+  phone?: string | null;
   created_at: string;
   orders?: { id: string }[];
 }
@@ -1226,6 +1255,7 @@ export interface AdminCustomerRow {
   id: string;
   email: string;
   name: string;
+  phone: string | null;
   orders: number;
   createdAt: string;
 }
@@ -1234,7 +1264,7 @@ export async function listCustomers(
   limit = 24,
   offset = 0,
 ): Promise<{ customers: AdminCustomerRow[]; count: number }> {
-  const fields = "id,email,first_name,last_name,created_at,orders.id";
+  const fields = "id,email,first_name,last_name,phone,created_at,orders.id";
   const data = await adminFetch<{ customers?: RawCustomer[]; count?: number }>(
     `/admin/customers?fields=${encodeURIComponent(fields)}&order=-created_at&limit=${limit}&offset=${offset}`,
   );
@@ -1242,10 +1272,60 @@ export async function listCustomers(
     id: c.id,
     email: c.email,
     name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—",
+    phone: c.phone ?? null,
     orders: (c.orders ?? []).length,
     createdAt: c.created_at,
   }));
   return { customers, count: data?.count ?? customers.length };
+}
+
+/** Hard cap on bulk customer reads (CSV export / SMS audience). */
+export const CUSTOMER_BULK_CAP = 10_000;
+const CUSTOMER_BULK_PAGE = 500;
+
+/**
+ * Iterate ALL customers newest-first in pages of 500, capped at `cap` rows.
+ * Used by the CSV export (streams page by page) and the promo-SMS audience.
+ */
+export async function* iterateCustomerPages(
+  cap = CUSTOMER_BULK_CAP,
+): AsyncGenerator<AdminCustomerRow[]> {
+  let fetched = 0;
+  for (let offset = 0; offset < cap; offset += CUSTOMER_BULK_PAGE) {
+    const limit = Math.min(CUSTOMER_BULK_PAGE, cap - offset);
+    const { customers, count } = await listCustomers(limit, offset);
+    if (customers.length === 0) return;
+    yield customers;
+    fetched += customers.length;
+    if (fetched >= Math.min(count, cap) || customers.length < limit) return;
+  }
+}
+
+/** Every unique phone number across all customers (capped at 10k customers). */
+export async function listAllCustomerPhones(): Promise<string[]> {
+  const phones = new Set<string>();
+  for await (const page of iterateCustomerPages()) {
+    for (const c of page) if (c.phone) phones.add(c.phone);
+  }
+  return [...phones];
+}
+
+/**
+ * Resolve phone numbers for specific customer IDs server-side — the client is
+ * never trusted with raw phone lists. Chunked to keep query strings sane.
+ */
+export async function getCustomerPhonesByIds(ids: string[]): Promise<string[]> {
+  const phones = new Set<string>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const params = new URLSearchParams({ fields: "id,phone", limit: String(chunk.length) });
+    for (const id of chunk) params.append("id[]", id);
+    const data = await adminFetch<{ customers?: { id: string; phone?: string | null }[] }>(
+      `/admin/customers?${params.toString()}`,
+    );
+    for (const c of data?.customers ?? []) if (c.phone) phones.add(c.phone);
+  }
+  return [...phones];
 }
 
 export interface AdminCustomerDetail {

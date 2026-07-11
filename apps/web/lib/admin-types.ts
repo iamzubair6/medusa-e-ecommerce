@@ -30,6 +30,8 @@ export interface AdminFulfillment {
 }
 
 export interface AdminOrderDetail extends AdminOrderSummary {
+  /** Raw numeric total in the store currency (BDT) — e.g. the COD amount. */
+  totalAmount: number;
   subtotal: string;
   shippingTotal: string;
   items: AdminOrderItem[];
@@ -44,6 +46,11 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   fulfillments: AdminFulfillment[];
   fulfilled: boolean;
   canceled: boolean;
+  /** Set once the order is handed to Steadfast (stored in order metadata). */
+  courier?: {
+    consignmentId: string;
+    trackingCode: string;
+  };
 }
 
 export interface AdminPromotion {
