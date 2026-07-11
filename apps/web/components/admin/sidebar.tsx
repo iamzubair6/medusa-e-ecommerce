@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, Sparkles, Mail, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, FileSpreadsheet, Sparkles, Mail, type LucideIcon } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { AdminRole } from "@ecom/cms";
 
@@ -39,6 +39,7 @@ const groups: NavGroup[] = [
     heading: "Catalog",
     items: [
       { href: "/admin/products", label: "Products", icon: ShoppingBag },
+      { href: "/admin/products/import", label: "Import Products", icon: FileSpreadsheet },
       { href: "/admin/categories", label: "Categories", icon: FolderTree },
     ],
   },
