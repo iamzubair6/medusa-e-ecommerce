@@ -35,10 +35,11 @@ function FieldError({ message }: { message?: string }) {
 export function RegisterForm() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
+  const [channel, setChannel] = useState<"sms" | "email">("sms");
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
-  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [sentVia, setSentVia] = useState<{ channel: "sms" | "email"; to: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [creating, setCreating] = useState(false);
   const [resendIn, setResendIn] = useState(0);
@@ -72,12 +73,16 @@ export function RegisterForm() {
       const res = await fetch("/api/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.trim(), email: email.trim() }),
+        body: JSON.stringify({ phone: phone.trim(), email: email.trim(), channel }),
       });
       const d = (await res.json()) as { devCode?: string; channel?: string; sentTo?: string; error?: string };
       if (!res.ok) throw new Error(d.error ?? "Could not send the code");
       setDevCode(d.devCode ?? null);
-      setSentTo(d.channel === "email" ? (d.sentTo ?? "your email") : null);
+      setSentVia(
+        d.channel === "email" || d.channel === "sms"
+          ? { channel: d.channel, to: d.sentTo ?? (d.channel === "email" ? "your email" : "your phone") }
+          : null,
+      );
       setStep(2);
       startCooldown();
       return true;
@@ -168,6 +173,33 @@ export function RegisterForm() {
           <FieldError message={errors.email?.message} />
           <input className={inputCls} type="password" placeholder="Password (8+ characters)" autoComplete="new-password" {...register("password")} />
           <FieldError message={errors.password?.message} />
+
+          <fieldset className="mt-1">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Send my verification code by
+            </legend>
+            <div className="flex rounded-sm border border-border p-1 text-sm">
+              {(
+                [
+                  ["sms", "SMS to my phone"],
+                  ["email", "Email"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={channel === value}
+                  onClick={() => setChannel(value)}
+                  className={cn(
+                    "flex-1 cursor-pointer rounded-[3px] py-2 font-medium transition-colors",
+                    channel === value ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
           {codeError && <p className="text-sm text-destructive">{codeError}</p>}
           <Button type="submit" variant="solid" size="lg" loading={sending} className="mt-1 w-full">
             Next
@@ -184,8 +216,11 @@ export function RegisterForm() {
           <div className="text-center">
             <h2 className="font-display text-xl font-bold tracking-tight">Enter the code</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {sentTo ? (
-                <>We emailed a 6-digit code to <span className="font-semibold text-foreground">{sentTo}</span>.</>
+              {sentVia ? (
+                <>
+                  We {sentVia.channel === "email" ? "emailed" : "texted"} a 6-digit code to{" "}
+                  <span className="font-semibold text-foreground">{sentVia.to}</span>.
+                </>
               ) : (
                 <>We sent a 6-digit code to <span className="font-semibold text-foreground">{getValues("phone")}</span>.</>
               )}
