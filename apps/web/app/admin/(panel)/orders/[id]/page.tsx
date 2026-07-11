@@ -5,8 +5,10 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Badge, Card } from "@ecom/ui";
 import { getOrderDetail } from "@/lib/medusa-admin";
+import { steadfastConfigured, steadfastTrackingUrl } from "@/lib/steadfast";
 import { AdminHeader } from "@/components/admin/page-header";
 import { OrderActions } from "@/components/admin/order-actions";
+import { SteadfastCard } from "@/components/admin/steadfast-card";
 
 export const dynamic = "force-dynamic";
 
@@ -67,8 +69,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div className="flex flex-col gap-6">
           <Card className="p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order status</h3>
-            <OrderActions order={order} />
+            <OrderActions order={order} steadfastEnabled={steadfastConfigured() && !order.courier} />
           </Card>
+
+          {order.courier && (
+            <SteadfastCard
+              orderId={order.id}
+              consignmentId={order.courier.consignmentId}
+              trackingCode={order.courier.trackingCode}
+              trackingUrl={steadfastTrackingUrl(order.courier.trackingCode)}
+            />
+          )}
 
           {order.address && (
             <Card className="p-5 text-sm">

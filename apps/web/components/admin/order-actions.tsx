@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Check, XCircle } from "lucide-react";
+import { Check, Truck, XCircle } from "lucide-react";
 import { Button, cn } from "@ecom/ui";
 import { TextField } from "./fields";
 import { useToast } from "./toast";
@@ -97,10 +97,17 @@ function StatusStepper({ steps, canceled }: { steps: Step[]; canceled: boolean }
   );
 }
 
-export function OrderActions({ order }: { order: AdminOrderDetail }) {
+export function OrderActions({
+  order,
+  steadfastEnabled = false,
+}: {
+  order: AdminOrderDetail;
+  /** True when STEADFAST_* env keys exist (checked server-side). */
+  steadfastEnabled?: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
-  const [busy, setBusy] = useState<"fulfil" | "deliver" | "cancel" | null>(null);
+  const [busy, setBusy] = useState<"fulfil" | "deliver" | "cancel" | "steadfast" | null>(null);
 
   const fulfillment = order.fulfillments[0];
   const shipped = order.fulfillments.some((f) => f.shippedAt);
@@ -123,6 +130,19 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
       const path = action === "fulfil" ? "fulfill" : action;
       await post(`/api/admin/orders/${order.id}/${path}`);
       toast.success(done);
+      router.refresh();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const sendToSteadfast = async () => {
+    setBusy("steadfast");
+    try {
+      await post(`/api/admin/orders/${order.id}/steadfast`);
+      toast.success("Consignment created — order marked shipped.");
       router.refresh();
     } catch (e) {
       toast.error((e as Error).message);
@@ -188,18 +208,40 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
           )}
 
           {order.fulfilled && !shipped && (
-            <form onSubmit={handleSubmit(onShip)} className="flex flex-col gap-2">
-              <TextField
-                label="Tracking number"
-                required
-                placeholder="TRK123…"
-                error={errors.trackingNumber?.message}
-                {...register("trackingNumber")}
-              />
-              <Button type="submit" variant="gold" loading={isSubmitting}>
-                Mark shipped
-              </Button>
-            </form>
+            <div className="flex flex-col gap-3">
+              {steadfastEnabled && (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <Button variant="gold" loading={busy === "steadfast"} onClick={sendToSteadfast}>
+                      <Truck className="h-4 w-4" /> Send to Steadfast
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Creates the consignment{order.paymentMethod === "cod" && " (COD = order total)"} and
+                      marks the order shipped with its tracking code.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3" aria-hidden>
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                      or manual / other courier
+                    </span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                </>
+              )}
+              <form onSubmit={handleSubmit(onShip)} className="flex flex-col gap-2">
+                <TextField
+                  label="Tracking number"
+                  required
+                  placeholder="TRK123…"
+                  error={errors.trackingNumber?.message}
+                  {...register("trackingNumber")}
+                />
+                <Button type="submit" variant={steadfastEnabled ? "solid" : "gold"} loading={isSubmitting}>
+                  Mark shipped
+                </Button>
+              </form>
+            </div>
           )}
 
           {shipped && !delivered && (
