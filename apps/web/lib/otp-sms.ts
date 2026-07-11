@@ -1,13 +1,72 @@
 import "server-only";
 
 /**
- * Pluggable OTP sender. MOCKED for now — see docs/PRODUCTION_DECISIONS.md (SMS
- * gateway). When no real provider is configured we run in "mock mode": the code
- * is NOT sent by SMS and is returned to the client so the demo is testable.
+ * Pluggable OTP sender.
  *
- * To go live: set SMS_PROVIDER + credentials and implement the real send below.
+ * Real provider: MiMSMS (https://www.mimsms.com — docs: api.mimsms.com V2).
+ * Enable with env:
+ *   SMS_PROVIDER=mimsms
+ *   MIMSMS_API_KEY=...        (panel → Utility → Developer, must be ACTIVATED)
+ *   MIMSMS_USERNAME=...       (your MiMSMS panel login email)
+ *   MIMSMS_SENDER_ID=...      (panel → Utility → Sender ID — exact value)
+ * The panel also requires the calling server's IP + domain to be whitelisted
+ * (Utility → Developer), or every request is rejected as unauthorized.
+ *
+ * Without SMS_PROVIDER we run in mock mode: nothing is sent and the demo code
+ * is surfaced by the caller (dev / OTP_DEMO_CODES only).
  */
 export const otpMockMode = (): boolean => !process.env.SMS_PROVIDER;
+
+/** "+8801…", "01…", "008801…" → "8801…" (MiMSMS expects country-coded digits). */
+function toBdMsisdn(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("01")) digits = `88${digits}`;
+  return digits;
+}
+
+interface MimsmsResponse {
+  statusCode?: string | number;
+  status?: string;
+  responseResult?: string;
+  trxnId?: string;
+  message?: string;
+}
+
+async function sendViaMimsms(phone: string, message: string): Promise<void> {
+  const apiKey = process.env.MIMSMS_API_KEY;
+  const userName = process.env.MIMSMS_USERNAME;
+  const senderName = process.env.MIMSMS_SENDER_ID;
+  if (!apiKey || !userName || !senderName) {
+    throw new Error("SMS is not fully configured (MIMSMS_API_KEY / MIMSMS_USERNAME / MIMSMS_SENDER_ID).");
+  }
+
+  const res = await fetch("https://api.mimsms.com/api/V2/SMS", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      apiKey,
+      userName,
+      senderName,
+      transactionType: "T", // transactional — OTPs deliver regardless of DND
+      mobileNumber: toBdMsisdn(phone),
+      message,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as MimsmsResponse;
+  const ok =
+    res.ok &&
+    (String(data.statusCode ?? "") === "200" ||
+      (data.status ?? "").toLowerCase() === "success" ||
+      (data.responseResult ?? "").toLowerCase().includes("success"));
+  if (!ok) {
+    throw new Error(
+      `SMS gateway refused the send${data.responseResult || data.message ? ` — ${data.responseResult ?? data.message}` : ""}.`,
+    );
+  }
+}
 
 export async function sendOtp(phone: string, code: string): Promise<void> {
   if (otpMockMode()) {
@@ -15,7 +74,9 @@ export async function sendOtp(phone: string, code: string): Promise<void> {
     console.log(`[OTP mock] ${phone} -> ${code}`);
     return;
   }
-  // Example wiring point for a real gateway (Twilio / SSL Wireless / etc.):
-  // await fetch(provider.url, { method: "POST", headers, body: ... });
-  throw new Error("SMS_PROVIDER set but no sender implemented");
+  if (process.env.SMS_PROVIDER === "mimsms") {
+    await sendViaMimsms(phone, `Your Maison verification code is ${code}. It expires in 5 minutes.`);
+    return;
+  }
+  throw new Error(`SMS_PROVIDER "${process.env.SMS_PROVIDER}" has no sender implemented`);
 }
