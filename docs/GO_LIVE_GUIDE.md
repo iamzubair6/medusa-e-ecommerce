@@ -193,6 +193,14 @@ normal; you won't see them).
    EMAIL_FROM_NAME                    = Maison
    OTP_DEMO_CODES                     = true   (ONLY until Brevo is set up; then remove)
 
+   # Optional — real SMS OTP (MiMSMS, prepaid)
+   SMS_PROVIDER                       = mimsms
+   MIMSMS_API_KEY                     = <panel → Utility → Developer, must be Activated>
+   MIMSMS_USERNAME                    = <your sms.mimsms.com login email>
+   MIMSMS_SENDER_ID                   = <exact value from panel → Utility → Sender ID>
+   # MiMSMS also requires whitelisting the caller (panel → Utility → Developer):
+   # add your DOMAIN (the vercel.app / custom domain) — Vercel has no fixed IP.
+
    # Optional — online payment (SSLCommerz free sandbox; see docs/smoke-tests/51-payment-sslcommerz.md)
    SSLCOMMERZ_STORE_ID                = <sandbox store id>
    SSLCOMMERZ_STORE_PASSWORD          = <sandbox store password>
