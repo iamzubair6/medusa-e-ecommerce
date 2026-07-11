@@ -6,6 +6,7 @@ import { parseCheckoutConfig } from "@/lib/checkout-config";
 import { sendTemplateEmail } from "@/lib/email";
 import { formatOrderId } from "@/lib/order-id";
 import { requestOrigin } from "@/lib/origin";
+import { sendTransactionalSms } from "@/lib/otp-sms";
 
 /**
  * SSLCommerz posts the shopper's browser back here after the gateway page.
@@ -48,13 +49,21 @@ export async function POST(request: Request) {
     const result = await completeCart(cartId);
     if (!result.ok) return NextResponse.redirect(`${origin}/checkout?payment=failed`, 303);
 
+    const orderId = formatOrderId(result.order.displayId);
     if (result.order.email) {
       await sendTemplateEmail("orderConfirmation", result.order.email, {
-        orderId: formatOrderId(result.order.displayId),
+        orderId,
         total: result.order.total,
         trackUrl: `${origin}/track`,
         name: "there",
       });
+    }
+    // cart (fetched pre-completion for validation) still carries the phone.
+    if (cart.phone) {
+      await sendTransactionalSms(
+        cart.phone,
+        `Maison: order ${orderId} confirmed & paid (${result.order.total.replace("৳", "Tk ")}). Track: ${origin}/track`,
+      );
     }
 
     const config = parseCheckoutConfig(await getSiteSetting("checkout").catch(() => null));

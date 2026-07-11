@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSiteSetting } from "@ecom/cms";
 import { clearCartId, getCartId } from "@/lib/cart-cookie";
-import { completeCart, initPayment, setCartMetadata } from "@/lib/medusa-store";
+import { completeCart, getCartPaymentInfo, initPayment, setCartMetadata } from "@/lib/medusa-store";
+import { sendTransactionalSms } from "@/lib/otp-sms";
 import { transferCartToCustomer } from "@/lib/customer-auth";
 import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
 import { sendTemplateEmail } from "@/lib/email";
@@ -38,20 +39,31 @@ export async function POST(request: Request) {
     // Link the order to the signed-in customer (no-op for guests).
     await transferCartToCustomer(id).catch(() => undefined);
     await setCartMetadata(id, { payment_method: method }).catch(() => undefined);
+    // Phone captured before completion — the cart is gone afterwards.
+    const phone = (await getCartPaymentInfo(id).catch(() => null))?.phone ?? "";
     await initPayment(id);
     const result = await completeCart(id);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
     await clearCartId();
-    // Confirmation email (admin-editable template) — never throws; false = not sent.
+
+    // Confirmation email + SMS (both best-effort; false/ignored on failure).
+    const orderId = formatOrderId(result.order.displayId);
+    const trackUrl = `${requestOrigin(request)}/track`;
     if (result.order.email) {
       await sendTemplateEmail("orderConfirmation", result.order.email, {
-        orderId: formatOrderId(result.order.displayId),
+        orderId,
         total: result.order.total,
-        trackUrl: `${requestOrigin(request)}/track`,
+        trackUrl,
         name: "there",
       });
+    }
+    if (phone) {
+      await sendTransactionalSms(
+        phone,
+        `Maison: order ${orderId} confirmed (${result.order.total.replace("৳", "Tk ")}). Track: ${trackUrl}`,
+      );
     }
     return NextResponse.json({ order: result.order, method });
   } catch (error) {
