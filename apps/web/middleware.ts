@@ -3,8 +3,14 @@ import { verifySession } from "@/lib/session";
 
 const ADMIN_COOKIE = "admin_session";
 
-/** Paths that only an ADMIN-role user may reach (user management). */
-const ADMIN_ONLY = ["/admin/users", "/api/admin/users"];
+/** Paths that only an ADMIN-role user may reach: user management, plus the
+ *  money-spending (bulk SMS) and full-PII-export surfaces. */
+const ADMIN_ONLY = [
+  "/admin/users",
+  "/api/admin/users",
+  "/api/admin/customers/sms",
+  "/api/admin/customers/export",
+];
 
 function isUnder(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(`${base}/`);
