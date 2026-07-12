@@ -26,7 +26,35 @@ const MAX_NUMBERS = 1000;
  * this repeatedly to learn the concrete addresses to whitelist. Leaks nothing
  * private (the IP is visible to every server we call anyway).
  */
-export async function GET(_req: MedusaRequest, res: MedusaResponse) {
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  // ?check=balance (secret-gated): proves the MiMSMS whitelist end-to-end
+  // without spending an SMS.
+  if (req.query.check === "balance") {
+    const secret = process.env.SMS_RELAY_SECRET;
+    if (!secret || req.headers["x-relay-secret"] !== secret) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const apiKey = process.env.MIMSMS_API_KEY;
+    const userName = process.env.MIMSMS_USERNAME;
+    if (!apiKey || !userName) {
+      res.status(503).json({ error: "SMS provider is not configured on the relay." });
+      return;
+    }
+    try {
+      const upstream = await fetch("https://api.mimsms.com/api/V2/BalanceCheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey, userName }),
+        signal: AbortSignal.timeout(15000),
+      });
+      res.status(upstream.ok ? 200 : 502).json(await upstream.json().catch(() => ({})));
+    } catch {
+      res.status(502).json({ error: "Could not reach the SMS gateway." });
+    }
+    return;
+  }
+
   try {
     const r = await fetch("https://api.ipify.org", { signal: AbortSignal.timeout(10000) });
     res.status(200).json({ egressIp: (await r.text()).trim() });
