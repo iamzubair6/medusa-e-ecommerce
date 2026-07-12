@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSiteSetting } from "@ecom/cms";
 import { clearCartId, getCartId } from "@/lib/cart-cookie";
 import { completeCart, getCartPaymentInfo, initPayment, setCartMetadata } from "@/lib/medusa-store";
-import { sendTransactionalSms } from "@/lib/otp-sms";
+import { orderConfirmationSmsText, sendTransactionalSms } from "@/lib/otp-sms";
 import { transferCartToCustomer } from "@/lib/customer-auth";
 import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
 import { sendTemplateEmail } from "@/lib/email";
@@ -62,7 +62,11 @@ export async function POST(request: Request) {
     if (phone) {
       await sendTransactionalSms(
         phone,
-        `Maison: order ${orderId} confirmed (${result.order.total.replace("৳", "Tk ")}). Track: ${trackUrl}`,
+        await orderConfirmationSmsText({
+          orderId,
+          total: result.order.total.replace("৳", "Tk "),
+          trackUrl,
+        }),
       );
     }
     return NextResponse.json({ order: result.order, method });

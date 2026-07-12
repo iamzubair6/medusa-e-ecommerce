@@ -6,7 +6,7 @@ import { parseCheckoutConfig } from "@/lib/checkout-config";
 import { sendTemplateEmail } from "@/lib/email";
 import { formatOrderId } from "@/lib/order-id";
 import { requestOrigin } from "@/lib/origin";
-import { sendTransactionalSms } from "@/lib/otp-sms";
+import { orderConfirmationSmsText, sendTransactionalSms } from "@/lib/otp-sms";
 
 /**
  * SSLCommerz posts the shopper's browser back here after the gateway page.
@@ -62,7 +62,11 @@ export async function POST(request: Request) {
     if (cart.phone) {
       await sendTransactionalSms(
         cart.phone,
-        `Maison: order ${orderId} confirmed & paid (${result.order.total.replace("৳", "Tk ")}). Track: ${origin}/track`,
+        await orderConfirmationSmsText({
+          orderId,
+          total: result.order.total.replace("৳", "Tk "),
+          trackUrl: `${origin}/track`,
+        }),
       );
     }
 
