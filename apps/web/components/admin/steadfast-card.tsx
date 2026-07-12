@@ -45,8 +45,13 @@ export function SteadfastCard({
   return (
     <Card className="p-5 text-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Courier: Steadfast
+          {consignmentId.startsWith("MOCK-") && (
+            <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-bold text-amber-700">
+              TEST MODE — no real pickup
+            </span>
+          )}
         </h3>
         <Button
           variant="ghost"

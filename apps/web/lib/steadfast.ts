@@ -21,8 +21,34 @@ const DEFAULT_BASE_URL = "https://portal.packzy.com/api/v1";
 
 const baseUrl = (): string => process.env.STEADFAST_BASE_URL || DEFAULT_BASE_URL;
 
+/**
+ * TEST MODE — Steadfast has no sandbox, so STEADFAST_MOCK=true simulates it:
+ * consignments are invented locally (id "MOCK-…", no API call, no real pickup)
+ * and their status auto-progresses by age — Handed to courier (0–2 min) →
+ * In transit (2–5 min) → Delivered — so the whole admin/customer flow can be
+ * exercised safely. Flip the env off to book real deliveries.
+ */
+export function steadfastMockMode(): boolean {
+  return process.env.STEADFAST_MOCK === "true";
+}
+
 export function steadfastConfigured(): boolean {
-  return Boolean(process.env.STEADFAST_API_KEY && process.env.STEADFAST_SECRET_KEY);
+  return steadfastMockMode() || Boolean(process.env.STEADFAST_API_KEY && process.env.STEADFAST_SECRET_KEY);
+}
+
+const MOCK_PREFIX = "MOCK-";
+
+export function isMockConsignment(consignmentId: string): boolean {
+  return consignmentId.startsWith(MOCK_PREFIX);
+}
+
+/** Age-derived simulated status for a mock consignment id (MOCK-<created-ms in base36>). */
+function mockStatusFor(consignmentId: string): string {
+  const createdAt = parseInt(consignmentId.slice(MOCK_PREFIX.length), 36);
+  const ageMinutes = Number.isFinite(createdAt) ? (Date.now() - createdAt) / 60_000 : 99;
+  if (ageMinutes < 2) return "pending";
+  if (ageMinutes < 5) return "in_review";
+  return "delivered";
 }
 
 function authHeaders(): Record<string, string> {
@@ -110,6 +136,18 @@ export interface CreateConsignmentInput {
 export async function createConsignment(
   order: CreateConsignmentInput,
 ): Promise<Result<{ consignment: SteadfastConsignment }>> {
+  if (steadfastMockMode()) {
+    const id = `${MOCK_PREFIX}${Date.now().toString(36)}`;
+    return {
+      ok: true,
+      consignment: {
+        consignmentId: id,
+        trackingCode: `TEST${Date.now().toString(36).toUpperCase()}`,
+        status: mapSteadfastStatus("in_review"),
+        rawStatus: "in_review",
+      },
+    };
+  }
   if (!steadfastConfigured()) return { ok: false, error: "Steadfast is not configured." };
   try {
     const res = await fetch(`${baseUrl()}/create_order`, {
@@ -154,6 +192,10 @@ export async function createConsignment(
 export async function getConsignmentStatus(
   consignmentId: string,
 ): Promise<Result<{ status: string; rawStatus: string }>> {
+  if (isMockConsignment(consignmentId)) {
+    const raw = mockStatusFor(consignmentId);
+    return { ok: true, status: mapSteadfastStatus(raw), rawStatus: `${raw} (test mode)` };
+  }
   if (!steadfastConfigured()) return { ok: false, error: "Steadfast is not configured." };
   try {
     const res = await fetch(`${baseUrl()}/status_by_cid/${encodeURIComponent(consignmentId)}`, {
