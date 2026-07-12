@@ -109,6 +109,13 @@ pick the product, click the photo to drop numbered dots, link each dot to a
 product. Shoppers see the dots on that product's page and click through to
 each piece. One look per product, up to 8 tags.
 
+### SMS Templates
+The text of every SMS the store sends — the OTP code message and the order
+confirmation. Edit the **Company name** once (mobile operators require your
+brand inside every SMS — saving without it is blocked) and the message copy,
+with a live preview and a per-SMS segment (cost) counter. Defaults already
+follow MiMSMS's approved OTP format.
+
 ### Popups
 The promotional popup: heading, body, **email capture**, **preference chips**
 (Women/Men/Curve/Kids/Beauty), **trigger** (after delay / on scroll / exit-intent /
@@ -136,7 +143,13 @@ available until the order ships. Everything updates the live Medusa order, so th
 customer's `/track` page always matches.
 
 ### Shipping
-Manage delivery **zones and options** without leaving the admin:
+The **Delivery partner** card (top) decides how the Ship step works on every
+order: **Manual / any courier** (type a tracking number) or **Steadfast
+(one-click)** handover. With Steadfast selected, the **Test mode** checkbox
+keeps consignments simulated — no real pickups, status auto-progresses to
+Delivered in ~5 minutes — until you untick it on launch day.
+
+Below it, manage delivery **zones and options** without leaving the admin:
 - **Add zone** — name it and list the countries it covers (2-letter codes, e.g.
   `BD, IN`). Edit a zone's name/countries with the pencil; delete a zone once it
   has no options.
