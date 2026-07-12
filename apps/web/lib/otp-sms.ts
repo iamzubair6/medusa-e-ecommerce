@@ -31,29 +31,46 @@ interface MimsmsResponse {
   responseResult?: string;
   trxnId?: string;
   message?: string;
+  error?: string;
 }
 
-async function sendViaMimsms(phone: string, message: string): Promise<void> {
-  const apiKey = process.env.MIMSMS_API_KEY;
-  const userName = process.env.MIMSMS_USERNAME;
-  const senderName = process.env.MIMSMS_SENDER_ID;
-  if (!apiKey || !userName || !senderName) {
-    throw new Error("SMS is not fully configured (MIMSMS_API_KEY / MIMSMS_USERNAME / MIMSMS_SENDER_ID).");
-  }
+/**
+ * Dispatch one MiMSMS send. MiMSMS whitelists STATIC caller IPs only, so when
+ * MIMSMS_RELAY_URL + SMS_RELAY_SECRET are set, the call goes through our relay
+ * on Render (fixed outbound IPs) instead of hitting api.mimsms.com from a
+ * dynamic Vercel/local address. Direct mode remains for static-IP hosts.
+ */
+async function mimsmsDispatch(
+  transactionType: "T" | "P",
+  mobileNumber: string,
+  message: string,
+  timeoutMs: number,
+): Promise<{ ok: boolean; reason?: string }> {
+  const relayUrl = process.env.MIMSMS_RELAY_URL;
+  const relaySecret = process.env.SMS_RELAY_SECRET;
 
-  const res = await fetch("https://api.mimsms.com/api/V2/SMS", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      apiKey,
-      userName,
-      senderName,
-      transactionType: "T", // transactional — OTPs deliver regardless of DND
-      mobileNumber: toBdMsisdn(phone),
-      message,
-    }),
-    signal: AbortSignal.timeout(15000),
-  });
+  let res: Response;
+  if (relayUrl && relaySecret) {
+    res = await fetch(relayUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-relay-secret": relaySecret },
+      body: JSON.stringify({ transactionType, mobileNumber, message }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } else {
+    const apiKey = process.env.MIMSMS_API_KEY;
+    const userName = process.env.MIMSMS_USERNAME;
+    const senderName = process.env.MIMSMS_SENDER_ID;
+    if (!apiKey || !userName || !senderName) {
+      return { ok: false, reason: "SMS is not fully configured (MIMSMS_* or MIMSMS_RELAY_URL)." };
+    }
+    res = await fetch("https://api.mimsms.com/api/V2/SMS", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey, userName, senderName, transactionType, mobileNumber, message }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  }
 
   const data = (await res.json().catch(() => ({}))) as MimsmsResponse;
   const ok =
@@ -61,10 +78,13 @@ async function sendViaMimsms(phone: string, message: string): Promise<void> {
     (String(data.statusCode ?? "") === "200" ||
       (data.status ?? "").toLowerCase() === "success" ||
       (data.responseResult ?? "").toLowerCase().includes("success"));
-  if (!ok) {
-    throw new Error(
-      `SMS gateway refused the send${data.responseResult || data.message ? ` — ${data.responseResult ?? data.message}` : ""}.`,
-    );
+  return ok ? { ok: true } : { ok: false, reason: data.responseResult ?? data.message ?? data.error };
+}
+
+async function sendViaMimsms(phone: string, message: string): Promise<void> {
+  const result = await mimsmsDispatch("T", toBdMsisdn(phone), message, 20000);
+  if (!result.ok) {
+    throw new Error(`SMS gateway refused the send${result.reason ? ` — ${result.reason}` : ""}.`);
   }
 }
 
@@ -104,10 +124,10 @@ export async function sendPromotionalSms(
   phones: string[],
   message: string,
 ): Promise<{ sent: number; failed: number; error?: string }> {
-  const apiKey = process.env.MIMSMS_API_KEY;
-  const userName = process.env.MIMSMS_USERNAME;
-  const senderName = process.env.MIMSMS_SENDER_ID;
-  if (otpMockMode() || process.env.SMS_PROVIDER !== "mimsms" || !apiKey || !userName || !senderName) {
+  const relayConfigured = !!process.env.MIMSMS_RELAY_URL && !!process.env.SMS_RELAY_SECRET;
+  const directConfigured =
+    !!process.env.MIMSMS_API_KEY && !!process.env.MIMSMS_USERNAME && !!process.env.MIMSMS_SENDER_ID;
+  if (otpMockMode() || process.env.SMS_PROVIDER !== "mimsms" || (!relayConfigured && !directConfigured)) {
     return { sent: 0, failed: phones.length, error: "SMS is not configured." };
   }
 
@@ -121,27 +141,11 @@ export async function sendPromotionalSms(
   for (let i = 0; i < numbers.length; i += 1000) {
     const batch = numbers.slice(i, i + 1000);
     try {
-      const res = await fetch("https://api.mimsms.com/api/V2/SMS", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apiKey,
-          userName,
-          senderName,
-          transactionType: "P",
-          mobileNumber: batch.join(","),
-          message,
-        }),
-        signal: AbortSignal.timeout(30000),
-      });
-      const data = (await res.json().catch(() => ({}))) as MimsmsResponse;
-      const ok =
-        res.ok &&
-        (String(data.statusCode ?? "") === "200" || (data.status ?? "").toLowerCase() === "success");
-      if (ok) sent += batch.length;
+      const result = await mimsmsDispatch("P", batch.join(","), message, 30000);
+      if (result.ok) sent += batch.length;
       else {
         failed += batch.length;
-        error = data.responseResult ?? data.message ?? "Gateway refused the batch.";
+        error = result.reason ?? "Gateway refused the batch.";
       }
     } catch {
       failed += batch.length;
