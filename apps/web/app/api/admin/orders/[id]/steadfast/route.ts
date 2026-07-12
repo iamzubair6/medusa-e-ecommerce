@@ -9,6 +9,8 @@ import {
 import { sendTemplateEmail } from "@/lib/email";
 import { formatOrderId } from "@/lib/order-id";
 import { requestOrigin } from "@/lib/origin";
+import { getSiteSetting } from "@ecom/cms";
+import { parseCourierSettings } from "@/lib/courier-settings";
 
 /**
  * Steadfast handover for an order (admin-gated by middleware).
@@ -28,6 +30,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   if (!steadfastConfigured()) {
     return NextResponse.json({ error: "Steadfast is not configured." }, { status: 503 });
+  }
+  const courier = parseCourierSettings(await getSiteSetting("courier").catch(() => null));
+  if (courier.partner !== "steadfast") {
+    return NextResponse.json(
+      { error: "Steadfast is switched off in Shipping → Delivery partner." },
+      { status: 409 },
+    );
   }
 
   const order = await getOrderDetail(id);
@@ -68,15 +77,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const invoice = formatOrderId(order.displayId);
-  const result = await createConsignment({
-    invoice,
-    name: order.address?.name || order.email,
-    phone,
-    address: addressLine,
-    // COD orders: courier collects the full total; prepaid (sslcommerz): nothing.
-    codAmount: order.paymentMethod === "cod" ? order.totalAmount : 0,
-    note: `Order ${invoice}`,
-  });
+  const result = await createConsignment(
+    {
+      invoice,
+      name: order.address?.name || order.email,
+      phone,
+      address: addressLine,
+      // COD orders: courier collects the full total; prepaid (sslcommerz): nothing.
+      codAmount: order.paymentMethod === "cod" ? order.totalAmount : 0,
+      note: `Order ${invoice}`,
+    },
+    // Admin test-mode toggle wins alongside the STEADFAST_MOCK env fallback.
+    { mock: courier.testMode || undefined },
+  );
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 502 });
 
   const { consignment } = result;

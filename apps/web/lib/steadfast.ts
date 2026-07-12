@@ -135,8 +135,9 @@ export interface CreateConsignmentInput {
 /** Hand a parcel over to Steadfast: POST /create_order. */
 export async function createConsignment(
   order: CreateConsignmentInput,
+  opts?: { mock?: boolean },
 ): Promise<Result<{ consignment: SteadfastConsignment }>> {
-  if (steadfastMockMode()) {
+  if (opts?.mock ?? steadfastMockMode()) {
     const id = `${MOCK_PREFIX}${Date.now().toString(36)}`;
     return {
       ok: true,

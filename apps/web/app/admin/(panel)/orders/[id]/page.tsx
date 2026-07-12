@@ -4,7 +4,9 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Badge, Card } from "@ecom/ui";
+import { getSiteSetting } from "@ecom/cms";
 import { getOrderDetail } from "@/lib/medusa-admin";
+import { parseCourierSettings } from "@/lib/courier-settings";
 import { steadfastConfigured, steadfastTrackingUrl } from "@/lib/steadfast";
 import { AdminHeader } from "@/components/admin/page-header";
 import { OrderActions } from "@/components/admin/order-actions";
@@ -14,8 +16,12 @@ export const dynamic = "force-dynamic";
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = await getOrderDetail(id);
+  const [order, courierRaw] = await Promise.all([
+    getOrderDetail(id),
+    getSiteSetting("courier").catch(() => null),
+  ]);
   if (!order) notFound();
+  const courier = parseCourierSettings(courierRaw);
 
   return (
     <>
@@ -69,7 +75,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div className="flex flex-col gap-6">
           <Card className="p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order status</h3>
-            <OrderActions order={order} steadfastEnabled={steadfastConfigured() && !order.courier} />
+            <OrderActions
+              order={order}
+              steadfastEnabled={steadfastConfigured() && courier.partner === "steadfast" && !order.courier}
+            />
           </Card>
 
           {order.courier && (
