@@ -102,7 +102,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const upstream = await fetch("https://api.mimsms.com/api/V2/SMS", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey, userName, senderName, transactionType, mobileNumber, message }),
+      body: JSON.stringify({
+        apiKey,
+        userName,
+        senderName,
+        transactionType,
+        mobileNumber,
+        message,
+        // MiMSMS validator requires the field even though docs mark it optional.
+        campaignName: transactionType === "T" ? "Transactional" : "Promotional",
+      }),
       signal: AbortSignal.timeout(30000),
     });
     const data = (await upstream.json().catch(() => ({}))) as Record<string, unknown>;
