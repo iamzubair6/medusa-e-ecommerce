@@ -20,6 +20,21 @@ interface RelayBody {
 const MAX_MESSAGE = 500;
 const MAX_NUMBERS = 1000;
 
+/**
+ * Egress-IP probe: reports which public IP THIS service's outbound requests
+ * use right now. Exists because MiMSMS only whitelists individual IPs — call
+ * this repeatedly to learn the concrete addresses to whitelist. Leaks nothing
+ * private (the IP is visible to every server we call anyway).
+ */
+export async function GET(_req: MedusaRequest, res: MedusaResponse) {
+  try {
+    const r = await fetch("https://api.ipify.org", { signal: AbortSignal.timeout(10000) });
+    res.status(200).json({ egressIp: (await r.text()).trim() });
+  } catch {
+    res.status(502).json({ error: "Could not determine egress IP." });
+  }
+}
+
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const secret = process.env.SMS_RELAY_SECRET;
   if (!secret || req.headers["x-relay-secret"] !== secret) {
