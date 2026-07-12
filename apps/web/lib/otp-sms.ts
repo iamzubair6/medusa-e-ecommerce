@@ -1,4 +1,6 @@
 import "server-only";
+import { getSiteSetting } from "@ecom/cms";
+import { fillSmsPlaceholders, parseSmsTemplates } from "./sms-templates";
 
 /**
  * Pluggable OTP sender.
@@ -95,10 +97,22 @@ export async function sendOtp(phone: string, code: string): Promise<void> {
     return;
   }
   if (process.env.SMS_PROVIDER === "mimsms") {
-    await sendViaMimsms(phone, `Your Maison verification code is ${code}. It expires in 5 minutes.`);
+    // Admin-editable copy (MiMSMS-compliant default: brand name + (brand) tag).
+    const t = parseSmsTemplates(await getSiteSetting("smsTemplates").catch(() => null));
+    await sendViaMimsms(phone, fillSmsPlaceholders(t.otp, { code, company: t.companyName }));
     return;
   }
   throw new Error(`SMS_PROVIDER "${process.env.SMS_PROVIDER}" has no sender implemented`);
+}
+
+/** Render the order-confirmation SMS from the admin-managed template. */
+export async function orderConfirmationSmsText(vars: {
+  orderId: string;
+  total: string;
+  trackUrl: string;
+}): Promise<string> {
+  const t = parseSmsTemplates(await getSiteSetting("smsTemplates").catch(() => null));
+  return fillSmsPlaceholders(t.orderConfirmation, { ...vars, company: t.companyName });
 }
 
 /**
