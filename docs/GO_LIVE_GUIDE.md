@@ -193,13 +193,15 @@ normal; you won't see them).
    EMAIL_FROM_NAME                    = Maison
    OTP_DEMO_CODES                     = true   (ONLY until Brevo is set up; then remove)
 
-   # Optional — real SMS OTP (MiMSMS, prepaid)
+   # Optional — real SMS OTP (MiMSMS, prepaid). MiMSMS only whitelists STATIC
+   # IPs, so all SMS goes through the relay on Render (fixed outbound IPs):
    SMS_PROVIDER                       = mimsms
-   MIMSMS_API_KEY                     = <panel → Utility → Developer, must be Activated>
-   MIMSMS_USERNAME                    = <your sms.mimsms.com login email>
-   MIMSMS_SENDER_ID                   = <exact value from panel → Utility → Sender ID>
-   # MiMSMS also requires whitelisting the caller (panel → Utility → Developer):
-   # add your DOMAIN (the vercel.app / custom domain) — Vercel has no fixed IP.
+   MIMSMS_RELAY_URL                   = https://medusabd.onrender.com/sms
+   SMS_RELAY_SECRET                   = <random hex — same value on Render>
+   # On the RENDER service, add instead: MIMSMS_API_KEY, MIMSMS_USERNAME,
+   # MIMSMS_SENDER_ID, SMS_RELAY_SECRET. In the MiMSMS panel, whitelist the
+   # Render service's static outbound IPs (dashboard → Connect → Outbound)
+   # and the domain medusabd.onrender.com.
 
    # Optional — online payment (SSLCommerz free sandbox; see docs/smoke-tests/51-payment-sslcommerz.md)
    SSLCOMMERZ_STORE_ID                = <sandbox store id>
