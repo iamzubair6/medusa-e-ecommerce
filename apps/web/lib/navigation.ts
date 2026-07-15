@@ -9,6 +9,8 @@ import { z } from "zod";
 export const navLinkSchema = z.object({
   label: z.string().min(1).max(60),
   href: z.string().min(1).max(200),
+  highlight: z.boolean().default(false), // e.g. "Sale Dresses" in accent red
+  swatch: z.string().max(30).default(""), // color dot for Shop-by-Color links
 });
 
 export const navColumnSchema = z.object({
@@ -20,6 +22,7 @@ export const navCollectionSchema = z.object({
   label: z.string().min(1).max(40),
   href: z.string().min(1).max(200),
   highlight: z.boolean().default(false), // e.g. "Sale" in red
+  image: z.string().max(300).default(""), // promo tile shown in the mega panel
   columns: z.array(navColumnSchema).max(6).default([]),
 });
 

@@ -9,7 +9,7 @@ import { Camera, ChevronDown, Heart, Loader2, Menu, Search, User, X } from "luci
 import { Container, cn } from "@ecom/ui";
 import { z } from "zod";
 import type { NavCategory, NavData } from "@/lib/nav-data";
-import type { NavColumn } from "@/lib/navigation";
+import type { NavCollection, Navigation } from "@/lib/navigation";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
@@ -165,7 +165,7 @@ export function Navbar({ navData }: NavbarProps) {
             </Container>
             <AnimatePresence>
               {openMega?.startsWith("col:") && (adminCollections[Number(openMega.slice(4))]?.columns.length ?? 0) > 0 && (
-                <AdminMegaPanel columns={adminCollections[Number(openMega.slice(4))]!.columns} reduce={!!reduce} />
+                <AdminMegaPanel collection={adminCollections[Number(openMega.slice(4))]!} reduce={!!reduce} />
               )}
             </AnimatePresence>
           </>
@@ -226,6 +226,7 @@ export function Navbar({ navData }: NavbarProps) {
             brand={brand}
             divisions={divisions}
             categoriesByDivision={categoriesByDivision}
+            navigation={navData.navigation}
             reduce={!!reduce}
             onClose={() => setMobileOpen(false)}
           />
@@ -441,16 +442,29 @@ function SearchAutocomplete({
   );
 }
 
-function MegaColumn({ heading, links }: { heading: string; links: { label: string; href: string; swatch?: string }[] }) {
+function MegaColumn({
+  heading,
+  links,
+}: {
+  heading: string;
+  links: { label: string; href: string; swatch?: string; highlight?: boolean }[];
+}) {
   if (links.length === 0) return null;
   return (
     <div>
-      <p className="mb-3 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground">{heading}</p>
+      {/* An empty heading = FN-style "Featured" lifecycle column: links only. */}
+      {heading && <p className="mb-3 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-foreground">{heading}</p>}
       <ul className="flex flex-col gap-2">
-        {links.map((l) => (
-          <li key={l.href}>
-            <Link href={l.href} className="flex items-center gap-2 text-[0.8rem] text-foreground/70 transition-colors hover:text-accent hover:underline">
-              {l.swatch && <span className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: l.swatch }} />}
+        {links.map((l, i) => (
+          <li key={l.href + i}>
+            <Link
+              href={l.href}
+              className={cn(
+                "flex items-center gap-2 text-[0.8rem] transition-colors hover:text-accent hover:underline",
+                l.highlight ? "font-medium text-accent" : "text-foreground/70",
+              )}
+            >
+              {l.swatch && <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ backgroundColor: l.swatch }} />}
               {l.label}
             </Link>
           </li>
@@ -468,8 +482,14 @@ const BRANDS = [
   { label: "Maison Kids", href: "/collections/kids?division=kids" },
 ];
 
-/** Full-width popover rendered from admin-managed columns. */
-function AdminMegaPanel({ columns, reduce }: { columns: NavColumn[]; reduce: boolean }) {
+/** Full-width popover rendered from an admin-managed collection (columns + promo tile). */
+function AdminMegaPanel({ collection, reduce }: { collection: NavCollection; reduce: boolean }) {
+  const columns = collection.columns.filter((c) => c.links.length > 0);
+  // The tile needs 2 of the 12 tracks — drop it rather than wrap when 6 columns are set.
+  const showImage = Boolean(collection.image) && columns.length < 6;
+  if (columns.length === 0 && !showImage) return null;
+  const tracks = columns.length + (showImage ? 1 : 0);
+  const span = tracks > 4 ? "md:col-span-2" : "md:col-span-3";
   return (
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 4 }}
@@ -480,10 +500,19 @@ function AdminMegaPanel({ columns, reduce }: { columns: NavColumn[]; reduce: boo
     >
       <Container className="grid grid-cols-2 gap-6 py-7 md:grid-cols-12">
         {columns.map((col, i) => (
-          <div key={i} className="md:col-span-3">
+          <div key={i} className={span}>
             <MegaColumn heading={col.heading} links={col.links} />
           </div>
         ))}
+        {showImage && (
+          <Link href={collection.href} className="group relative hidden h-56 overflow-hidden md:col-span-2 md:block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={collection.image} alt={collection.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+            <span className="absolute bottom-3 left-3 rounded-sm bg-background/90 px-2 py-1 text-xs font-bold uppercase tracking-wide">
+              Shop {collection.label}
+            </span>
+          </Link>
+        )}
       </Container>
     </motion.div>
   );
@@ -578,7 +607,7 @@ function MegaPanel({
       </div>
       <Link href={base} className="group relative hidden h-56 overflow-hidden md:col-span-2 md:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={PROMO_IMG} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <img src={PROMO_IMG} alt={name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
         <span className="absolute bottom-3 left-3 rounded-sm bg-background/90 px-2 py-1 text-xs font-bold uppercase tracking-wide">Shop {name}</span>
       </Link>
     </>,
@@ -589,16 +618,19 @@ function MobileDrawer({
   brand,
   divisions,
   categoriesByDivision,
+  navigation,
   reduce,
   onClose,
 }: {
   brand: string;
   divisions: NavData["divisions"];
   categoriesByDivision: NavData["categoriesByDivision"];
+  navigation: Navigation;
   reduce: boolean;
   onClose: () => void;
 }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [openCol, setOpenCol] = useState<string | null>(null);
   return (
     <>
       <motion.div className="fixed inset-0 z-40 bg-black/40 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
@@ -618,6 +650,9 @@ function MobileDrawer({
         <ul className="flex flex-col">
           {divisions.map((d) => {
             const cats = categoriesByDivision[d.handle] ?? [];
+            // Same source as the desktop mega menu: admin nav wins, auto categories otherwise.
+            const adminCols = navigation.divisions.find((x) => x.handle === d.handle)?.collections ?? [];
+            const expandable = adminCols.length > 0 || cats.length > 0;
             const expanded = open === d.handle;
             return (
               <li key={d.handle} className="border-b border-border">
@@ -625,13 +660,65 @@ function MobileDrawer({
                   <Link href={d.handle === "women" ? "/" : `/pages/${d.handle}`} onClick={onClose} className="block py-3 text-sm font-bold uppercase tracking-wide hover:text-accent">
                     {d.label}
                   </Link>
-                  {cats.length > 0 && (
-                    <button type="button" aria-label="Expand" onClick={() => setOpen(expanded ? null : d.handle)} className="p-2">
+                  {expandable && (
+                    <button type="button" aria-label={`Expand ${d.label}`} aria-expanded={expanded} onClick={() => setOpen(expanded ? null : d.handle)} className="p-2">
                       <ChevronDown className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")} />
                     </button>
                   )}
                 </div>
-                {expanded && (
+                {expanded && adminCols.length > 0 && (
+                  <ul className="pb-2 pl-3">
+                    {adminCols.map((col, ci) => {
+                      const key = `${d.handle}:${ci}`;
+                      const hasSections = col.columns.some((x) => x.links.length > 0);
+                      const colOpen = openCol === key;
+                      return (
+                        <li key={key}>
+                          <div className="flex items-center justify-between">
+                            <Link
+                              href={col.href}
+                              onClick={onClose}
+                              className={cn("block py-1.5 text-sm hover:text-accent", col.highlight ? "font-semibold text-accent" : "text-foreground/75")}
+                            >
+                              {col.label}
+                            </Link>
+                            {hasSections && (
+                              <button type="button" aria-label={`Expand ${col.label}`} aria-expanded={colOpen} onClick={() => setOpenCol(colOpen ? null : key)} className="p-2">
+                                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", colOpen && "rotate-180")} />
+                              </button>
+                            )}
+                          </div>
+                          {colOpen && (
+                            <div className="pb-2 pl-3">
+                              {col.columns.filter((x) => x.links.length > 0).map((x, xi) => (
+                                <div key={xi} className="py-1">
+                                  {x.heading && (
+                                    <p className="py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">{x.heading}</p>
+                                  )}
+                                  <ul>
+                                    {x.links.map((l, li) => (
+                                      <li key={l.href + li}>
+                                        <Link
+                                          href={l.href}
+                                          onClick={onClose}
+                                          className={cn("flex items-center gap-2 py-1 text-sm hover:text-accent", l.highlight ? "text-accent" : "text-foreground/70")}
+                                        >
+                                          {l.swatch && <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-border" style={{ backgroundColor: l.swatch }} />}
+                                          {l.label}
+                                        </Link>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {expanded && adminCols.length === 0 && (
                   <ul className="pb-2 pl-3">
                     {cats.map((c) => (
                       <li key={c.handle}>
