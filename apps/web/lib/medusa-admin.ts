@@ -1241,9 +1241,14 @@ export async function updateShippingRate(id: string, amount: number): Promise<vo
 
 // --- Customers --------------------------------------------------------------
 
+/** Domain of the synthetic account emails minted for phone-OTP signups (see lib/customer-auth). */
+export const PHONE_EMAIL_DOMAIN = "phone.maison.local";
+export const isPhoneAccountEmail = (email: string | null | undefined): boolean =>
+  !!email && email.endsWith(`@${PHONE_EMAIL_DOMAIN}`);
+
 interface RawCustomer {
   id: string;
-  email: string;
+  email: string | null;
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
@@ -1253,7 +1258,8 @@ interface RawCustomer {
 
 export interface AdminCustomerRow {
   id: string;
-  email: string;
+  /** Null for phone-OTP signups — their synthetic account email is an internal detail. */
+  email: string | null;
   name: string;
   phone: string | null;
   orders: number;
@@ -1270,8 +1276,8 @@ export async function listCustomers(
   );
   const customers = (data?.customers ?? []).map((c) => ({
     id: c.id,
-    email: c.email,
-    name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—",
+    email: isPhoneAccountEmail(c.email) ? null : (c.email ?? null),
+    name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || c.phone || "—",
     phone: c.phone ?? null,
     orders: (c.orders ?? []).length,
     createdAt: c.created_at,
@@ -1330,7 +1336,8 @@ export async function getCustomerPhonesByIds(ids: string[]): Promise<string[]> {
 
 export interface AdminCustomerDetail {
   id: string;
-  email: string;
+  /** Null for phone-OTP signups — their synthetic account email is an internal detail. */
+  email: string | null;
   name: string;
   phone?: string;
   createdAt: string;
@@ -1350,7 +1357,7 @@ export async function getCustomerDetail(id: string): Promise<AdminCustomerDetail
   const data = await adminFetch<{
     customer?: {
       id: string;
-      email: string;
+      email: string | null;
       first_name?: string | null;
       last_name?: string | null;
       created_at: string;
@@ -1361,8 +1368,10 @@ export async function getCustomerDetail(id: string): Promise<AdminCustomerDetail
         total: number;
         currency_code: string;
         created_at: string;
-        fulfillment_status: string;
-        payment_status: string;
+        // Computed statuses are null (not "not_fulfilled"/"not_paid") when the
+        // order is fetched as a customer relation expansion.
+        fulfillment_status?: string | null;
+        payment_status?: string | null;
       }[];
     };
   }>(`/admin/customers/${id}?fields=${encodeURIComponent(fields)}`);
@@ -1370,8 +1379,8 @@ export async function getCustomerDetail(id: string): Promise<AdminCustomerDetail
   if (!c) return null;
   return {
     id: c.id,
-    email: c.email,
-    name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "—",
+    email: isPhoneAccountEmail(c.email) ? null : (c.email ?? null),
+    name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || c.phone || "—",
     phone: c.phone ?? undefined,
     createdAt: c.created_at,
     orders: (c.orders ?? [])
@@ -1380,11 +1389,16 @@ export async function getCustomerDetail(id: string): Promise<AdminCustomerDetail
         displayId: o.display_id,
         total: money(o.total, o.currency_code),
         createdAt: o.created_at,
-        fulfillmentStatus: o.fulfillment_status,
-        paymentStatus: o.payment_status,
+        fulfillmentStatus: o.fulfillment_status ?? "not_fulfilled",
+        paymentStatus: o.payment_status ?? "not_paid",
       }))
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
   };
+}
+
+/** Permanently delete a customer (their orders survive — Medusa keeps them as guest orders). */
+export async function deleteCustomer(id: string): Promise<void> {
+  await adminDelete(`/admin/customers/${id}`);
 }
 
 // --- Settings viewers (read-only infra surfaced in the dashboard) ------------

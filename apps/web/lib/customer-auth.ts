@@ -1,11 +1,11 @@
 import "server-only";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
-import { findCustomerEmailByPhone } from "./medusa-admin";
+import { findCustomerEmailByPhone, PHONE_EMAIL_DOMAIN } from "./medusa-admin";
 
 const PHONE_SECRET = process.env.ADMIN_SESSION_SECRET || "dev-phone-secret";
 const phoneDigits = (p: string) => p.replace(/\D/g, "");
-const phoneEmail = (p: string) => `p${phoneDigits(p)}@phone.maison.local`;
+const phoneEmail = (p: string) => `p${phoneDigits(p)}@${PHONE_EMAIL_DOMAIN}`;
 // Strong, reproducible password derived from the phone (never shown to the user).
 const phonePassword = (p: string) =>
   crypto.createHmac("sha256", PHONE_SECRET).update(`pw:${phoneDigits(p)}`).digest("base64url").slice(0, 24);
