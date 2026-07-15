@@ -38,7 +38,7 @@ export async function GET() {
             .map((c) =>
               csvRow([
                 c.name,
-                c.email,
+                c.email ?? "",
                 c.phone ?? "",
                 c.createdAt ? new Date(c.createdAt).toISOString().slice(0, 10) : "",
                 String(c.orders),

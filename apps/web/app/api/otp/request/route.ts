@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requestOtp } from "@ecom/cms";
 import { sendOtp, otpMockMode, toBdMsisdn } from "@/lib/otp-sms";
 import { emailMockMode, renderEmail, sendEmail } from "@/lib/email";
-import { findCustomerEmailByPhone } from "@/lib/medusa-admin";
+import { findCustomerEmailByPhone, isPhoneAccountEmail } from "@/lib/medusa-admin";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
@@ -45,9 +45,8 @@ export async function POST(request: Request) {
   try {
     // Bind delivery to the account: an existing phone's code goes only to its
     // stored email. The caller's email is honored only when the phone is new.
-    const placeholder = (addr: string) => addr.endsWith("@phone.maison.local");
     const stored = await findCustomerEmailByPhone(phone).catch(() => null);
-    const emailTarget = stored ? (placeholder(stored) ? undefined : stored) : parsed.data.email?.trim();
+    const emailTarget = stored ? (isPhoneAccountEmail(stored) ? undefined : stored) : parsed.data.email?.trim();
 
     const { code } = await requestOtp(phone);
 

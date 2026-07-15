@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@ecom/ui";
 import { getSiteSetting } from "@ecom/cms";
 import { getCustomer } from "@/lib/customer-auth";
+import { isPhoneAccountEmail } from "@/lib/medusa-admin";
 import { getPhoneSession } from "@/lib/phone-session";
 import { parsePersona } from "@/lib/persona";
 import { enabledPaymentMethods, parseCheckoutConfig } from "@/lib/checkout-config";
@@ -25,8 +26,8 @@ export default async function CheckoutPage({
     getSiteSetting("checkout").catch(() => null),
   ]);
 
-  // Phone-OTP accounts have a placeholder @phone.maison.local email — don't prefill it.
-  const realEmail = customer?.email && !customer.email.endsWith("@phone.maison.local") ? customer.email : "";
+  // Phone-OTP accounts have a placeholder synthetic email — don't prefill it.
+  const realEmail = customer?.email && !isPhoneAccountEmail(customer.email) ? customer.email : "";
   const prefill = {
     email: realEmail,
     firstName: customer?.firstName ?? "",
