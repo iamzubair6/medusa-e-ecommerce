@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button, Card, cn } from "@ecom/ui";
 import { TextField, CheckboxField } from "./fields";
 import { useToast } from "./toast";
-import type { Navigation, NavCollection, NavColumn } from "@/lib/navigation";
+import { navigationSchema, type Navigation, type NavCollection, type NavColumn } from "@/lib/navigation";
 
 export function NavigationBuilder({ initial }: { initial: Navigation }) {
   const router = useRouter();
@@ -14,6 +14,7 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
   const [nav, setNav] = useState<Navigation>(initial);
   const [divIdx, setDivIdx] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const div = nav.divisions[divIdx];
 
@@ -39,6 +40,33 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
     }
   };
 
+  const generate = async () => {
+    if (
+      !confirm(
+        "Generate a Fashion-Nova-style menu from the live catalog? This replaces the collections of every division that has products (labels and badges are kept from the last save — unsaved edits here are discarded). It saves immediately.",
+      )
+    )
+      return;
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/admin/navigation/generate", { method: "POST" });
+      const body: unknown = await res.json().catch(() => null);
+      const errMsg =
+        body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : null;
+      const parsed = navigationSchema.safeParse(
+        body && typeof body === "object" && "navigation" in body ? body.navigation : null,
+      );
+      if (!res.ok || !parsed.success) throw new Error(errMsg ?? "Could not generate");
+      setNav(parsed.data);
+      toast.success("Navigation generated from the catalog and saved.");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   if (!div) return null;
   const cols = div.collections;
   const setCollections = (next: NavCollection[]) => patchDiv({ collections: next });
@@ -47,6 +75,15 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Build each division&rsquo;s menu by hand, or generate the whole thing from the live catalog and edit from there.
+        </p>
+        <Button type="button" variant="outline" size="sm" loading={generating} onClick={generate}>
+          <Sparkles className="h-3.5 w-3.5" /> Generate from catalog
+        </Button>
+      </div>
+
       {/* Division tabs */}
       <div className="flex flex-wrap gap-2">
         {nav.divisions.map((d, i) => (
@@ -75,7 +112,7 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
       {/* Collections for this division */}
       <div className="flex items-center justify-between">
         <h3 className="font-display text-lg font-bold">Collections (mega-menu items)</h3>
-        <Button type="button" variant="outline" size="sm" onClick={() => setCollections([...cols, { label: "New collection", href: "/collections/new", highlight: false, columns: [] }])}>
+        <Button type="button" variant="outline" size="sm" onClick={() => setCollections([...cols, { label: "New collection", href: "/collections/new", highlight: false, image: "", columns: [] }])}>
           <Plus className="h-4 w-4" /> Add collection
         </Button>
       </div>
@@ -90,7 +127,15 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-          <CheckboxField label="Highlight (red, e.g. Sale)" checked={c.highlight} onChange={(e) => patchCollection(ci, { highlight: e.target.checked })} />
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+            <TextField
+              label="Promo image URL (optional — tile in the mega panel)"
+              value={c.image}
+              onChange={(e) => patchCollection(ci, { image: e.target.value })}
+              placeholder="https://…"
+            />
+            <CheckboxField label="Highlight (red, e.g. Sale)" checked={c.highlight} onChange={(e) => patchCollection(ci, { highlight: e.target.checked })} />
+          </div>
 
           {/* Popover columns */}
           <div className="flex items-center justify-between border-t border-border pt-3">
@@ -125,16 +170,22 @@ function ColumnEditor({ column, onChange, onRemove }: { column: NavColumn; onCha
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-      {links.map((l, li) => (
-        <div key={li} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <TextField label="Link label" value={l.label} onChange={(e) => onChange({ ...column, links: links.map((x, i) => (i === li ? { ...x, label: e.target.value } : x)) })} />
-          <TextField label="Link URL" value={l.href} onChange={(e) => onChange({ ...column, links: links.map((x, i) => (i === li ? { ...x, href: e.target.value } : x)) })} />
-          <Button type="button" variant="ghost" size="icon" aria-label="Remove link" onClick={() => onChange({ ...column, links: links.filter((_, i) => i !== li) })}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
-      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => onChange({ ...column, links: [...links, { label: "", href: "" }] })}>
+      {links.map((l, li) => {
+        const patchLink = (patch: Partial<(typeof links)[number]>) =>
+          onChange({ ...column, links: links.map((x, i) => (i === li ? { ...x, ...patch } : x)) });
+        return (
+          <div key={li} className="grid gap-2 sm:grid-cols-[1fr_1fr_90px_auto_auto] sm:items-end">
+            <TextField label="Link label" value={l.label} onChange={(e) => patchLink({ label: e.target.value })} />
+            <TextField label="Link URL" value={l.href} onChange={(e) => patchLink({ href: e.target.value })} />
+            <TextField label="Swatch" value={l.swatch} onChange={(e) => patchLink({ swatch: e.target.value })} placeholder="#8b1e2d" />
+            <CheckboxField label="Red" checked={l.highlight} onChange={(e) => patchLink({ highlight: e.target.checked })} />
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove link" onClick={() => onChange({ ...column, links: links.filter((_, i) => i !== li) })}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      })}
+      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => onChange({ ...column, links: [...links, { label: "", href: "", highlight: false, swatch: "" }] })}>
         <Plus className="h-4 w-4" /> Add link
       </Button>
     </div>
