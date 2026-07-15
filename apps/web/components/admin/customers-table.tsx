@@ -5,13 +5,21 @@ import Link from "next/link";
 import { Download, MessageSquareText } from "lucide-react";
 import { Button, Card } from "@ecom/ui";
 import type { AdminCustomerRow } from "@/lib/medusa-admin";
+import { CustomerDeleteButton } from "./customer-delete-button";
 import { CustomersSmsComposer } from "./customers-sms-composer";
 
 /**
  * Customers table with row selection (customers with a phone only), a promo-SMS
  * composer, and a CSV export of the full customer list.
  */
-export function CustomersTable({ customers }: { customers: AdminCustomerRow[] }) {
+export function CustomersTable({
+  customers,
+  canDelete = false,
+}: {
+  customers: AdminCustomerRow[];
+  /** Deleting is ADMIN-role only — the endpoint enforces it, this hides the affordance. */
+  canDelete?: boolean;
+}) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [composerOpen, setComposerOpen] = useState(false);
 
@@ -82,6 +90,11 @@ export function CustomersTable({ customers }: { customers: AdminCustomerRow[] })
               <th>Phone</th>
               <th>Orders</th>
               <th>Joined</th>
+              {canDelete && (
+                <th className="w-10">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -106,17 +119,22 @@ export function CustomersTable({ customers }: { customers: AdminCustomerRow[] })
                     {c.name}
                   </Link>
                 </td>
-                <td className="text-muted-foreground">{c.email}</td>
+                <td className="text-muted-foreground">{c.email ?? "—"}</td>
                 <td className="text-muted-foreground">{c.phone ?? "—"}</td>
                 <td>{c.orders}</td>
                 <td className="text-muted-foreground">
                   {new Date(c.createdAt).toLocaleDateString()}
                 </td>
+                {canDelete && (
+                  <td>
+                    <CustomerDeleteButton id={c.id} name={c.name} iconOnly />
+                  </td>
+                )}
               </tr>
             ))}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={canDelete ? 7 : 6} className="px-4 py-10 text-center text-muted-foreground">
                   No customers yet.
                 </td>
               </tr>

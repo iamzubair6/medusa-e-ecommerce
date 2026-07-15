@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Badge, Card } from "@ecom/ui";
 import { getCustomerDetail } from "@/lib/medusa-admin";
+import { getAdminSession } from "@/lib/admin-auth";
 import { AdminHeader } from "@/components/admin/page-header";
+import { CustomerDeleteButton } from "@/components/admin/customer-delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -16,26 +18,37 @@ function statusVariant(s: string): "gold" | "muted" | "outline" {
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const customer = await getCustomerDetail(id);
+  const [customer, session] = await Promise.all([getCustomerDetail(id), getAdminSession()]);
   if (!customer) notFound();
 
   return (
     <>
       <AdminHeader
-        title={customer.name === "—" ? customer.email : customer.name}
+        title={customer.name !== "—" ? customer.name : customer.email ?? "Customer"}
         description={`Customer since ${new Date(customer.createdAt).toLocaleDateString()}`}
         action={
-          <Link href="/admin/customers" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> All customers
-          </Link>
+          <div className="flex items-center gap-3">
+            {session?.role === "ADMIN" && (
+              <CustomerDeleteButton
+                id={customer.id}
+                name={customer.name !== "—" ? customer.name : customer.email ?? "this customer"}
+                redirectTo="/admin/customers"
+              />
+            )}
+            <Link href="/admin/customers" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" /> All customers
+            </Link>
+          </div>
         }
       />
       <div className="grid gap-6 p-8 lg:grid-cols-[280px_1fr]">
         <Card className="flex h-fit flex-col gap-3 p-5 text-sm">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</p>
-            <p className="font-medium">{customer.email}</p>
-          </div>
+          {customer.email && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</p>
+              <p className="font-medium">{customer.email}</p>
+            </div>
+          )}
           {customer.phone && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Phone</p>
