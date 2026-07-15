@@ -93,8 +93,17 @@ The landing page is built from **blocks** you can reorder and edit:
 - Every save is validated, so you can't break the page with bad data.
 
 ### Navigation
-Edit the top menu: add/remove/reorder links, and optionally attach a **mega-menu**
-(columns of links + a featured image) via a small JSON field.
+Build each division's menu (Fashion-Nova style): collection bar items, each with
+an optional **mega-menu** — up to 6 columns of links plus a promo image tile.
+Links can carry a **color swatch** (Shop By Color) or be marked **Red** (Sale).
+A column with an empty heading renders FN's "featured" style: links only.
+
+**Generate from catalog** builds the whole thing in one click from live products
+(New In / Clothing / one item per category with Style · Occasion · Trend · Color
+columns / Sale). Every generated link is backed by at least one real product.
+It replaces the collections of every division that has products (labels and
+badges are kept) and saves immediately — then edit anything by hand and Save.
+The same menu drives desktop hover panels **and** the mobile drawer.
 
 ### Content Pages
 Every static page linked from the footer — Help Center, Size Guide, Shipping,
