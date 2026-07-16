@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRound, Plus, ShieldCheck, Trash2, UserPlus } from "lucide-react";
-import { Button, Card, cn } from "@ecom/ui";
+import { Button, Card, cn, ConfirmDialog } from "@ecom/ui";
 import { adminUserCreateSchema, type AdminRole, type AdminUserCreateInput } from "@ecom/cms";
 import { TextField } from "./fields";
 import { EnumCombobox } from "./combobox";
@@ -40,6 +40,7 @@ export function UsersManager({ users: initial, currentUserId }: { users: AdminUs
   const [users, setUsers] = useState<AdminUserRow[]>(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pwDraft, setPwDraft] = useState<Record<string, string>>({});
+  const [confirmingRemove, setConfirmingRemove] = useState<AdminUserRow | null>(null);
 
   const {
     register,
@@ -81,7 +82,6 @@ export function UsersManager({ users: initial, currentUserId }: { users: AdminUs
   };
 
   const remove = async (row: AdminUserRow) => {
-    if (!window.confirm(`Remove ${row.name}? They will lose all admin access.`)) return;
     setBusyId(row.id);
     try {
       await api(`/api/admin/users/${row.id}`, "DELETE");
@@ -91,6 +91,7 @@ export function UsersManager({ users: initial, currentUserId }: { users: AdminUs
       toast.error((e as Error).message);
     } finally {
       setBusyId(null);
+      setConfirmingRemove(null);
     }
   };
 
@@ -223,7 +224,7 @@ export function UsersManager({ users: initial, currentUserId }: { users: AdminUs
                   variant="ghost"
                   size="sm"
                   disabled={busy || isSelf}
-                  onClick={() => void remove(row)}
+                  onClick={() => setConfirmingRemove(row)}
                   title={isSelf ? "You can't remove your own account" : undefined}
                 >
                   <Trash2 className="h-4 w-4" /> Remove
@@ -236,6 +237,19 @@ export function UsersManager({ users: initial, currentUserId }: { users: AdminUs
           The last active admin can&apos;t be demoted, deactivated or removed — so you never get locked out.
         </p>
       </Card>
+
+      <ConfirmDialog
+        open={confirmingRemove !== null}
+        title={`Remove ${confirmingRemove?.name ?? ""}?`}
+        description="They will lose all admin access."
+        confirmLabel="Remove"
+        destructive
+        loading={confirmingRemove !== null && busyId === confirmingRemove.id}
+        onConfirm={() => {
+          if (confirmingRemove) void remove(confirmingRemove);
+        }}
+        onCancel={() => setConfirmingRemove(null)}
+      />
     </div>
   );
 }

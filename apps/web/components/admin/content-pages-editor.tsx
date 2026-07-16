@@ -4,7 +4,7 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, ExternalLink, Plus, Trash2 } from "lucide-react";
-import { Button, Card } from "@ecom/ui";
+import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField, CheckboxField } from "./fields";
 import { RichTextField } from "./rich-text-field";
 import { useToast } from "./toast";
@@ -19,6 +19,7 @@ export function ContentPagesEditor({ initial }: { initial: ContentPages }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ index: number; label: string } | null>(null);
   const {
     register,
     control,
@@ -112,11 +113,7 @@ export function ContentPagesEditor({ initial }: { initial: ContentPages }) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        if (!confirm(`Delete the "${title || slug}" page? Its content is gone once you save.`)) return;
-                        remove(i);
-                        setOpen(null);
-                      }}
+                      onClick={() => setPendingDelete({ index: i, label: title || slug })}
                     >
                       <Trash2 className="mr-1 h-4 w-4" /> Delete
                     </Button>
@@ -145,6 +142,21 @@ export function ContentPagesEditor({ initial }: { initial: ContentPages }) {
           Save content pages
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`Delete the "${pendingDelete?.label ?? ""}" page?`}
+        description="Its content is gone once you save."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          remove(pendingDelete.index);
+          setOpen(null);
+          setPendingDelete(null);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </form>
   );
 }

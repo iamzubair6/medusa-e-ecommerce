@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { Button, Card } from "@ecom/ui";
+import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { Combobox } from "./combobox";
 import { TextField } from "./fields";
 import { useToast } from "./toast";
@@ -26,6 +26,7 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
   const router = useRouter();
   const toast = useToast();
   const [active, setActive] = useState<number | null>(initial.looks.length > 0 ? 0 : null);
+  const [confirmingRemove, setConfirmingRemove] = useState<number | null>(null);
 
   const {
     watch,
@@ -49,9 +50,9 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
   };
 
   const removeLook = (i: number) => {
-    if (!confirm("Remove this look and all its tags?")) return;
     setValue("looks", looks.filter((_, idx) => idx !== i), { shouldDirty: true });
     setActive(null);
+    setConfirmingRemove(null);
   };
 
   const placeHotspot = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -145,7 +146,7 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h4 className="font-display font-bold">Tags</h4>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removeLook(active)}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmingRemove(active)}>
                 <Trash2 className="mr-1 h-4 w-4" /> Remove look
               </Button>
             </div>
@@ -186,6 +187,18 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
           Dots appear on that product's page under "Shop the Look".
         </p>
       </div>
+
+      <ConfirmDialog
+        open={confirmingRemove !== null}
+        title="Remove this look and all its tags?"
+        description="It disappears from the editor now and is gone for good once you save."
+        confirmLabel="Remove"
+        destructive
+        onConfirm={() => {
+          if (confirmingRemove !== null) removeLook(confirmingRemove);
+        }}
+        onCancel={() => setConfirmingRemove(null)}
+      />
     </form>
   );
 }

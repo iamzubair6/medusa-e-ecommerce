@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, ArrowUp, ArrowDown, Plus, Trash2 } from "lucide-react";
-import { Badge, Button, Card, cn } from "@ecom/ui";
+import { Badge, Button, Card, cn, ConfirmDialog } from "@ecom/ui";
 import {
   bannerConfigSchema,
   categoryGridConfigSchema,
@@ -98,6 +98,7 @@ export function SectionManager({ sections: initial, pageLayoutId }: { sections: 
   const [reordering, setReordering] = useState(false);
   const [newType, setNewType] = useState<string>("HERO");
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   const addSection = async () => {
     setBusy(true);
@@ -111,7 +112,7 @@ export function SectionManager({ sections: initial, pageLayoutId }: { sections: 
   };
 
   const removeSection = async (id: string) => {
-    if (!confirm("Delete this section?")) return;
+    setConfirmingDelete(null);
     setSections((s) => s.filter((x) => x.id !== id));
     await fetch(`/api/admin/sections/${id}`, { method: "DELETE" });
     router.refresh();
@@ -178,7 +179,7 @@ export function SectionManager({ sections: initial, pageLayoutId }: { sections: 
               <button
                 type="button"
                 aria-label="Delete section"
-                onClick={() => removeSection(section.id)}
+                onClick={() => setConfirmingDelete(section.id)}
                 className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
@@ -209,6 +210,18 @@ export function SectionManager({ sections: initial, pageLayoutId }: { sections: 
           <Plus className="h-4 w-4" /> Add section
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmingDelete !== null}
+        title="Delete this section?"
+        description="It is removed from the page immediately. This cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (confirmingDelete) void removeSection(confirmingDelete);
+        }}
+        onCancel={() => setConfirmingDelete(null)}
+      />
     </div>
   );
 }
