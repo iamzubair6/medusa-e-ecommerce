@@ -16,6 +16,7 @@ small, isolated change. Revisit these together when planning the production depl
   - **Cloudinary** (image/video CDN + transforms, ~25 GB free)
   - AWS S3 / Supabase Storage / Bunny
 - **Swap cost:** configure Medusa's file module provider (S3 plugin) + env keys. ~1 file + env.
+- **Owner guide:** step-by-step signup + what to hand over → [STORAGE_SETUP.md](./STORAGE_SETUP.md).
 
 ## 2. OTP delivery — SMS gateway  (tasks #13–#15)
 - **Status:** full phone-OTP + registration/login flow built; OTP generation +

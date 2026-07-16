@@ -16,6 +16,7 @@ reference. Keep docs updated **in the same change** as the code (see CLAUDE.md
 | SMOKE_TEST_18-32.md | Click-through visual verification for tasks #18–#32 (what changed + what to test) | when a #18–#32 behaviour changes |
 | **smoke-tests/** | 📋 One owner-facing test checklist per task (#49+), incl. free-account setup steps | every new task ships with one |
 | PRODUCTION_DECISIONS.md | Deferred prod choices (upload storage, SMS gateway, hosting) — built mocked for now | a mock is added or a real provider is wired |
+| STORAGE_SETUP.md | Free media-storage options + step-by-step R2 signup (what the owner sets up and hands over for #97) | storage provider chosen or wired |
 | ROADMAP.md | Original platform phases 0–5 (historical) | rarely — points to IMPLEMENTATION_STATUS for current work |
 | PLAN.md | Product vision / scope (historical baseline) | vision/scope changes |
 | ARCHITECTURE.md | System structure, data flow, modules, routes | structure/routes/modules change |
