@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Camera, ChevronDown, Heart, Loader2, Menu, Search, User, X } from "lucide-react";
@@ -41,8 +41,13 @@ export function Navbar({ navData }: NavbarProps) {
       .catch(() => {});
   }, []);
 
+  const searchParams = useSearchParams();
   const divisionHandles = useMemo(() => new Set(divisions.map((d) => d.handle)), [divisions]);
   const division = useMemo(() => {
+    // Listing/PDP links carry the division as a query param — honor it first so
+    // e.g. /collections/jeans?division=men keeps MEN active in the nav.
+    const qp = searchParams.get("division");
+    if (qp && divisionHandles.has(qp)) return qp;
     const m = pathname.match(/^\/c\/([^/]+)/);
     if (m && divisionHandles.has(m[1]!)) return m[1]!;
     const pm = pathname.match(/^\/pages\/([^/]+)/);
@@ -51,7 +56,7 @@ export function Navbar({ navData }: NavbarProps) {
       if (divisionHandles.has(slug)) return slug;
     }
     return "women";
-  }, [pathname, divisionHandles]);
+  }, [pathname, searchParams, divisionHandles]);
 
   const brand = brandByDivision[division] ?? "MAISON";
   const divLabel = divisions.find((d) => d.handle === division)?.label ?? "Women";
