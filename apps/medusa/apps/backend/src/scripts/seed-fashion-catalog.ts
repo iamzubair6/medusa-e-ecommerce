@@ -90,6 +90,16 @@ const IMAGE_SETS: Record<string, string[]> = {
     "1519238263530-99bdd11df2ea", "1503454537195-1dcabb73ffb9", "1622290291468-a28f7a7dc6a8",
     "1518831959646-742c3a14ebf7", "1471286174890-9c112ffca5b4", "1607453998774-d533f65dac99",
   ],
+  // Men's tops: shirts, tees on a male model (Unsplash alt-text verified menswear)
+  "mens-tops": [
+    "1594938291221-94f18cbb5660", "1618786177957-29d9b6b26d8a", "1599732494971-a6110ea1ad20",
+    "1621072156002-e2fccdc0b176", "1603252109612-24fa03d145c8", "1624835567150-0c530a20d8cc",
+  ],
+  // Men's bottoms: trousers/chinos on a male model (Unsplash alt-text verified menswear)
+  "mens-bottoms": [
+    "1622450180332-3da1126f10a4", "1584865288642-42078afe6942", "1552903905-5e39e774e375",
+    "1693474865997-e1bd835a7414", "1548883354-7622d03aca27", "1730463527791-772d413cad69",
+  ],
 };
 
 // Generic fallback (rarely used) — neutral apparel shots.
@@ -108,6 +118,11 @@ const imageSetKey = (p: ProdDef): string => {
   if (cats.includes("beauty-products")) return "beauty";
   // Kids apparel should look like kids' clothing, not adult garments.
   if (p.division === "kids") return "kids";
+  // Men's tops/bottoms need menswear photos, not the women-leaning tops/bottoms pools.
+  if (p.division === "men") {
+    if (cats.includes("tops")) return "mens-tops";
+    if (cats.includes("bottoms") || cats.includes("jeans")) return "mens-bottoms";
+  }
   if (cats.includes("outerwear")) return "outerwear";
   if (cats.includes("jeans")) return "jeans";
   if (cats.includes("activewear")) return "activewear";
@@ -227,9 +242,9 @@ const P: ProdDef[] = [
   { title: "Kids Denim Jacket", handle: "kids-denim-jacket", division: "kids", categories: ["outerwear"], collection: "trending", price: 180, material: "100% Cotton Denim", care: "Machine wash cold inside out", occasion: ["Everyday"], style: ["Classic"], trend: ["Denim"], colors: ["Blue"], sizes: ["2T", "3T", "4T", "5T", "6"], description: "A classic trucker denim jacket sized for little ones, with snap buttons and chest pockets." },
 
   // ---------------- BEAUTY ----------------
-  { title: "Glow Drops Serum", handle: "glow-drops-serum", division: "beauty", categories: ["beauty-products", "accessories"], collection: "new", price: 240, material: "Vitamin C 10%, Hyaluronic Acid", care: "Store away from direct sunlight", occasion: ["Everyday"], style: ["Classic"], trend: ["Summer"], colors: ["One Shade"], sizes: ONE_SIZE, description: "A lightweight illuminating serum with vitamin C and hyaluronic acid for a lit-from-within glow." },
-  { title: "Matte Lip Kit", handle: "matte-lip-kit", division: "beauty", categories: ["beauty-products", "accessories"], collection: "trending", price: 160, material: "Liquid lipstick + lip liner set", care: "Replace 12 months after opening", occasion: ["Going Out"], style: ["Classic"], trend: ["Femme & Flirty"], colors: ["Rose", "Red", "Sand"], sizes: ONE_SIZE, description: "A long-wear matte liquid lip paired with a precision liner. Transfer-proof, all-day color." },
-  { title: "Velvet Blush", handle: "velvet-blush", division: "beauty", categories: ["beauty-products", "accessories"], collection: "sale", price: 110, original: 140, material: "Talc-free pressed powder", care: "Replace 18 months after opening", occasion: ["Everyday"], style: ["Classic"], trend: ["Summer"], colors: ["Pink", "Rose"], sizes: ONE_SIZE, offer: { type: "discount", label: "21% OFF", percent: 21 }, description: "A silky talc-free blush that blends to a soft-focus, second-skin flush." },
+  { title: "Glow Drops Serum", handle: "glow-drops-serum", division: "beauty", categories: ["beauty-products"], collection: "new", price: 240, material: "Vitamin C 10%, Hyaluronic Acid", care: "Store away from direct sunlight", occasion: ["Everyday"], style: ["Classic"], trend: ["Summer"], colors: ["One Shade"], sizes: ONE_SIZE, description: "A lightweight illuminating serum with vitamin C and hyaluronic acid for a lit-from-within glow." },
+  { title: "Matte Lip Kit", handle: "matte-lip-kit", division: "beauty", categories: ["beauty-products"], collection: "trending", price: 160, material: "Liquid lipstick + lip liner set", care: "Replace 12 months after opening", occasion: ["Going Out"], style: ["Classic"], trend: ["Femme & Flirty"], colors: ["Rose", "Red", "Sand"], sizes: ONE_SIZE, description: "A long-wear matte liquid lip paired with a precision liner. Transfer-proof, all-day color." },
+  { title: "Velvet Blush", handle: "velvet-blush", division: "beauty", categories: ["beauty-products"], collection: "sale", price: 110, original: 140, material: "Talc-free pressed powder", care: "Replace 18 months after opening", occasion: ["Everyday"], style: ["Classic"], trend: ["Summer"], colors: ["Pink", "Rose"], sizes: ONE_SIZE, offer: { type: "discount", label: "21% OFF", percent: 21 }, description: "A silky talc-free blush that blends to a soft-focus, second-skin flush." },
 ];
 
 const sku = (handle: string, color: string, size: string) =>
