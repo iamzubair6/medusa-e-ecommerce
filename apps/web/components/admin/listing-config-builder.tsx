@@ -27,6 +27,7 @@ const FACET_LABELS: Record<FacetKey, string> = {
   occasion: "Occasion",
   style: "Style",
   trend: "Trend",
+  price: "Price",
 };
 
 export function ListingConfigBuilder({

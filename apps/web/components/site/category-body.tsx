@@ -69,8 +69,9 @@ export function CategoryBody({
   const url = (overrides: Partial<ListingParams>) => `${basePath}${listingQuery(params, { page: 1, ...overrides })}`;
   const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
+  const priceActive = params.priceMin !== undefined || params.priceMax !== undefined;
   const activeCount =
-    params.colors.length + params.sizes.length + params.occasion.length + params.style.length + params.trend.length;
+    params.colors.length + params.sizes.length + params.occasion.length + params.style.length + params.trend.length + (priceActive ? 1 : 0);
 
   const renderFacet = (k: FacetKey) => {
     switch (k) {
@@ -142,6 +143,15 @@ export function CategoryBody({
         return <FacetLinks key="style" title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />;
       case "trend":
         return <FacetLinks key="trend" title="Trend" values={facets.trend} selected={params.trend} keyName="trend" url={url} />;
+      case "price":
+        return facets.priceMax > facets.priceMin ? (
+          <PriceFilter
+            key="price"
+            bounds={{ min: facets.priceMin, max: facets.priceMax }}
+            value={{ min: params.priceMin, max: params.priceMax }}
+            onApply={(min, max) => router.push(url({ priceMin: min, priceMax: max }))}
+          />
+        ) : null;
     }
   };
 
@@ -156,7 +166,7 @@ export function CategoryBody({
 
       {activeCount > 0 && (
         <Link
-          href={`${basePath}${listingQuery(params, { page: 1, colors: [], sizes: [], occasion: [], style: [], trend: [] })}`}
+          href={`${basePath}${listingQuery(params, { page: 1, colors: [], sizes: [], occasion: [], style: [], trend: [], priceMin: undefined, priceMax: undefined })}`}
           className="mt-3 flex w-fit items-center gap-1 text-xs text-accent hover:underline"
         >
           <X className="h-3 w-3" /> Clear all filters
@@ -330,6 +340,78 @@ function FacetLinks({
           </li>
         ))}
       </ul>
+    </FilterSection>
+  );
+}
+
+/** Price-range filter: two number inputs bounded by the facet range, applied on submit. */
+function PriceFilter({
+  bounds,
+  value,
+  onApply,
+}: {
+  bounds: { min: number; max: number };
+  value: { min?: number; max?: number };
+  onApply: (min: number | undefined, max: number | undefined) => void;
+}) {
+  const [min, setMin] = useState(value.min?.toString() ?? "");
+  const [max, setMax] = useState(value.max?.toString() ?? "");
+
+  const apply = () => {
+    const lo = min.trim() === "" ? undefined : Math.max(bounds.min, Math.floor(Number(min)));
+    const hi = max.trim() === "" ? undefined : Math.min(bounds.max, Math.ceil(Number(max)));
+    // Guard against inverted ranges (swap) and non-numeric input (ignore).
+    if (lo !== undefined && !Number.isFinite(lo)) return;
+    if (hi !== undefined && !Number.isFinite(hi)) return;
+    if (lo !== undefined && hi !== undefined && lo > hi) onApply(hi, lo);
+    else onApply(lo, hi);
+  };
+
+  return (
+    <FilterSection title="Price">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          apply();
+        }}
+        className="flex flex-col gap-2"
+      >
+        <div className="flex items-center gap-2">
+          <label className="flex-1">
+            <span className="sr-only">Minimum price</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={bounds.min}
+              max={bounds.max}
+              value={min}
+              onChange={(e) => setMin(e.target.value)}
+              placeholder={`৳${bounds.min}`}
+              className="w-full rounded-sm border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-foreground"
+            />
+          </label>
+          <span aria-hidden className="text-muted-foreground">–</span>
+          <label className="flex-1">
+            <span className="sr-only">Maximum price</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={bounds.min}
+              max={bounds.max}
+              value={max}
+              onChange={(e) => setMax(e.target.value)}
+              placeholder={`৳${bounds.max}`}
+              className="w-full rounded-sm border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-foreground"
+            />
+          </label>
+        </div>
+        <button
+          type="submit"
+          className="w-fit cursor-pointer text-xs font-semibold uppercase tracking-[0.1em] text-accent hover:underline"
+        >
+          Apply
+        </button>
+      </form>
     </FilterSection>
   );
 }
