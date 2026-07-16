@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, FileSpreadsheet, Sparkles, Mail, MessageSquareText, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, LayoutTemplate, LayoutPanelTop, Palette, Navigation, ListFilter, Megaphone, Rocket, ScanSearch, ShoppingBag, Receipt, Tag, TicketPercent, FolderTree, UserRound, Users, ShieldCheck, Settings, LogOut, ExternalLink, ClipboardList, CreditCard, Truck, Smartphone, FileText, FileSpreadsheet, Sparkles, Mail, MessageSquareText, type LucideIcon } from "lucide-react";
 import { cn } from "@ecom/ui";
 import type { AdminRole } from "@ecom/cms";
 
@@ -61,7 +61,7 @@ const groups: NavGroup[] = [
       { href: "/admin/listings", label: "Listing filters", icon: ListFilter },
       { href: "/admin/shop-the-look", label: "Shop the look", icon: Sparkles },
       { href: "/admin/content-pages", label: "Info pages", icon: FileText },
-      { href: "/admin/site", label: "Brand & theme", icon: LayoutPanelTop },
+      { href: "/admin/site", label: "Brand & theme", icon: Palette },
     ],
   },
   {

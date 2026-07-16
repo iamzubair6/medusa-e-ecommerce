@@ -146,7 +146,8 @@ export function CategoryBody({
       case "price":
         return facets.priceMax > facets.priceMin ? (
           <PriceFilter
-            key="price"
+            // Remount when the URL range changes (e.g. "Clear all") so the inputs never go stale.
+            key={`price-${params.priceMin ?? ""}-${params.priceMax ?? ""}`}
             bounds={{ min: facets.priceMin, max: facets.priceMax }}
             value={{ min: params.priceMin, max: params.priceMax }}
             onApply={(min, max) => router.push(url({ priceMin: min, priceMax: max }))}
