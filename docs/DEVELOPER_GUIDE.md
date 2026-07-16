@@ -198,7 +198,7 @@ export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
 cd apps/medusa/apps/backend && npm run dev      # http://localhost:9000
 
 # 6. (one-time) seed Medusa demo data + keys (Node 20)
-npx medusa exec ./src/scripts/seed-rich-catalog.ts        # BDT region + demo products
+npx medusa exec ./src/scripts/seed-fashion-catalog.ts        # BDT region + demo products
 npx medusa exec ./src/scripts/seed-promotions.ts          # WELCOME10
 npx medusa exec ./src/scripts/create-storefront-api-key.ts # admin key → apps/web/.env
 npx medusa user -e admin@brand.test -p <password>          # Medusa admin login
@@ -237,7 +237,7 @@ bun run build        # production build of apps/web
 | Add/edit CMS models | Edit `packages/cms/prisma/schema.prisma` → `bun run --filter @ecom/cms db:push` → `db:generate`. |
 | Change the look | Edit tokens in `packages/ui/src/styles/globals.css` + `packages/config/tailwind-preset.js`. |
 | Add a storefront section type | Add a Zod schema in `packages/cms/src/schemas/sections.ts`, a renderer in `components/site/section-renderer.tsx`, and an admin editor. |
-| Add demo products | Edit `apps/medusa/apps/backend/src/scripts/seed-rich-catalog.ts`, re-run via `medusa exec`. |
+| Add demo products | Edit `apps/medusa/apps/backend/src/scripts/seed-fashion-catalog.ts`, re-run via `medusa exec`. |
 | Rebuild image-search index | Admin → **Visual Search → Reindex** (browser), or run a Node reindex script. |
 | Rotate the storefront admin key | `medusa exec ./src/scripts/create-storefront-api-key.ts`, update `MEDUSA_ADMIN_API_KEY`. |
 | Reset CMS content | `bun run --filter @ecom/cms db:seed` (recreates home/nav/popup). |

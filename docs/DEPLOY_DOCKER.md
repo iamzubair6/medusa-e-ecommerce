@@ -56,7 +56,7 @@ Seed data + create keys/admin (fresh database). Run each:
 # core data: sales channel, publishable key, EU region, demo data, stock, shipping
 docker compose exec medusa sh -c "cd /app && npx medusa exec ./src/migration-scripts/initial-data-seed.ts"
 # BDT region + rich demo products (colors, sizes, stock, offers)
-docker compose exec medusa sh -c "cd /app && npx medusa exec ./src/scripts/seed-rich-catalog.ts"
+docker compose exec medusa sh -c "cd /app && npx medusa exec ./src/scripts/seed-fashion-catalog.ts"
 # sample promo WELCOME10
 docker compose exec medusa sh -c "cd /app && npx medusa exec ./src/scripts/seed-promotions.ts"
 # storefront admin API key — copy the printed sk_… into .env (MEDUSA_ADMIN_API_KEY)

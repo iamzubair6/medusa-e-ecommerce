@@ -126,13 +126,13 @@ Product **Ribbed Knit Tank** with the JSON above:
 ## 4. Faster: bulk add via the seed script (developers)
 
 For many products, edit
-`apps/medusa/apps/backend/src/scripts/seed-rich-catalog.ts` (it builds variants,
+`apps/medusa/apps/backend/src/scripts/seed-fashion-catalog.ts` (it builds variants,
 prices, inventory, and the metadata above from a compact `colors` object), then run:
 
 ```bash
 export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
 cd apps/medusa/apps/backend
-npx medusa exec ./src/scripts/seed-rich-catalog.ts
+npx medusa exec ./src/scripts/seed-fashion-catalog.ts
 ```
 
 It's idempotent (re-running replaces those demo products by handle).

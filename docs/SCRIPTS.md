@@ -58,11 +58,9 @@ Run with: `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"` then
 
 | Script | What it does | When / why |
 |---|---|---|
-| `seed-fashion-catalog.ts` | **Full Fashion-Nova catalog** — WIPES products/categories/collections, builds 6 divisions, categories, collections (New In/Sale/Trending/Luxe), rich products with color×size variants, BDT/USD/EUR prices, **category-matched images**, inventory, offers | Make a store look production-real from scratch. ⚠️ wipes existing catalog. |
-| `seed-rich-catalog.ts` | BD/BDT region + rich demo products with per-color prices & metadata | Alternative/smaller rich seed. |
+| `seed-fashion-catalog.ts` | **The one canonical catalog seed** — WIPES products/categories/collections, builds 6 divisions, categories, collections (New In/Sale/Trending/Luxe), rich products with color×size variants, BDT/USD/EUR prices, **division- & category-matched images** (men's products get menswear photos), inventory, offers | Make a store look production-real from scratch. ⚠️ wipes existing catalog. |
 | `seed-promotions.ts` | Seeds discounts/promotions | To add promo codes. |
 | `seed-storefront-taxonomy.ts` | Seeds the category/division taxonomy | Taxonomy-only setup. |
-| `seed-mens-products.ts` / `seed-bd-store.ts` | Targeted product seeds | Topping up specific catalog areas. |
 | `create-storefront-api-key.ts` | Creates a storefront publishable API key | When the storefront key is missing/rotated. |
 
 ## Deploy / live database

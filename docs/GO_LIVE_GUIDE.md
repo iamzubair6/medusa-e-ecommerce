@@ -115,7 +115,7 @@ export DATABASE_URL="postgresql://USER:PW@ep-xxx.REGION.aws.neon.tech/neondb?ssl
 
 npx medusa db:migrate                                       # ~150 tables (slow if far from US region)
 npx medusa exec ./src/scripts/create-storefront-api-key.ts # prints sk_... (admin API key)
-npx medusa exec ./src/scripts/seed-rich-catalog.ts         # BDT region + demo products + stock
+npx medusa exec ./src/scripts/seed-fashion-catalog.ts         # BDT region + demo products + stock
 npx medusa exec ./src/scripts/seed-promotions.ts           # WELCOME10 promo
 npx medusa user -e admin@yourbrand.com -p 'STRONG_PASSWORD' # Medusa admin login
 

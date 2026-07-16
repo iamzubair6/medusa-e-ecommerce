@@ -53,7 +53,7 @@ Render/Neon tier + a custom domain).
 4. Deploy. Then run one-off commands (Render **Shell**), Node 20:
    ```bash
    npx medusa db:migrate                                  # if not run by build
-   npx medusa exec ./src/scripts/seed-rich-catalog.ts     # BDT region + demo products
+   npx medusa exec ./src/scripts/seed-fashion-catalog.ts     # BDT region + demo products
    npx medusa exec ./src/scripts/seed-promotions.ts       # WELCOME10
    npx medusa exec ./src/scripts/create-storefront-api-key.ts   # copy the sk_… key
    npx medusa user -e admin@yourbrand.com -p <password>   # admin login
