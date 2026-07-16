@@ -40,6 +40,14 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
             categoryIds: product.categoryIds,
             tags: product.tags,
             type: product.type,
+            // Merchandising metadata — omitting these blanked the fields on
+            // reopen, and the next save then wiped them in Medusa (#89).
+            division: product.division,
+            occasion: product.occasion,
+            style: product.style,
+            trend: product.trend,
+            material: product.material,
+            care: product.care,
             colors: product.colors,
           }}
         />
