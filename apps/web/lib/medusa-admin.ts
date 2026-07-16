@@ -175,6 +175,7 @@ export interface NewProductInput {
   trend?: string[];
   material?: string;
   care?: string;
+  sizeGuide?: string;
   /** Optional collection to file the product under (e.g. resolved from a handle on bulk import). */
   collectionId?: string;
 }
@@ -330,6 +331,7 @@ function buildMetadata(input: NewProductInput) {
     ...(input.trend?.length ? { trend: input.trend } : {}),
     ...(input.material ? { material: input.material } : {}),
     ...(input.care ? { care: input.care } : {}),
+    ...(input.sizeGuide ? { sizeGuide: input.sizeGuide } : {}),
   };
 }
 
@@ -459,6 +461,7 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     trend?: string[];
     material?: string;
     care?: string;
+    sizeGuide?: string;
   };
   const titleByOptionId = new Map((p.options ?? []).map((o) => [o.id, o.title]));
 
@@ -510,6 +513,7 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     trend: meta.trend,
     material: meta.material,
     care: meta.care,
+    sizeGuide: meta.sizeGuide,
   };
 }
 

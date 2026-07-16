@@ -70,6 +70,7 @@ export interface StoreProductDetail extends StoreProduct {
   colors: StoreColor[];
   material?: string;
   care?: string;
+  sizeGuide?: string;
   tags?: string[];
   productType?: string;
 }
@@ -150,6 +151,7 @@ interface ProductMeta {
   trend?: string[];
   material?: string;
   care?: string;
+  sizeGuide?: string;
 }
 interface MedusaProduct {
   id: string;
@@ -326,6 +328,7 @@ function mapDetail(p: MedusaProduct): StoreProductDetail {
     description: p.description ?? "",
     material: p.metadata?.material,
     care: p.metadata?.care,
+    sizeGuide: p.metadata?.sizeGuide,
     tags: (p.tags ?? []).map((t) => t.value),
     productType: p.type?.value ?? undefined,
     images: allImages.length ? allImages : [card.thumbnail],

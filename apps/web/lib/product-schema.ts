@@ -20,6 +20,8 @@ export const productSchema = z.object({
   trend: z.array(z.string().min(1).max(40)).max(20).optional(),
   material: z.string().max(300).optional(),
   care: z.string().max(300).optional(),
+  sizeGuide: z.string().max(6000).optional(), // per-product size chart (HTML/text); falls back to the global one
+
   colors: z
     .array(
       z.object({
