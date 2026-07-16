@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, Plus, Trash2 } from "lucide-react";
-import { Button, Card, cn } from "@ecom/ui";
+import { CreditCard, Plus, Trash2, Check } from "lucide-react";
+import { Badge, Button, Card, cn } from "@ecom/ui";
 import { TextField, CheckboxField } from "./fields";
 import { useToast } from "./toast";
 import { checkoutConfigSchema, type CheckoutConfig, type PaymentMethod } from "@/lib/checkout-config";
@@ -72,8 +72,35 @@ export function PaymentMethodsEditor({
     }
   };
 
+  // Live preview: exactly what a shopper sees at checkout right now (unsaved edits included).
+  const liveMethods = methods.filter((m) => m.enabled);
+
   return (
     <div className="flex max-w-2xl flex-col gap-5">
+      <Card className="flex flex-col gap-3 border-accent/30 bg-accent/5 p-5">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          What shoppers see at checkout now
+        </h3>
+        {liveMethods.length === 0 ? (
+          <p className="text-sm text-destructive">
+            No method is enabled — customers can&apos;t pay. Enable at least one below.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {liveMethods.map((m, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 shrink-0 text-gold" />
+                <span className="font-medium">{m.label}</span>
+                {m.description && <span className="text-muted-foreground">— {m.description}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-xs text-muted-foreground">
+          This is a live preview of the enabled methods below. Unsaved edits show here too — click Save to publish.
+        </p>
+      </Card>
+
       <Card className="flex flex-col gap-4 p-6">
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <CreditCard className="h-4 w-4" /> Payment methods at checkout
@@ -82,7 +109,16 @@ export function PaymentMethodsEditor({
           <p className="text-sm text-muted-foreground">No payment methods. Add one to accept orders.</p>
         )}
         {methods.map((m, i) => (
-          <div key={i} className="flex flex-col gap-3 rounded-md border border-border p-4">
+          <div
+            key={i}
+            className={cn(
+              "flex flex-col gap-3 rounded-md border p-4",
+              m.enabled ? "border-gold/40 bg-gold/[0.03]" : "border-border opacity-70",
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Badge variant={m.enabled ? "gold" : "muted"}>{m.enabled ? "Live at checkout" : "Hidden"}</Badge>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <TextField
                 label="Customer-facing label"
