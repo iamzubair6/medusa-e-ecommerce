@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Plus } from "lucide-react";
-import { Badge, Button, Card } from "@ecom/ui";
+import { Badge, Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
 import { Combobox, EnumCombobox } from "./combobox";
 import { useToast } from "./toast";
@@ -45,6 +45,7 @@ export function PriceListManager({
   const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<PriceList | null>(null);
 
   const targets = appliesTo === "category" ? categories : appliesTo === "collection" ? collections : [];
 
@@ -83,7 +84,6 @@ export function PriceListManager({
   };
 
   const remove = async (p: PriceList) => {
-    if (!confirm(`Delete sale "${p.title}"? Prices revert to normal.`)) return;
     setBusyId(p.id);
     try {
       const res = await fetch(`/api/admin/price-lists/${p.id}`, { method: "DELETE" });
@@ -94,6 +94,7 @@ export function PriceListManager({
       toast.error((e as Error).message);
     } finally {
       setBusyId(null);
+      setConfirmingDelete(null);
     }
   };
 
@@ -162,7 +163,7 @@ export function PriceListManager({
                 </td>
                 <td>
                   <div className="flex justify-end">
-                    <Button variant="ghost" size="sm" loading={busyId === p.id} onClick={() => remove(p)} className="text-destructive hover:bg-destructive/10">
+                    <Button variant="ghost" size="sm" loading={busyId === p.id} onClick={() => setConfirmingDelete(p)} className="text-destructive hover:bg-destructive/10">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -177,6 +178,19 @@ export function PriceListManager({
           </tbody>
         </table>
       </Card>
+
+      <ConfirmDialog
+        open={confirmingDelete !== null}
+        title={`Delete sale "${confirmingDelete?.title ?? ""}"?`}
+        description="Prices revert to normal on the storefront."
+        confirmLabel="Delete"
+        destructive
+        loading={confirmingDelete !== null && busyId === confirmingDelete.id}
+        onConfirm={() => {
+          if (confirmingDelete) void remove(confirmingDelete);
+        }}
+        onCancel={() => setConfirmingDelete(null)}
+      />
     </div>
   );
 }

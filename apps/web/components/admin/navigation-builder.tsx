@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Sparkles, Trash2 } from "lucide-react";
-import { Button, Card, cn } from "@ecom/ui";
+import { Button, Card, cn, ConfirmDialog } from "@ecom/ui";
 import { TextField, CheckboxField } from "./fields";
 import { useToast } from "./toast";
 import { navigationSchema, type Navigation, type NavCollection, type NavColumn } from "@/lib/navigation";
@@ -15,6 +15,7 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
   const [divIdx, setDivIdx] = useState(0);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [confirmingGenerate, setConfirmingGenerate] = useState(false);
 
   const div = nav.divisions[divIdx];
 
@@ -41,12 +42,6 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
   };
 
   const generate = async () => {
-    if (
-      !confirm(
-        "Generate a Fashion-Nova-style menu from the live catalog? This replaces the collections of every division that has products (labels and badges are kept from the last save — unsaved edits here are discarded). It saves immediately.",
-      )
-    )
-      return;
     setGenerating(true);
     try {
       const res = await fetch("/api/admin/navigation/generate", { method: "POST" });
@@ -64,6 +59,7 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
       toast.error(e instanceof Error ? e.message : "Could not generate");
     } finally {
       setGenerating(false);
+      setConfirmingGenerate(false);
     }
   };
 
@@ -79,10 +75,20 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
         <p className="text-sm text-muted-foreground">
           Build each division&rsquo;s menu by hand, or generate the whole thing from the live catalog and edit from there.
         </p>
-        <Button type="button" variant="outline" size="sm" loading={generating} onClick={generate}>
+        <Button type="button" variant="outline" size="sm" loading={generating} onClick={() => setConfirmingGenerate(true)}>
           <Sparkles className="h-3.5 w-3.5" /> Generate from catalog
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmingGenerate}
+        title="Generate the menu from the live catalog?"
+        description="This replaces the collections of every division that has products (labels and badges are kept from the last save — unsaved edits here are discarded). It saves immediately."
+        confirmLabel="Generate & save"
+        loading={generating}
+        onConfirm={generate}
+        onCancel={() => setConfirmingGenerate(false)}
+      />
 
       {/* Division tabs */}
       <div className="flex flex-wrap gap-2">

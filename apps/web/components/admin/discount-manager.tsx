@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Plus } from "lucide-react";
-import { Badge, Button, Card } from "@ecom/ui";
+import { Badge, Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField, SelectField, CheckboxField } from "./fields";
 import { DatePicker } from "./date-picker";
 import { Combobox, EnumCombobox } from "./combobox";
@@ -50,6 +50,7 @@ export function DiscountManager({
   const [limitCount, setLimitCount] = useState("1");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<Promotion | null>(null);
 
   const needsValue = method === "percentage" || method === "fixed";
   const needsTarget = appliesTo !== "order";
@@ -126,9 +127,9 @@ export function DiscountManager({
       p.status === "active" ? `${p.code} disabled.` : `${p.code} enabled.`,
     );
 
-  const remove = (p: Promotion) => {
-    if (!confirm(`Delete promotion ${p.code}?`)) return;
-    act(p.id, { method: "DELETE" }, `${p.code} deleted.`);
+  const remove = async (p: Promotion) => {
+    await act(p.id, { method: "DELETE" }, `${p.code} deleted.`);
+    setConfirmingDelete(null);
   };
 
   return (
@@ -268,7 +269,7 @@ export function DiscountManager({
                     <Button variant="outline" size="sm" loading={busyId === p.id} onClick={() => toggle(p)}>
                       {p.status === "active" ? "Disable" : "Enable"}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => remove(p)} className="text-destructive hover:bg-destructive/10">
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmingDelete(p)} className="text-destructive hover:bg-destructive/10">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -283,6 +284,19 @@ export function DiscountManager({
           </tbody>
         </table>
       </Card>
+
+      <ConfirmDialog
+        open={confirmingDelete !== null}
+        title={`Delete promotion ${confirmingDelete?.code ?? ""}?`}
+        description="It stops applying to carts immediately. This cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        loading={confirmingDelete !== null && busyId === confirmingDelete.id}
+        onConfirm={() => {
+          if (confirmingDelete) void remove(confirmingDelete);
+        }}
+        onCancel={() => setConfirmingDelete(null)}
+      />
     </div>
   );
 }
