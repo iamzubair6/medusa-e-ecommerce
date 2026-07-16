@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Globe2, MapPin, Pencil, Plus, Trash2, Truck, X } from "lucide-react";
-import { Button, Card, cn } from "@ecom/ui";
+import { Button, Card, cn, ConfirmDialog } from "@ecom/ui";
 import { TextField, CheckboxField } from "./fields";
 import { useToast } from "./toast";
 import {
@@ -224,6 +224,9 @@ export function ShippingMethodsEditor({
   const [addingZone, setAddingZone] = useState(false);
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
   const [addingOptionZoneId, setAddingOptionZoneId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<
+    { kind: "option"; rate: AdminShippingRate } | { kind: "zone"; zone: AdminShippingZone } | null
+  >(null);
 
   // Options created after mount (router.refresh) won't be in the seeded state —
   // always fall back to live props so a fresh row never crashes or shows blank.
@@ -254,7 +257,6 @@ export function ShippingMethodsEditor({
   };
 
   const deleteOption = async (rate: AdminShippingRate) => {
-    if (!confirm(`Delete "${rate.name}"? It disappears from checkout immediately.`)) return;
     setBusyDelete(rate.id);
     try {
       await api(`/api/admin/shipping-options/${rate.id}`, "DELETE");
@@ -264,11 +266,11 @@ export function ShippingMethodsEditor({
       toast.error((e as Error).message);
     } finally {
       setBusyDelete(null);
+      setPendingDelete(null);
     }
   };
 
   const deleteZone = async (zone: AdminShippingZone) => {
-    if (!confirm(`Delete zone "${zone.name}"?`)) return;
     setBusyDelete(zone.id);
     try {
       await api(`/api/admin/shipping-options/zones/${zone.id}`, "DELETE");
@@ -278,6 +280,7 @@ export function ShippingMethodsEditor({
       toast.error((e as Error).message);
     } finally {
       setBusyDelete(null);
+      setPendingDelete(null);
     }
   };
 
@@ -313,7 +316,7 @@ export function ShippingMethodsEditor({
             variant="ghost"
             size="sm"
             loading={busyDelete === rate.id}
-            onClick={() => deleteOption(rate)}
+            onClick={() => setPendingDelete({ kind: "option", rate })}
             aria-label={`Delete ${rate.name}`}
             className="text-destructive hover:bg-destructive/10"
           >
@@ -417,7 +420,7 @@ export function ShippingMethodsEditor({
                     variant="ghost"
                     size="sm"
                     loading={busyDelete === zone.id}
-                    onClick={() => deleteZone(zone)}
+                    onClick={() => setPendingDelete({ kind: "zone", zone })}
                     aria-label={`Delete zone ${zone.name}`}
                     className="text-destructive hover:bg-destructive/10"
                   >
@@ -470,6 +473,29 @@ export function ShippingMethodsEditor({
         Zones, options and amounts edit live Medusa data and apply to checkout immediately. Notes &amp;
         “show at checkout” are a storefront display override and do not change Medusa.
       </p>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete?.kind === "zone"
+            ? `Delete zone "${pendingDelete.zone.name}"?`
+            : `Delete "${pendingDelete?.rate.name ?? ""}"?`
+        }
+        description={
+          pendingDelete?.kind === "zone"
+            ? "The zone is removed from live Medusa data. This cannot be undone."
+            : "It disappears from checkout immediately."
+        }
+        confirmLabel="Delete"
+        destructive
+        loading={busyDelete !== null}
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          if (pendingDelete.kind === "zone") void deleteZone(pendingDelete.zone);
+          else void deleteOption(pendingDelete.rate);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

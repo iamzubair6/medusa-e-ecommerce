@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Check, X, Pencil } from "lucide-react";
-import { Badge, Button, Card } from "@ecom/ui";
+import { Badge, Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
 import { useToast } from "./toast";
 
@@ -35,6 +35,10 @@ export function TaxonomyManager({
   const [savingCat, setSavingCat] = useState(false);
   const [savingCol, setSavingCol] = useState(false);
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<
+    { kind: "categories" | "collections"; id: string; name: string } | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
 
   const call = async (url: string, init: RequestInit, done: string) => {
     try {
@@ -115,7 +119,7 @@ export function TaxonomyManager({
                     {c.isActive ? "Hide" : "Show"}
                   </button>
                   <button
-                    onClick={() => confirm(`Delete category "${c.name}"?`) && call(`/api/admin/categories/${c.id}`, { method: "DELETE" }, "Category deleted.")}
+                    onClick={() => setPendingDelete({ kind: "categories", id: c.id, name: c.name })}
                     className="cursor-pointer p-1 text-muted-foreground hover:text-destructive"
                     aria-label="Delete"
                   >
@@ -161,7 +165,7 @@ export function TaxonomyManager({
                   </div>
                   <button onClick={() => setEditing({ id: c.id, value: c.title })} className="cursor-pointer p-1 text-muted-foreground hover:text-foreground" aria-label="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                   <button
-                    onClick={() => confirm(`Delete collection "${c.title}"?`) && call(`/api/admin/collections/${c.id}`, { method: "DELETE" }, "Collection deleted.")}
+                    onClick={() => setPendingDelete({ kind: "collections", id: c.id, name: c.title })}
                     className="cursor-pointer p-1 text-muted-foreground hover:text-destructive"
                     aria-label="Delete"
                   >
@@ -174,6 +178,34 @@ export function TaxonomyManager({
           {collections.length === 0 && <li className="py-3 text-sm text-muted-foreground">No collections yet.</li>}
         </ul>
       </Card>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete?.kind === "categories"
+            ? `Delete category "${pendingDelete.name}"?`
+            : `Delete collection "${pendingDelete?.name ?? ""}"?`
+        }
+        description="This cannot be undone. Products in it are not deleted."
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          setDeleting(true);
+          try {
+            await call(
+              `/api/admin/${pendingDelete.kind}/${pendingDelete.id}`,
+              { method: "DELETE" },
+              pendingDelete.kind === "categories" ? "Category deleted." : "Collection deleted.",
+            );
+          } finally {
+            setDeleting(false);
+            setPendingDelete(null);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Radio, RotateCcw, Pencil, Check, X } from "lucide-react";
-import { Badge, Button, Card } from "@ecom/ui";
+import { Badge, Button, Card, ConfirmDialog } from "@ecom/ui";
 import { useToast } from "./toast";
 
 interface Reason {
@@ -47,6 +47,10 @@ export function ReasonsEditor({ returnReasons, refundReasons }: { returnReasons:
   const toast = useToast();
   const [ret, setRet] = useState("");
   const [ref, setRef] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<
+    { kind: "return-reasons" | "refund-reasons"; id: string; label: string } | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
 
   const addReturn = async () => {
     if (!ret.trim()) return toast.error("Add a reason.");
@@ -70,7 +74,7 @@ export function ReasonsEditor({ returnReasons, refundReasons }: { returnReasons:
         onAdd={addReturn}
         placeholder="Wrong size"
         items={returnReasons}
-        onDelete={(id, label) => confirm(`Delete "${label}"?`) && call(`/api/admin/return-reasons/${id}`, json("DELETE"), "Deleted.")}
+        onDelete={(id, label) => setPendingDelete({ kind: "return-reasons", id, label })}
       />
 
       <p className="mt-2 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">Refund reasons</p>
@@ -80,7 +84,31 @@ export function ReasonsEditor({ returnReasons, refundReasons }: { returnReasons:
         onAdd={addRefund}
         placeholder="Damaged"
         items={refundReasons}
-        onDelete={(id, label) => confirm(`Delete "${label}"?`) && call(`/api/admin/refund-reasons/${id}`, json("DELETE"), "Deleted.")}
+        onDelete={(id, label) => setPendingDelete({ kind: "refund-reasons", id, label })}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`Delete "${pendingDelete?.label ?? ""}"?`}
+        description={
+          pendingDelete?.kind === "return-reasons"
+            ? "The reason is no longer offered when processing returns."
+            : "The reason is no longer offered when processing refunds."
+        }
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          setDeleting(true);
+          try {
+            await call(`/api/admin/${pendingDelete.kind}/${pendingDelete.id}`, json("DELETE"), "Deleted.");
+          } finally {
+            setDeleting(false);
+            setPendingDelete(null);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
       />
     </Card>
   );
