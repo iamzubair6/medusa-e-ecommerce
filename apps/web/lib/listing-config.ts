@@ -12,7 +12,7 @@ import { z } from "zod";
  */
 
 /** The filter groups that can appear in the listing rail, in any order. */
-export const FACET_KEYS = ["category", "size", "color", "occasion", "style", "trend"] as const;
+export const FACET_KEYS = ["category", "size", "color", "occasion", "style", "trend", "price"] as const;
 export type FacetKey = (typeof FACET_KEYS)[number];
 export const facetKeySchema = z.enum(FACET_KEYS);
 

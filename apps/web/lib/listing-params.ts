@@ -15,6 +15,8 @@ export interface ListingParams {
   occasion: string[];
   style: string[];
   trend: string[];
+  priceMin?: number; // ?pmin= (inclusive, in the store currency's whole units)
+  priceMax?: number; // ?pmax=
 }
 
 const csv = (v?: string) =>
@@ -41,8 +43,15 @@ export function parseListingParams(sp: Record<string, string | string[] | undefi
     occasion: csv(get("occasion")),
     style: csv(get("style")),
     trend: csv(get("trend")),
+    priceMin: posInt(get("pmin")),
+    priceMax: posInt(get("pmax")),
   };
 }
+
+const posInt = (v?: string): number | undefined => {
+  const n = Number(v);
+  return v !== undefined && Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+};
 
 /** Serialize listing params back into a query string (omitting defaults). */
 export function listingQuery(p: ListingParams, overrides: Partial<ListingParams> = {}): string {
@@ -58,6 +67,8 @@ export function listingQuery(p: ListingParams, overrides: Partial<ListingParams>
   if (m.occasion.length) q.set("occasion", m.occasion.join(","));
   if (m.style.length) q.set("style", m.style.join(","));
   if (m.trend.length) q.set("trend", m.trend.join(","));
+  if (m.priceMin !== undefined) q.set("pmin", String(m.priceMin));
+  if (m.priceMax !== undefined) q.set("pmax", String(m.priceMax));
   const s = q.toString();
   return s ? `?${s}` : "";
 }

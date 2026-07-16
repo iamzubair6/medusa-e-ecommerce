@@ -571,6 +571,8 @@ export interface ListingFilters {
   trend?: string[];
   colors?: string[];
   sizes?: string[];
+  priceMin?: number;
+  priceMax?: number;
 }
 
 export interface ListingFacets {
@@ -580,6 +582,9 @@ export interface ListingFacets {
   occasion: string[];
   style: string[];
   trend: string[];
+  /** Price bounds across the scoped set (whole units), for the price-range filter. */
+  priceMin: number;
+  priceMax: number;
 }
 
 export interface ListingResult {
@@ -628,6 +633,7 @@ function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>
   const colors = new Map<string, string>();
   const sizes = new Set<string>();
   const occ = new Set<string>(), sty = new Set<string>(), trd = new Set<string>();
+  let min = Infinity, max = 0;
   for (const p of products) {
     for (const h of p.categoryHandles ?? []) if (!DIVISION_SET.has(h)) catCount.set(h, (catCount.get(h) ?? 0) + 1);
     for (const c of p.cardColors ?? []) {
@@ -637,6 +643,11 @@ function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>
     (p.occasion ?? []).forEach((o) => occ.add(o));
     (p.style ?? []).forEach((s) => sty.add(s));
     (p.trend ?? []).forEach((t) => trd.add(t));
+    const price = parsePrice(p.price);
+    if (price > 0) {
+      if (price < min) min = price;
+      if (price > max) max = price;
+    }
   }
   return {
     categories: [...catCount.entries()]
@@ -647,6 +658,8 @@ function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>
     occasion: [...occ].sort(),
     style: [...sty].sort(),
     trend: [...trd].sort(),
+    priceMin: min === Infinity ? 0 : Math.floor(min),
+    priceMax: Math.ceil(max),
   };
 }
 
@@ -674,6 +687,11 @@ export async function fetchListing(
     if (filters.trend?.length && !filters.trend.some((t) => (p.trend ?? []).includes(t))) return false;
     if (filters.colors?.length && !(p.cardColors ?? []).some((c) => filters.colors!.includes(c.name))) return false;
     if (filters.sizes?.length && !(p.cardColors ?? []).some((c) => c.sizes.some((s) => filters.sizes!.includes(s.size)))) return false;
+    if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
+      const price = parsePrice(p.price);
+      if (filters.priceMin !== undefined && price < filters.priceMin) return false;
+      if (filters.priceMax !== undefined && price > filters.priceMax) return false;
+    }
     return true;
   });
 
