@@ -60,7 +60,7 @@ const divisions = [
         config: {
           heading: "New In Women",
           subheading: "This week's freshest drops",
-          source: { kind: "collection", handle: "new" },
+          source: { kind: "newest", division: "women" },
           limit: 8,
           layout: "carousel",
           cta: { label: "View all new", href: "/collections/new", variant: "ghost" },
@@ -160,7 +160,7 @@ const divisions = [
         config: {
           heading: "New In Curve",
           subheading: "Fresh fits, graded for curves",
-          source: { kind: "collection", handle: "new" },
+          source: { kind: "newest", division: "plus" },
           limit: 8,
           layout: "carousel",
           cta: { label: "View all", href: "/c/plus", variant: "ghost" },
@@ -249,7 +249,7 @@ const divisions = [
         config: {
           heading: "Trending in Menswear",
           subheading: "What everyone's wearing right now",
-          source: { kind: "collection", handle: "trending" },
+          source: { kind: "newest", division: "men" },
           limit: 8,
           layout: "carousel",
           cta: { label: "View all trending", href: "/collections/trending", variant: "ghost" },
@@ -323,7 +323,7 @@ const divisions = [
         config: {
           heading: "Trending in Sport",
           subheading: "Leggings, bras and layers on repeat",
-          source: { kind: "collection", handle: "trending" },
+          source: { kind: "newest", division: "sport" },
           limit: 8,
           layout: "carousel",
           cta: { label: "View all", href: "/c/sport", variant: "ghost" },
@@ -410,7 +410,7 @@ const divisions = [
         config: {
           heading: "Just landed for kids",
           subheading: "Comfy new pieces they'll actually want to wear",
-          source: { kind: "newest" },
+          source: { kind: "newest", division: "kids" },
           limit: 8,
           layout: "carousel",
           cta: { label: "See everything", href: "/c/kids", variant: "ghost" },
@@ -476,7 +476,7 @@ const divisions = [
         config: {
           heading: "Beauty bestsellers",
           subheading: "The formulas everyone repurchases",
-          source: { kind: "bestsellers" },
+          source: { kind: "bestsellers", division: "beauty" },
           limit: 8,
           layout: "carousel",
           cta: { label: "Shop all beauty", href: "/c/beauty", variant: "ghost" },
