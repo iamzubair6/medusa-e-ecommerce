@@ -18,6 +18,8 @@ const schema = z
     getQuantity: z.number().int().min(1).max(20).optional(),
     startsAt: z.string().datetime().optional(),
     endsAt: z.string().datetime().optional(),
+    usageLimitType: z.enum(["total", "per_customer"]).optional(),
+    usageLimit: z.number().int().min(1).max(1_000_000).optional(),
   })
   .refine((d) => (d.startsAt && d.endsAt ? new Date(d.endsAt) > new Date(d.startsAt) : true), {
     message: "End date must be after the start date.",
@@ -38,6 +40,10 @@ const schema = z
   .refine((d) => (d.method === "buyget" ? d.appliesTo !== "order" : true), {
     message: "BOGO needs a category or collection.",
     path: ["appliesTo"],
+  })
+  .refine((d) => (d.usageLimitType ? d.usageLimit !== undefined : true), {
+    message: "Set how many uses are allowed.",
+    path: ["usageLimit"],
   });
 
 /** Create a discount / BOGO / free-shipping promotion (admin-gated by middleware). */

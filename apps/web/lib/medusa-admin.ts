@@ -882,6 +882,9 @@ export interface NewPromotionInput {
   getQuantity?: number; // buyget
   startsAt?: string; // ISO datetime — promo becomes active
   endsAt?: string; // ISO datetime — promo expires
+  /** Usage cap: "total" = N redemptions across all customers; "per_customer" = N per customer. */
+  usageLimitType?: "total" | "per_customer";
+  usageLimit?: number;
 }
 
 const targetAttr = (appliesTo: "category" | "collection") =>
@@ -889,12 +892,28 @@ const targetAttr = (appliesTo: "category" | "collection") =>
 
 /** Create a standard / free-shipping / BOGO promotion (enforced at checkout). */
 export async function createPromotion(input: NewPromotionInput): Promise<{ id: string }> {
+  // Usage caps live on a campaign budget in Medusa v2 (one budget per campaign):
+  // "usage" caps total redemptions; "use_by_attribute" + customer_id caps per customer.
+  const campaign =
+    input.usageLimitType && input.usageLimit
+      ? {
+          campaign: {
+            name: `${input.code} usage cap`,
+            campaign_identifier: input.code,
+            budget:
+              input.usageLimitType === "total"
+                ? { type: "usage", limit: input.usageLimit }
+                : { type: "use_by_attribute", attribute: "customer_id", limit: input.usageLimit },
+          },
+        }
+      : {};
   const base = {
     code: input.code,
     status: "active",
     is_automatic: Boolean(input.automatic),
     ...(input.startsAt ? { starts_at: input.startsAt } : {}),
     ...(input.endsAt ? { ends_at: input.endsAt } : {}),
+    ...campaign,
   };
   const rules =
     input.appliesTo !== "order" && input.targetId
