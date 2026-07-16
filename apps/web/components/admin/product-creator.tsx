@@ -47,6 +47,7 @@ export interface ProductInitial {
   trend?: string[];
   material?: string;
   care?: string;
+  sizeGuide?: string;
   colors: {
     name: string;
     swatch: string;
@@ -106,6 +107,7 @@ export function ProductCreator({
   const [trend, setTrend] = useState(initial?.trend?.join(", ") ?? "");
   const [material, setMaterial] = useState(initial?.material ?? "");
   const [care, setCare] = useState(initial?.care ?? "");
+  const [sizeGuide, setSizeGuide] = useState(initial?.sizeGuide ?? "");
   const [colors, setColors] = useState<FormColor[]>(
     initial ? initial.colors.map(toFormColor) : [emptyColor()],
   );
@@ -185,6 +187,7 @@ export function ProductCreator({
       trend: trend.split(",").map((t) => t.trim()).filter(Boolean),
       material: material.trim() || undefined,
       care: care.trim() || undefined,
+      sizeGuide: sizeGuide.trim() || undefined,
       offer:
         offerType === "none"
           ? undefined
@@ -297,6 +300,11 @@ export function ProductCreator({
         </div>
         <RichTextField label="Material / composition" value={material} onChange={setMaterial} />
         <RichTextField label="Care" value={care} onChange={setCare} />
+        <RichTextField
+          label="Size guide (optional — overrides the global size guide for this product)"
+          value={sizeGuide}
+          onChange={setSizeGuide}
+        />
       </Card>
 
       {colors.map((c, i) => (

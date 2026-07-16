@@ -48,6 +48,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
             trend: product.trend,
             material: product.material,
             care: product.care,
+            sizeGuide: product.sizeGuide,
             colors: product.colors,
           }}
         />
