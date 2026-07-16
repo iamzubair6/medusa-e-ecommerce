@@ -412,13 +412,17 @@ function sourceToQuery(source: ProductSource, limit: number): string {
 export async function fetchProducts(source: ProductSource, limit: number): Promise<StoreProduct[]> {
   const regionId = await getRegionId();
   const region = regionId ? `&region_id=${regionId}` : "";
+  // Division lives in product metadata, which the store API can't filter on —
+  // over-fetch and filter here when the section is division-scoped.
+  const fetchLimit = source.division ? Math.min(Math.max(limit * 4, 48), 100) : limit;
   const data = (await medusaFetch(
-    `/store/products?${sourceToQuery(source, limit)}&${CARD_FIELDS}${region}`,
+    `/store/products?${sourceToQuery(source, fetchLimit)}&${CARD_FIELDS}${region}`,
     ["commerce:products"],
   )) as { products?: MedusaProduct[] } | null;
-  const products = data?.products ?? [];
+  let products = (data?.products ?? []).map(mapCard).filter(hasPrice);
+  if (source.division) products = products.filter((p) => p.division === source.division);
   if (products.length === 0) return placeholderProducts(limit, source.kind);
-  return products.map(mapCard).filter(hasPrice);
+  return products.slice(0, limit);
 }
 
 /** Hide products with no price in the active currency (e.g. legacy demo items). */
