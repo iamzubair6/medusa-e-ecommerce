@@ -6,4 +6,5 @@ export { Card, CardContent, CardHeader, CardTitle } from "./components/card";
 export { Container } from "./components/container";
 export { Badge, type BadgeProps } from "./components/badge";
 export { Skeleton } from "./components/skeleton";
+export { ConfirmDialog, type ConfirmDialogProps } from "./components/confirm-dialog";
 export { Reveal } from "./components/reveal";
