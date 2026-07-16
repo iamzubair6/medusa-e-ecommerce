@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Button } from "@ecom/ui";
+import { Button, ConfirmDialog } from "@ecom/ui";
 import { useToast } from "./toast";
 
 /**
@@ -25,9 +25,9 @@ export function CustomerDeleteButton({
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const remove = async () => {
-    if (!confirm(`Delete ${name} permanently? Their orders are kept, but the account cannot be restored.`)) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/customers/${id}`, { method: "DELETE" });
@@ -41,20 +41,34 @@ export function CustomerDeleteButton({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete customer");
       setBusy(false);
+    } finally {
+      setConfirming(false);
     }
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      loading={busy}
-      onClick={remove}
-      aria-label={`Delete ${name}`}
-      className="text-destructive hover:bg-destructive/10"
-    >
-      <Trash2 className="h-4 w-4" />
-      {!iconOnly && "Delete customer"}
-    </Button>
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        loading={busy}
+        onClick={() => setConfirming(true)}
+        aria-label={`Delete ${name}`}
+        className="text-destructive hover:bg-destructive/10"
+      >
+        <Trash2 className="h-4 w-4" />
+        {!iconOnly && "Delete customer"}
+      </Button>
+      <ConfirmDialog
+        open={confirming}
+        title={`Delete ${name} permanently?`}
+        description="Their orders are kept, but the account cannot be restored."
+        confirmLabel="Delete"
+        destructive
+        loading={busy}
+        onConfirm={remove}
+        onCancel={() => setConfirming(false)}
+      />
+    </>
   );
 }

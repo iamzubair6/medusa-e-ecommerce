@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Trash2 } from "lucide-react";
-import { Button } from "@ecom/ui";
+import { Button, ConfirmDialog } from "@ecom/ui";
 import { useToast } from "./toast";
 
 export function ProductActions({ id, status }: { id: string; status: string }) {
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<"status" | "delete" | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const published = status === "published";
 
   const toggle = async () => {
@@ -31,7 +32,6 @@ export function ProductActions({ id, status }: { id: string; status: string }) {
   };
 
   const remove = async () => {
-    if (!confirm("Delete this product permanently? This cannot be undone.")) return;
     setBusy("delete");
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
@@ -42,6 +42,8 @@ export function ProductActions({ id, status }: { id: string; status: string }) {
     } catch (e) {
       toast.error((e as Error).message);
       setBusy(null);
+    } finally {
+      setConfirmingDelete(false);
     }
   };
 
@@ -51,9 +53,19 @@ export function ProductActions({ id, status }: { id: string; status: string }) {
         {published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         {published ? "Unpublish" : "Publish"}
       </Button>
-      <Button variant="ghost" size="sm" loading={busy === "delete"} onClick={remove} className="text-destructive hover:bg-destructive/10">
+      <Button variant="ghost" size="sm" loading={busy === "delete"} onClick={() => setConfirmingDelete(true)} className="text-destructive hover:bg-destructive/10">
         <Trash2 className="h-4 w-4" /> Delete
       </Button>
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this product permanently?"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        loading={busy === "delete"}
+        onConfirm={remove}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </div>
   );
 }

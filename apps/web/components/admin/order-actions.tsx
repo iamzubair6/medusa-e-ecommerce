@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Check, Truck, XCircle } from "lucide-react";
-import { Button, cn } from "@ecom/ui";
+import { Button, cn, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
 import { useToast } from "./toast";
 import type { AdminOrderDetail } from "@/lib/admin-types";
@@ -108,6 +108,7 @@ export function OrderActions({
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<"fulfil" | "deliver" | "cancel" | "steadfast" | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const fulfillment = order.fulfillments[0];
   const shipped = order.fulfillments.some((f) => f.shippedAt);
@@ -124,7 +125,6 @@ export function OrderActions({
   });
 
   const run = async (action: "fulfil" | "deliver" | "cancel", done: string) => {
-    if (action === "cancel" && !confirm("Cancel this order? This cannot be undone.")) return;
     setBusy(action);
     try {
       const path = action === "fulfil" ? "fulfill" : action;
@@ -135,6 +135,7 @@ export function OrderActions({
       toast.error((e as Error).message);
     } finally {
       setBusy(null);
+      if (action === "cancel") setConfirmingCancel(false);
     }
   };
 
@@ -257,7 +258,7 @@ export function OrderActions({
               variant="ghost"
               size="sm"
               loading={busy === "cancel"}
-              onClick={() => run("cancel", "Order canceled.")}
+              onClick={() => setConfirmingCancel(true)}
               className="w-fit text-destructive hover:bg-destructive/10"
             >
               Cancel order
@@ -271,6 +272,18 @@ export function OrderActions({
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingCancel}
+        title="Cancel this order?"
+        description="This cannot be undone."
+        confirmLabel="Cancel order"
+        cancelLabel="Keep order"
+        destructive
+        loading={busy === "cancel"}
+        onConfirm={() => void run("cancel", "Order canceled.")}
+        onCancel={() => setConfirmingCancel(false)}
+      />
     </div>
   );
 }
