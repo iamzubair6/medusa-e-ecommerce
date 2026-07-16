@@ -6,7 +6,7 @@ import { Trash2, Plus } from "lucide-react";
 import { Badge, Button, Card } from "@ecom/ui";
 import { TextField, SelectField, CheckboxField } from "./fields";
 import { DatePicker } from "./date-picker";
-import { Combobox } from "./combobox";
+import { Combobox, EnumCombobox } from "./combobox";
 import { useToast } from "./toast";
 
 interface Promotion {
@@ -46,6 +46,8 @@ export function DiscountManager({
   const [getQty, setGetQty] = useState("1");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [limitType, setLimitType] = useState<"none" | "total" | "per_customer">("none");
+  const [limitCount, setLimitCount] = useState("1");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -64,6 +66,7 @@ export function DiscountManager({
     if (!code.trim()) return toast.error("Add a code (or a name for an automatic promo).");
     if (needsValue && (!value || Number(value) <= 0)) return toast.error("Add a value.");
     if (needsTarget && !targetId) return toast.error("Pick a category or collection.");
+    if (limitType !== "none" && (!limitCount || Number(limitCount) < 1)) return toast.error("Set how many uses are allowed.");
     setSaving(true);
     try {
       const res = await fetch("/api/admin/promotions", {
@@ -79,6 +82,7 @@ export function DiscountManager({
           ...(isBogo ? { buyQuantity: Number(buyQty), getQuantity: Number(getQty) } : {}),
           ...(startsAt ? { startsAt: new Date(`${startsAt}T00:00:00`).toISOString() } : {}),
           ...(endsAt ? { endsAt: new Date(`${endsAt}T23:59:59`).toISOString() } : {}),
+          ...(limitType !== "none" ? { usageLimitType: limitType, usageLimit: Number(limitCount) } : {}),
         }),
       });
       const data = (await res.json()) as { error?: unknown };
@@ -195,7 +199,34 @@ export function DiscountManager({
           <DatePicker label="Expiry date (optional)" value={endsAt} onChange={setEndsAt} />
         </div>
 
+        <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
+          <EnumCombobox
+            label="Usage limit"
+            value={limitType}
+            onChange={setLimitType}
+            options={[
+              { value: "none", label: "Unlimited" },
+              { value: "total", label: "Max total uses" },
+              { value: "per_customer", label: "Max uses per customer" },
+            ]}
+          />
+          {limitType !== "none" && (
+            <TextField
+              label={limitType === "total" ? "Total uses allowed" : "Uses per customer (1 = one-time)"}
+              type="number"
+              value={limitCount}
+              onChange={(e) => setLimitCount(e.target.value)}
+            />
+          )}
+        </div>
+
         <CheckboxField label="Apply automatically (no code needed at checkout)" checked={automatic} onChange={(e) => setAutomatic(e.target.checked)} />
+        {automatic && (
+          <p className="-mt-2 text-xs text-muted-foreground">
+            Automatic promos re-apply to <strong>every new cart</strong> as long as they're active — set a usage
+            limit above (e.g. 1 per customer) if each shopper should only benefit once.
+          </p>
+        )}
 
         <div className="flex items-center gap-3">
           <Button variant="gold" loading={saving} onClick={create} className="w-fit">
