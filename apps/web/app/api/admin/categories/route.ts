@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidateCommerce } from "@/lib/revalidate-commerce";
 import { z } from "zod";
 import { createCategory } from "@/lib/medusa-admin";
 
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Name is required" }, { status: 422 });
   try {
     const category = await createCategory(parsed.data.name);
-    revalidatePath("/");
+    revalidateCommerce();
     return NextResponse.json({ category }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });

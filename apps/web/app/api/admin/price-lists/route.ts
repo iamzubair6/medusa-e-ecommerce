@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidateCommerce } from "@/lib/revalidate-commerce";
 import { z } from "zod";
 import { createPriceList } from "@/lib/medusa-admin";
 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
   try {
     const priceList = await createPriceList(parsed.data);
-    revalidatePath("/");
+    revalidateCommerce();
     return NextResponse.json({ priceList }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
