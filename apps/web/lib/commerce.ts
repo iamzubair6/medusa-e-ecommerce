@@ -351,7 +351,10 @@ async function medusaFetch(path: string, tags: string[]): Promise<unknown | null
   try {
     const res = await fetch(`${BACKEND}${path}`, {
       headers: { "x-publishable-api-key": PUBLISHABLE_KEY as string },
-      next: { revalidate: 15, tags },
+      // 5-minute cache: admin mutations bust the tags immediately (revalidateTag
+      // in the admin product/category routes), so long revalidate is safe and
+      // spares visitors the multi-second catalog refetch every 15s.
+      next: { revalidate: 300, tags },
       signal: AbortSignal.timeout(MEDUSA_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return null;
