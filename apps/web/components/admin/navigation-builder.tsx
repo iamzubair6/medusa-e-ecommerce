@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button, Card, cn, ConfirmDialog } from "@ecom/ui";
 import { TextField, CheckboxField } from "./fields";
+import { MediaUploadField } from "./media-upload-field";
 import { useToast } from "./toast";
 import { navigationSchema, type Navigation, type NavCollection, type NavColumn } from "@/lib/navigation";
 
@@ -133,15 +134,13 @@ export function NavigationBuilder({ initial }: { initial: Navigation }) {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <TextField
-              label="Promo image URL (optional — tile in the mega panel)"
-              value={c.image}
-              onChange={(e) => patchCollection(ci, { image: e.target.value })}
-              placeholder="https://…"
-            />
-            <CheckboxField label="Highlight (red, e.g. Sale)" checked={c.highlight} onChange={(e) => patchCollection(ci, { highlight: e.target.checked })} />
-          </div>
+          <MediaUploadField
+            label="Promo image (optional — tile in the mega panel)"
+            value={c.image}
+            onChange={(url) => patchCollection(ci, { image: url })}
+            hint="Upload or paste a URL"
+          />
+          <CheckboxField label="Highlight (red, e.g. Sale)" checked={c.highlight} onChange={(e) => patchCollection(ci, { highlight: e.target.checked })} />
 
           {/* Popover columns */}
           <div className="flex items-center justify-between border-t border-border pt-3">

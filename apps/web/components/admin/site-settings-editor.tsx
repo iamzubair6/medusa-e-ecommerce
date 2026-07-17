@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Card } from "@ecom/ui";
 import { TextField, TextareaField, CheckboxField } from "./fields";
+import { MediaUploadField } from "./media-upload-field";
 import { useToast } from "./toast";
 import type { SiteSettings } from "@/lib/site-settings";
 
@@ -23,13 +24,15 @@ function TileArray({ label, items, onChange }: { label: string; items: Tile[]; o
         </Button>
       </div>
       {items.map((it, i) => (
-        <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_1fr_auto] sm:items-end">
-          <TextField label="Label" value={it.label} onChange={(e) => set(i, "label", e.target.value)} />
-          <TextField label="Image URL" value={it.image} onChange={(e) => set(i, "image", e.target.value)} />
-          <TextField label="Link" value={it.href} onChange={(e) => set(i, "href", e.target.value)} />
-          <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => onChange(items.filter((_, idx) => idx !== i))}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <div key={i} className="flex flex-col gap-2 rounded-md border border-border/60 p-3">
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <TextField label="Label" value={it.label} onChange={(e) => set(i, "label", e.target.value)} />
+            <TextField label="Link" value={it.href} onChange={(e) => set(i, "href", e.target.value)} />
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => onChange(items.filter((_, idx) => idx !== i))}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <MediaUploadField label="Image" value={it.image} onChange={(url) => set(i, "image", url)} hint="Upload or paste a URL" />
         </div>
       ))}
     </div>
@@ -55,7 +58,7 @@ function CollabSlideArray({ label, items, onChange }: { label: string; items: Co
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-          <TextField label="Image URL" value={it.image} onChange={(e) => set(i, "image", e.target.value)} />
+          <MediaUploadField label="Image" value={it.image} onChange={(url) => set(i, "image", url)} hint="Upload or paste a URL" />
           <div className="grid gap-2 sm:grid-cols-2">
             <TextField label="Eyebrow (optional)" value={it.eyebrow ?? ""} onChange={(e) => set(i, "eyebrow", e.target.value)} />
             <TextField label="Title" value={it.title} onChange={(e) => set(i, "title", e.target.value)} />
