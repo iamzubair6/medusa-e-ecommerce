@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidateCommerce } from "@/lib/revalidate-commerce";
 import { z } from "zod";
 import { deleteProduct, setProductStatus, updateProduct } from "@/lib/medusa-admin";
 import { productSchema } from "@/lib/product-schema";
@@ -15,8 +15,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
   try {
     await updateProduct(id, parsed.data);
-    revalidatePath("/");
-    revalidatePath(`/admin/products`);
+    revalidateCommerce();
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
@@ -32,7 +31,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   try {
     await setProductStatus(id, parsed.data.status);
-    revalidatePath("/");
+    revalidateCommerce();
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
@@ -43,7 +42,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   try {
     await deleteProduct(id);
-    revalidatePath("/");
+    revalidateCommerce();
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });

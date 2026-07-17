@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidateCommerce } from "@/lib/revalidate-commerce";
 import {
   adminConfigured,
   createProduct,
@@ -113,8 +113,7 @@ export async function POST(request: Request) {
       }
     }
     if (result.created.length > 0) {
-      revalidatePath("/");
-      revalidatePath("/admin/products");
+    revalidateCommerce();
     }
     return NextResponse.json(result);
   } catch (error) {
