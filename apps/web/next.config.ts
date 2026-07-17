@@ -27,6 +27,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.medusajs.com" },
       // Medusa demo media + S3-hosted product media
       { protocol: "https", hostname: "**.amazonaws.com" },
+      // Cloudflare R2 public buckets (our media storage — docs/STORAGE_SETUP.md)
+      { protocol: "https", hostname: "**.r2.dev" },
       // Medusa-hosted product media (adjust to your storage host)
       { protocol: "http", hostname: "localhost" },
       { protocol: "http", hostname: "127.0.0.1" },
