@@ -264,6 +264,11 @@ export async function pruneProductEmbeddings(keepProductIds: string[]) {
   return prisma.productEmbedding.deleteMany({ where: { productId: { notIn: keepProductIds } } });
 }
 
+/** Remove one product's embedding (product deleted/unpublished). */
+export async function deleteProductEmbedding(productId: string) {
+  return prisma.productEmbedding.deleteMany({ where: { productId } });
+}
+
 // --- Product reviews --------------------------------------------------------
 
 export async function createReview(input: {

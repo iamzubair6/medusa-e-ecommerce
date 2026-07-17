@@ -7,10 +7,9 @@ export const maxDuration = 120;
 
 /** Rebuild the visual-search index server-side (no browser). Admin-gated by middleware. */
 export async function POST() {
-  const products = await fetchProductsForIndex(200);
+  const products = await fetchProductsForIndex(500);
   let indexed = 0;
   let failed = 0;
-  const keep: string[] = [];
 
   // Small concurrency to keep memory + sockets sane.
   const BATCH = 5;
@@ -32,14 +31,14 @@ export async function POST() {
           dim: EMBED_DIM,
           vector,
         });
-        keep.push(p.productId);
         indexed += 1;
       }),
     );
   }
 
-  // Drop embeddings for products no longer indexed (removed / unpriced).
-  if (keep.length) await pruneProductEmbeddings(keep);
+  // Prune against the CATALOG, not against successful embeds — a transient
+  // image failure must never delete a product's existing (still valid) entry.
+  if (products.length) await pruneProductEmbeddings(products.map((p) => p.productId));
 
   return NextResponse.json({ ok: true, indexed, failed, total: products.length });
 }

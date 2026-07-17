@@ -1,5 +1,7 @@
 import "server-only";
-import { getProductEmbedding, listProductEmbeddings } from "@ecom/cms";
+import { getProductEmbedding, listProductEmbeddings, upsertProductEmbedding } from "@ecom/cms";
+import { EMBED_DIM, embedUrlServer } from "@/lib/embedding-server";
+import { fetchProductsForIndex } from "@/lib/commerce";
 
 export interface SimilarResult {
   productId: string;
@@ -44,4 +46,23 @@ export async function similarToProduct(productId: string, limit: number): Promis
   const e = await getProductEmbedding(productId);
   if (!e) return [];
   return rankByVector(e.vector, limit, productId);
+}
+
+/**
+ * (Re)index one product right after an admin mutation — keeps the visual-search
+ * index current without waiting for a manual full reindex. Best-effort: a
+ * failure never breaks the mutation that triggered it.
+ */
+export async function indexProductById(productId: string): Promise<boolean> {
+  try {
+    const products = await fetchProductsForIndex(500);
+    const p = products.find((x) => x.productId === productId);
+    if (!p?.thumbnail) return false;
+    const vector = await embedUrlServer(p.thumbnail);
+    if (!vector) return false;
+    await upsertProductEmbedding({ ...p, dim: EMBED_DIM, vector });
+    return true;
+  } catch {
+    return false;
+  }
 }
