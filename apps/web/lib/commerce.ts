@@ -38,6 +38,11 @@ export interface StoreProduct {
   occasion?: string[];
   style?: string[];
   trend?: string[];
+  sleeve?: string[];
+  neckline?: string[];
+  length?: string[];
+  fabric?: string[];
+  print?: string[];
 }
 
 export interface CardColor {
@@ -149,6 +154,11 @@ interface ProductMeta {
   occasion?: string[];
   style?: string[];
   trend?: string[];
+  sleeve?: string[];
+  neckline?: string[];
+  length?: string[];
+  fabric?: string[];
+  print?: string[];
   material?: string;
   care?: string;
   sizeGuide?: string;
@@ -287,6 +297,11 @@ function mapCard(p: MedusaProduct, i: number): StoreProduct {
     occasion: strArr(p.metadata?.occasion),
     style: strArr(p.metadata?.style),
     trend: strArr(p.metadata?.trend),
+    sleeve: strArr(p.metadata?.sleeve),
+    neckline: strArr(p.metadata?.neckline),
+    length: strArr(p.metadata?.length),
+    fabric: strArr(p.metadata?.fabric),
+    print: strArr(p.metadata?.print),
   };
 }
 
@@ -575,6 +590,11 @@ export interface ListingFilters {
   occasion?: string[];
   style?: string[];
   trend?: string[];
+  sleeve?: string[];
+  neckline?: string[];
+  length?: string[];
+  fabric?: string[];
+  print?: string[];
   colors?: string[];
   sizes?: string[];
   priceMin?: number;
@@ -588,6 +608,11 @@ export interface ListingFacets {
   occasion: string[];
   style: string[];
   trend: string[];
+  sleeve: string[];
+  neckline: string[];
+  length: string[];
+  fabric: string[];
+  print: string[];
   /** Price bounds across the scoped set (whole units), for the price-range filter. */
   priceMin: number;
   priceMax: number;
@@ -639,6 +664,7 @@ function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>
   const colors = new Map<string, string>();
   const sizes = new Set<string>();
   const occ = new Set<string>(), sty = new Set<string>(), trd = new Set<string>();
+  const slv = new Set<string>(), nck = new Set<string>(), len = new Set<string>(), fab = new Set<string>(), prt = new Set<string>();
   let min = Infinity, max = 0;
   for (const p of products) {
     for (const h of p.categoryHandles ?? []) if (!DIVISION_SET.has(h)) catCount.set(h, (catCount.get(h) ?? 0) + 1);
@@ -649,6 +675,11 @@ function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>
     (p.occasion ?? []).forEach((o) => occ.add(o));
     (p.style ?? []).forEach((s) => sty.add(s));
     (p.trend ?? []).forEach((t) => trd.add(t));
+    (p.sleeve ?? []).forEach((s) => slv.add(s));
+    (p.neckline ?? []).forEach((n) => nck.add(n));
+    (p.length ?? []).forEach((l) => len.add(l));
+    (p.fabric ?? []).forEach((f) => fab.add(f));
+    (p.print ?? []).forEach((pr) => prt.add(pr));
     const price = parsePrice(p.price);
     if (price > 0) {
       if (price < min) min = price;
@@ -664,6 +695,11 @@ function buildFacets(products: StoreProduct[], nameByHandle: Map<string, string>
     occasion: [...occ].sort(),
     style: [...sty].sort(),
     trend: [...trd].sort(),
+    sleeve: [...slv].sort(),
+    neckline: [...nck].sort(),
+    length: [...len].sort(),
+    fabric: [...fab].sort(),
+    print: [...prt].sort(),
     priceMin: min === Infinity ? 0 : Math.floor(min),
     priceMax: Math.ceil(max),
   };
@@ -691,6 +727,11 @@ export async function fetchListing(
     if (filters.occasion?.length && !filters.occasion.some((o) => (p.occasion ?? []).includes(o))) return false;
     if (filters.style?.length && !filters.style.some((s) => (p.style ?? []).includes(s))) return false;
     if (filters.trend?.length && !filters.trend.some((t) => (p.trend ?? []).includes(t))) return false;
+    if (filters.sleeve?.length && !filters.sleeve.some((s) => (p.sleeve ?? []).includes(s))) return false;
+    if (filters.neckline?.length && !filters.neckline.some((n) => (p.neckline ?? []).includes(n))) return false;
+    if (filters.length?.length && !filters.length.some((l) => (p.length ?? []).includes(l))) return false;
+    if (filters.fabric?.length && !filters.fabric.some((f) => (p.fabric ?? []).includes(f))) return false;
+    if (filters.print?.length && !filters.print.some((pr) => (p.print ?? []).includes(pr))) return false;
     if (filters.colors?.length && !(p.cardColors ?? []).some((c) => filters.colors!.includes(c.name))) return false;
     if (filters.sizes?.length && !(p.cardColors ?? []).some((c) => c.sizes.some((s) => filters.sizes!.includes(s.size)))) return false;
     if (filters.priceMin !== undefined || filters.priceMax !== undefined) {

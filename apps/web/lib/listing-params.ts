@@ -15,6 +15,11 @@ export interface ListingParams {
   occasion: string[];
   style: string[];
   trend: string[];
+  sleeve: string[];
+  neckline: string[];
+  length: string[];
+  fabric: string[];
+  print: string[];
   priceMin?: number; // ?pmin= (inclusive, in the store currency's whole units)
   priceMax?: number; // ?pmax=
 }
@@ -43,6 +48,11 @@ export function parseListingParams(sp: Record<string, string | string[] | undefi
     occasion: csv(get("occasion")),
     style: csv(get("style")),
     trend: csv(get("trend")),
+    sleeve: csv(get("sleeve")),
+    neckline: csv(get("neckline")),
+    length: csv(get("length")),
+    fabric: csv(get("fabric")),
+    print: csv(get("print")),
     priceMin: posInt(get("pmin")),
     priceMax: posInt(get("pmax")),
   };
@@ -67,6 +77,11 @@ export function listingQuery(p: ListingParams, overrides: Partial<ListingParams>
   if (m.occasion.length) q.set("occasion", m.occasion.join(","));
   if (m.style.length) q.set("style", m.style.join(","));
   if (m.trend.length) q.set("trend", m.trend.join(","));
+  if (m.sleeve.length) q.set("sleeve", m.sleeve.join(","));
+  if (m.neckline.length) q.set("neckline", m.neckline.join(","));
+  if (m.length.length) q.set("length", m.length.join(","));
+  if (m.fabric.length) q.set("fabric", m.fabric.join(","));
+  if (m.print.length) q.set("print", m.print.join(","));
   if (m.priceMin !== undefined) q.set("pmin", String(m.priceMin));
   if (m.priceMax !== undefined) q.set("pmax", String(m.priceMax));
   const s = q.toString();

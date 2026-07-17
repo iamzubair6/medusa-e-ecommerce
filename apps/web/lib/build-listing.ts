@@ -76,6 +76,11 @@ export async function buildListing(opts: {
       occasion: params.occasion,
       style: params.style,
       trend: params.trend,
+      sleeve: params.sleeve,
+      neckline: params.neckline,
+      length: params.length,
+      fabric: params.fabric,
+      print: params.print,
       priceMin: params.priceMin,
       priceMax: params.priceMax,
     },
@@ -149,8 +154,8 @@ export async function buildListing(opts: {
   // Filter-group order — admin override, else derived default (Style leads on a
   // single-type content category; Category leads on broad listings).
   const defaultOrder: FacetKey[] = leadStyle
-    ? ["style", "size", "color", "occasion", "trend", "price"]
-    : ["category", "size", "color", "occasion", "style", "trend", "price"];
+    ? ["style", "size", "color", "occasion", "trend", "sleeve", "neckline", "length", "fabric", "print", "price"]
+    : ["category", "size", "color", "occasion", "style", "trend", "sleeve", "neckline", "length", "fabric", "print", "price"];
   let facetOrder = entry.facetOrder.length > 0 ? [...entry.facetOrder] : defaultOrder;
   // Price is universal — always show it, even on admin-customised orders saved before it existed.
   if (!facetOrder.includes("price")) facetOrder = [...facetOrder, "price"];
