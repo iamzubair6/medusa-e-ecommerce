@@ -170,7 +170,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
 
         <div className="flex flex-col gap-3 rounded-md border border-border p-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Hero offer</span>
-          <TextField label="Image URL" value={landing.hero.image} onChange={(e) => setL("hero", "image", e.target.value)} />
+          <MediaUploadField label="Image" value={landing.hero.image} onChange={(url) => setL("hero", "image", url)} hint="Upload or paste a URL" />
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField label="Eyebrow" value={landing.hero.eyebrow} onChange={(e) => setL("hero", "eyebrow", e.target.value)} />
             <TextField label="Headline" value={landing.hero.headline} onChange={(e) => setL("hero", "headline", e.target.value)} />
@@ -184,7 +184,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
 
         <div className="flex flex-col gap-3 rounded-md border border-border p-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Promo banner</span>
-          <TextField label="Image URL" value={landing.promo.image} onChange={(e) => setL("promo", "image", e.target.value)} />
+          <MediaUploadField label="Image" value={landing.promo.image} onChange={(url) => setL("promo", "image", url)} hint="Upload or paste a URL" />
           <TextField label="Heading" value={landing.promo.heading} onChange={(e) => setL("promo", "heading", e.target.value)} />
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField label="Button label" value={landing.promo.ctaLabel} onChange={(e) => setL("promo", "ctaLabel", e.target.value)} />
@@ -194,7 +194,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
 
         <div className="flex flex-col gap-3 rounded-md border border-border p-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Feature banner</span>
-          <TextField label="Image URL" value={landing.feature.image} onChange={(e) => setL("feature", "image", e.target.value)} />
+          <MediaUploadField label="Image" value={landing.feature.image} onChange={(url) => setL("feature", "image", url)} hint="Upload or paste a URL" />
           <TextField label="Heading" value={landing.feature.heading} onChange={(e) => setL("feature", "heading", e.target.value)} />
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField label="Button label" value={landing.feature.ctaLabel} onChange={(e) => setL("feature", "ctaLabel", e.target.value)} />
