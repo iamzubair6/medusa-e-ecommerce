@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MotionConfig } from "framer-motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CartUIProvider } from "@/lib/cart-context";
 import { VisualSearchProvider } from "@/lib/visual-search-context";
@@ -17,12 +18,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
   return (
-    <QueryClientProvider client={client}>
-      <CartUIProvider>
-        <WishlistProvider>
-          <VisualSearchProvider>{children}</VisualSearchProvider>
-        </WishlistProvider>
-      </CartUIProvider>
-    </QueryClientProvider>
+    // reducedMotion="user" makes EVERY framer-motion animation respect the OS
+    // prefers-reduced-motion setting, including components without their own guard.
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={client}>
+        <CartUIProvider>
+          <WishlistProvider>
+            <VisualSearchProvider>{children}</VisualSearchProvider>
+          </WishlistProvider>
+        </CartUIProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   );
 }
