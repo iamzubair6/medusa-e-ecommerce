@@ -1,50 +1,45 @@
 import "server-only";
-import sharp from "sharp";
+import { env, pipeline, type ImageFeatureExtractionPipeline } from "@huggingface/transformers";
 
 /**
- * Server-side image descriptor for visual search. ONE implementation for both
- * the index and shopper queries (the old split browser/server methods produced
- * incomparable vectors).
+ * Semantic image embeddings for visual search — CLIP (ViT-B/32, quantized),
+ * running fully on our own server via transformers.js. One implementation for
+ * BOTH the index and shopper queries.
  *
- * Not a neural embedding — a color-layout descriptor made honest:
- * - sharp decodes ANY format (webp/png/jpeg — the old code silently dropped
- *   everything but JPEG, so R2-hosted product photos never got indexed),
- * - attention-cropped square focuses cells on the garment, not the backdrop,
- * - per-vector mean subtraction removes the shared white-studio component that
- *   made every catalog shot look alike to plain average-color matching.
- * Swap `embedBufferServer` for a CLIP call later without touching callers.
+ * Unlike the previous color-layout descriptor, CLIP understands what's IN the
+ * photo (garment type, cut, texture), so a query photo of joggers matches
+ * joggers — not everything grey. Verified on the live catalog: every test
+ * query ranks the correct product first.
+ *
+ * Model files (~90 MB) download once per instance to the cache dir and load
+ * lazily on first use — a cold instance pays one slow first search.
  */
 
-export const EMBED_SIZE = 16;
-export const EMBED_DIM = EMBED_SIZE * EMBED_SIZE * 3; // 768
+export const EMBED_DIM = 512;
+const MODEL = "Xenova/clip-vit-base-patch32";
+
+env.cacheDir = process.env.HF_CACHE_DIR ?? "/tmp/hf-cache";
+
+let extractorPromise: Promise<ImageFeatureExtractionPipeline> | null = null;
+function getExtractor(): Promise<ImageFeatureExtractionPipeline> {
+  extractorPromise ??= pipeline("image-feature-extraction", MODEL, { dtype: "q8" });
+  return extractorPromise;
+}
+
+function l2Normalize(v: number[]): number[] {
+  const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+  return v.map((x) => x / norm);
+}
 
 export async function embedBufferServer(buf: Buffer): Promise<number[] | null> {
   try {
-    const { data } = await sharp(buf)
-      .resize(EMBED_SIZE, EMBED_SIZE, { fit: "cover", position: sharp.strategy.attention })
-      .toColourspace("srgb") // grayscale sources would otherwise emit 1 channel
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    if (data.length !== EMBED_DIM) return null;
-
-    const v = new Array<number>(EMBED_DIM);
-    let mean = 0;
-    for (let i = 0; i < EMBED_DIM; i++) {
-      const x = data[i]! / 255;
-      v[i] = x;
-      mean += x;
-    }
-    mean /= EMBED_DIM;
-
-    let sumSq = 0;
-    for (let i = 0; i < EMBED_DIM; i++) {
-      const centred = v[i]! - mean;
-      v[i] = centred;
-      sumSq += centred * centred;
-    }
-    const norm = Math.sqrt(sumSq) || 1;
-    return v.map((x) => x / norm);
+    const extractor = await getExtractor();
+    // Copy into a plain ArrayBuffer-backed view — Node Buffers may be typed
+    // over SharedArrayBuffer, which Blob's constructor type rejects.
+    const out = await extractor(new Blob([Uint8Array.from(buf)]));
+    const v = Array.from(out.data as Float32Array).map(Number);
+    if (v.length !== EMBED_DIM) return null;
+    return l2Normalize(v);
   } catch {
     return null;
   }
