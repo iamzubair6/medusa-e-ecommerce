@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
   // Pin the monorepo root so file tracing isn't confused by stray lockfiles.
   outputFileTracingRoot: join(import.meta.dirname, "../.."),
   // Keep Prisma out of the webpack bundle so its engine path resolution works.
-  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  // Prisma + CLIP inference (visual search) natives must stay external to the bundle.
+  serverExternalPackages: ["@prisma/client", ".prisma/client", "@huggingface/transformers", "onnxruntime-node", "sharp"],
   // Copy the rhel engine binary next to every server route that may hit the CMS.
   outputFileTracingIncludes: {
     "/": [PRISMA_ENGINE_GLOB],

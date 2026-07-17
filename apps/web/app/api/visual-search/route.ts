@@ -5,6 +5,9 @@ import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
+// A cold instance loads the CLIP model on the first search (~10–30s).
+export const maxDuration = 60;
+
 /**
  * Visual search by an uploaded image. The image is embedded HERE with the same
  * descriptor the index uses — the old client-computed vectors were produced by
