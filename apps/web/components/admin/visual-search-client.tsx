@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card } from "@ecom/ui";
-import { embedUrl } from "@/lib/embedding-client";
 
 interface IndexProduct {
   productId: string;
@@ -12,13 +11,17 @@ interface IndexProduct {
   price: string;
 }
 
+/**
+ * Visual-search index manager. Indexing runs entirely on the server with ONE
+ * descriptor implementation (the old in-browser reindex produced vectors that
+ * didn't match server ones and has been removed). New/edited products are
+ * indexed automatically — the button here is for full rebuilds.
+ */
 export function VisualSearchClient() {
   const [products, setProducts] = useState<IndexProduct[]>([]);
   const [indexed, setIndexed] = useState<number>(0);
-  const [busy, setBusy] = useState(false);
   const [serverBusy, setServerBusy] = useState(false);
   const [serverResult, setServerResult] = useState<{ indexed: number; failed: number } | null>(null);
-  const [progress, setProgress] = useState<{ done: number; failed: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const serverReindex = async () => {
@@ -28,11 +31,11 @@ export function VisualSearchClient() {
     try {
       const res = await fetch("/api/admin/visual-search/reindex", { method: "POST" });
       const data = (await res.json()) as { indexed?: number; failed?: number; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Server reindex failed");
+      if (!res.ok) throw new Error(data.error ?? "Reindex failed");
       setServerResult({ indexed: data.indexed ?? 0, failed: data.failed ?? 0 });
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : "Reindex failed");
     } finally {
       setServerBusy(false);
     }
@@ -51,33 +54,6 @@ export function VisualSearchClient() {
     load();
   }, []);
 
-  const reindex = async () => {
-    setBusy(true);
-    setError(null);
-    setProgress({ done: 0, failed: 0 });
-    const items: (IndexProduct & { vector: number[] })[] = [];
-    let failed = 0;
-    for (const p of products) {
-      try {
-        const vector = await embedUrl(p.thumbnail);
-        items.push({ ...p, vector });
-      } catch {
-        failed += 1; // e.g. image host without CORS
-      }
-      setProgress({ done: items.length, failed });
-    }
-    if (items.length > 0) {
-      const res = await fetch("/api/admin/visual-search/index", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
-      });
-      if (!res.ok) setError("Failed to save the index.");
-    }
-    await load();
-    setBusy(false);
-  };
-
   return (
     <Card className="p-6">
       <div className="flex flex-col gap-4">
@@ -87,25 +63,16 @@ export function VisualSearchClient() {
           <Stat label="Coverage" value={`${products.length ? Math.round((indexed / products.length) * 100) : 0}%`} />
         </div>
         <p className="text-sm text-muted-foreground">
-          Build the &ldquo;Shop Similar&rdquo; index. <strong className="text-foreground">Server reindex</strong> runs entirely
-          on the server (no browser needed). <strong className="text-foreground">Browser reindex</strong> computes fingerprints
-          in this tab (skips images on hosts without CORS).
+          Powers &ldquo;Shop Similar&rdquo; and search-by-photo. New and edited products are indexed
+          automatically — rebuild after bulk changes or if coverage drops.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="gold" loading={serverBusy} onClick={serverReindex} disabled={busy}>
-            Server reindex
-          </Button>
-          <Button variant="outline" loading={busy} onClick={reindex} disabled={products.length === 0 || serverBusy}>
-            Browser reindex
+          <Button variant="gold" loading={serverBusy} onClick={serverReindex}>
+            Rebuild index
           </Button>
           {serverResult && (
             <span className="text-sm text-muted-foreground">
               {serverResult.indexed} indexed{serverResult.failed ? `, ${serverResult.failed} skipped` : ""}
-            </span>
-          )}
-          {progress && !serverResult && (
-            <span className="text-sm text-muted-foreground">
-              {progress.done} embedded{progress.failed ? `, ${progress.failed} skipped` : ""}
             </span>
           )}
           {error && <span className="text-sm text-destructive">{error}</span>}
