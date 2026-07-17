@@ -136,12 +136,26 @@ const imageSetKey = (p: ProdDef): string => {
 
 /**
  * Two images per (product, color), drawn from the product's own category set so
- * the photos always match the garment type. Offsets keep variety across colors.
+ * the photos always match the garment type. Each product starts at its own
+ * offset within the pool — without this, every product in a category shared
+ * the SAME thumbnail (all dresses looked identical on cards, and visual search
+ * couldn't tell them apart because their vectors were literally equal).
  */
+const productOffset = new Map<string, number>();
+const offsetFor = (p: ProdDef): number => {
+  const key = imageSetKey(p);
+  const n = productOffset.get(`${key}:${p.handle}`);
+  if (n !== undefined) return n;
+  const used = [...productOffset.keys()].filter((k) => k.startsWith(`${key}:`)).length;
+  productOffset.set(`${key}:${p.handle}`, used);
+  return used;
+};
+
 const pairFor = (p: ProdDef, colorIndex: number): string[] => {
   const set = IMAGE_SETS[imageSetKey(p)] ?? FALLBACK;
-  const a = set[(colorIndex * 2) % set.length]!;
-  const b = set[(colorIndex * 2 + 1) % set.length]!;
+  const off = offsetFor(p);
+  const a = set[(off + colorIndex * 2) % set.length]!;
+  const b = set[(off + colorIndex * 2 + 1) % set.length]!;
   return [img(a), img(b)];
 };
 
