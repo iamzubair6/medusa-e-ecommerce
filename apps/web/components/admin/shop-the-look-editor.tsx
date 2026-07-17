@@ -8,6 +8,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { Combobox } from "./combobox";
 import { TextField } from "./fields";
+import { MediaUploadField } from "./media-upload-field";
 import { useToast } from "./toast";
 import { shopTheLookSchema, type ShopTheLook } from "@/lib/shop-the-look";
 
@@ -53,6 +54,18 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
     setValue("looks", looks.filter((_, idx) => idx !== i), { shouldDirty: true });
     setActive(null);
     setConfirmingRemove(null);
+  };
+
+  const changePhoto = (url: string) => {
+    if (active === null || !url) return;
+    // The dots were placed on the OLD photo — keeping them would leave them
+    // floating over unrelated pixels, so a new photo starts clean.
+    setValue(
+      "looks",
+      looks.map((l, idx) => (idx === active ? { ...l, imageUrl: url, hotspots: [] } : l)),
+      { shouldDirty: true },
+    );
+    toast.success("Photo updated — tags cleared, re-drop them on the new photo.");
   };
 
   const placeHotspot = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -127,7 +140,13 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
       {current && active !== null && (
         <Card className="grid gap-6 p-6 lg:grid-cols-2">
           <div>
-            <p className="mb-2 text-sm text-muted-foreground">Click the photo to drop a tag (max 8).</p>
+            <MediaUploadField
+              label="Look photo (upload the styled outfit/model shot)"
+              value={current.imageUrl}
+              onChange={changePhoto}
+              hint="Defaults to the product's own image — upload a real outfit photo so every tagged piece is visible. Changing the photo clears existing tags."
+            />
+            <p className="mb-2 mt-4 text-sm text-muted-foreground">Click the photo to drop a tag (max 8).</p>
             <div className="relative inline-block cursor-crosshair" onClick={placeHotspot}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={current.imageUrl} alt="Look photo" className="max-h-[560px] w-auto select-none" draggable={false} />
