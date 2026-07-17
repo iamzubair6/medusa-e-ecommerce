@@ -71,7 +71,9 @@ export function CategoryBody({
 
   const priceActive = params.priceMin !== undefined || params.priceMax !== undefined;
   const activeCount =
-    params.colors.length + params.sizes.length + params.occasion.length + params.style.length + params.trend.length + (priceActive ? 1 : 0);
+    params.colors.length + params.sizes.length + params.occasion.length + params.style.length + params.trend.length +
+    params.sleeve.length + params.neckline.length + params.length.length + params.fabric.length + params.print.length +
+    (priceActive ? 1 : 0);
 
   const renderFacet = (k: FacetKey) => {
     switch (k) {
@@ -143,6 +145,16 @@ export function CategoryBody({
         return <FacetLinks key="style" title="Style" values={facets.style} selected={params.style} keyName="style" url={url} />;
       case "trend":
         return <FacetLinks key="trend" title="Trend" values={facets.trend} selected={params.trend} keyName="trend" url={url} />;
+      case "sleeve":
+        return <FacetLinks key="sleeve" title="Sleeve" values={facets.sleeve} selected={params.sleeve} keyName="sleeve" url={url} />;
+      case "neckline":
+        return <FacetLinks key="neckline" title="Neckline" values={facets.neckline} selected={params.neckline} keyName="neckline" url={url} />;
+      case "length":
+        return <FacetLinks key="length" title="Length" values={facets.length} selected={params.length} keyName="length" url={url} />;
+      case "fabric":
+        return <FacetLinks key="fabric" title="Fabric" values={facets.fabric} selected={params.fabric} keyName="fabric" url={url} />;
+      case "print":
+        return <FacetLinks key="print" title="Print" values={facets.print} selected={params.print} keyName="print" url={url} />;
       case "price":
         return facets.priceMax > facets.priceMin ? (
           <PriceFilter
@@ -167,7 +179,7 @@ export function CategoryBody({
 
       {activeCount > 0 && (
         <Link
-          href={`${basePath}${listingQuery(params, { page: 1, colors: [], sizes: [], occasion: [], style: [], trend: [], priceMin: undefined, priceMax: undefined })}`}
+          href={`${basePath}${listingQuery(params, { page: 1, colors: [], sizes: [], occasion: [], style: [], trend: [], sleeve: [], neckline: [], length: [], fabric: [], print: [], priceMin: undefined, priceMax: undefined })}`}
           className="mt-3 flex w-fit items-center gap-1 text-xs text-accent hover:underline"
         >
           <X className="h-3 w-3" /> Clear all filters
@@ -318,7 +330,7 @@ function FacetLinks({
   title: string;
   values: string[];
   selected: string[];
-  keyName: "occasion" | "style" | "trend";
+  keyName: "occasion" | "style" | "trend" | "sleeve" | "neckline" | "length" | "fabric" | "print";
   url: (o: Partial<ListingParams>) => string;
 }) {
   if (values.length === 0) return null;

@@ -45,6 +45,11 @@ export interface ProductInitial {
   occasion?: string[];
   style?: string[];
   trend?: string[];
+  sleeve?: string[];
+  neckline?: string[];
+  length?: string[];
+  fabric?: string[];
+  print?: string[];
   material?: string;
   care?: string;
   sizeGuide?: string;
@@ -105,6 +110,11 @@ export function ProductCreator({
   const [occasion, setOccasion] = useState(initial?.occasion?.join(", ") ?? "");
   const [styleTags, setStyleTags] = useState(initial?.style?.join(", ") ?? "");
   const [trend, setTrend] = useState(initial?.trend?.join(", ") ?? "");
+  const [sleeve, setSleeve] = useState(initial?.sleeve?.join(", ") ?? "");
+  const [neckline, setNeckline] = useState(initial?.neckline?.join(", ") ?? "");
+  const [length, setLength] = useState(initial?.length?.join(", ") ?? "");
+  const [fabric, setFabric] = useState(initial?.fabric?.join(", ") ?? "");
+  const [print, setPrint] = useState(initial?.print?.join(", ") ?? "");
   const [material, setMaterial] = useState(initial?.material ?? "");
   const [care, setCare] = useState(initial?.care ?? "");
   const [sizeGuide, setSizeGuide] = useState(initial?.sizeGuide ?? "");
@@ -185,6 +195,11 @@ export function ProductCreator({
       occasion: occasion.split(",").map((t) => t.trim()).filter(Boolean),
       style: styleTags.split(",").map((t) => t.trim()).filter(Boolean),
       trend: trend.split(",").map((t) => t.trim()).filter(Boolean),
+      sleeve: sleeve.split(",").map((t) => t.trim()).filter(Boolean),
+      neckline: neckline.split(",").map((t) => t.trim()).filter(Boolean),
+      length: length.split(",").map((t) => t.trim()).filter(Boolean),
+      fabric: fabric.split(",").map((t) => t.trim()).filter(Boolean),
+      print: print.split(",").map((t) => t.trim()).filter(Boolean),
       material: material.trim() || undefined,
       care: care.trim() || undefined,
       sizeGuide: sizeGuide.trim() || undefined,
@@ -297,6 +312,11 @@ export function ProductCreator({
           <TextField label="Occasion (comma-separated)" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Going Out, Everyday" />
           <TextField label="Style (comma-separated)" value={styleTags} onChange={(e) => setStyleTags(e.target.value)} placeholder="Bodycon, Sexy" />
           <TextField label="Trend (comma-separated)" value={trend} onChange={(e) => setTrend(e.target.value)} placeholder="Summer, Floral" />
+          <TextField label="Sleeve (comma-separated)" value={sleeve} onChange={(e) => setSleeve(e.target.value)} placeholder="Long Sleeve, Short Sleeve" />
+          <TextField label="Neckline (comma-separated)" value={neckline} onChange={(e) => setNeckline(e.target.value)} placeholder="Crew, V-Neck" />
+          <TextField label="Length (comma-separated)" value={length} onChange={(e) => setLength(e.target.value)} placeholder="Mini, Midi, Maxi" />
+          <TextField label="Fabric (comma-separated)" value={fabric} onChange={(e) => setFabric(e.target.value)} placeholder="Cotton, Linen, Satin" />
+          <TextField label="Print (comma-separated)" value={print} onChange={(e) => setPrint(e.target.value)} placeholder="Floral, Solid, Striped" />
         </div>
         <RichTextField label="Material / composition" value={material} onChange={setMaterial} />
         <RichTextField label="Care" value={care} onChange={setCare} />

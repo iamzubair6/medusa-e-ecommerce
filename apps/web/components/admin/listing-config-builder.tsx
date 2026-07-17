@@ -27,6 +27,11 @@ const FACET_LABELS: Record<FacetKey, string> = {
   occasion: "Occasion",
   style: "Style",
   trend: "Trend",
+  sleeve: "Sleeve",
+  neckline: "Neckline",
+  length: "Length",
+  fabric: "Fabric",
+  print: "Print",
   price: "Price",
 };
 
