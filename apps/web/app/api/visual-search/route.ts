@@ -1,25 +1,33 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { rankByVector, similarToProduct } from "@/lib/visual-search";
-import { EMBED_DIM } from "@/lib/embedding-client";
+import { embedBufferServer } from "@/lib/embedding-server";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
-const uploadSchema = z.object({
-  vector: z.array(z.number()).length(EMBED_DIM),
-  limit: z.number().int().min(1).max(50).optional(),
-});
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
-/** Visual search by an uploaded image's (client-computed) vector. */
+/**
+ * Visual search by an uploaded image. The image is embedded HERE with the same
+ * descriptor the index uses — the old client-computed vectors were produced by
+ * a different downscaler and never matched the index cleanly.
+ */
 export async function POST(request: Request) {
   const limit = rateLimit(`vsearch:${clientKey(request)}`, 30, 60_000);
   if (!limit.ok) {
     return NextResponse.json({ error: "Too many searches. Try again shortly." }, { status: 429 });
   }
-  const parsed = uploadSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "A valid image vector is required." }, { status: 422 });
+  const form = await request.formData().catch(() => null);
+  const image = form?.get("image");
+  if (!(image instanceof File) || image.size === 0) {
+    return NextResponse.json({ error: "An image file is required." }, { status: 422 });
   }
-  const results = await rankByVector(parsed.data.vector, parsed.data.limit ?? 24);
+  if (image.size > MAX_IMAGE_BYTES) {
+    return NextResponse.json({ error: "Image is too large (max 8 MB)." }, { status: 422 });
+  }
+  const vector = await embedBufferServer(Buffer.from(await image.arrayBuffer()));
+  if (!vector) {
+    return NextResponse.json({ error: "Could not read that image — try a JPG/PNG/WebP." }, { status: 422 });
+  }
+  const results = await rankByVector(vector, 24);
   return NextResponse.json({ results });
 }
 

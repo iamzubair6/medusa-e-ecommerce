@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, Upload, X } from "lucide-react";
 import { Skeleton } from "@ecom/ui";
 import { useVisualSearch } from "@/lib/visual-search-context";
-import { embedFile } from "@/lib/embedding-client";
 
 interface Result {
   productId: string;
@@ -50,12 +49,11 @@ export function ShopSimilarModal() {
     setLoading(true);
     setPreview(URL.createObjectURL(file));
     try {
-      const vector = await embedFile(file);
-      const res = await fetch("/api/visual-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vector }),
-      });
+      // The server embeds the image with the SAME descriptor as the index —
+      // computing vectors in the browser produced incomparable results.
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/visual-search", { method: "POST", body: fd });
       const d = (await res.json()) as { results?: Result[]; error?: string };
       if (!res.ok) throw new Error(d.error ?? "Search failed");
       setResults(d.results ?? []);
