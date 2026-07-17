@@ -157,8 +157,10 @@ export async function buildListing(opts: {
     ? ["style", "size", "color", "occasion", "trend", "sleeve", "neckline", "length", "fabric", "print", "price"]
     : ["category", "size", "color", "occasion", "style", "trend", "sleeve", "neckline", "length", "fabric", "print", "price"];
   let facetOrder = entry.facetOrder.length > 0 ? [...entry.facetOrder] : defaultOrder;
-  // Price is universal — always show it, even on admin-customised orders saved before it existed.
-  if (!facetOrder.includes("price")) facetOrder = [...facetOrder, "price"];
+  // Backfill facets that didn't exist when an admin order was saved (price +
+  // the #92b apparel facets) — otherwise old configs silently hide them forever.
+  const LATE_FACETS: FacetKey[] = ["sleeve", "neckline", "length", "fabric", "print", "price"];
+  for (const k of LATE_FACETS) if (!facetOrder.includes(k)) facetOrder = [...facetOrder, k];
   if (!effShowCategory) facetOrder = facetOrder.filter((k) => k !== "category");
 
   // ---- curated tile row before the grid ----

@@ -512,6 +512,12 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     sizes: [...sizesByColor.get(name)!.entries()].map(([size, stock]) => ({ size, stock })),
   }));
 
+  // Metadata comes from an untyped JSON column — coerce, never trust the cast
+  // (a malformed value would crash the edit form at render).
+  const arr = (v: unknown): string[] | undefined =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : undefined;
+  const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+
   return {
     id: p.id,
     status: p.status,
@@ -522,18 +528,18 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     categoryIds: (p.categories ?? []).map((c) => c.id),
     tags: (p.tags ?? []).map((t) => t.value),
     type: p.type?.value,
-    division: meta.division,
-    occasion: meta.occasion,
-    style: meta.style,
-    trend: meta.trend,
-    sleeve: meta.sleeve,
-    neckline: meta.neckline,
-    length: meta.length,
-    fabric: meta.fabric,
-    print: meta.print,
-    material: meta.material,
-    care: meta.care,
-    sizeGuide: meta.sizeGuide,
+    division: str(meta.division),
+    occasion: arr(meta.occasion),
+    style: arr(meta.style),
+    trend: arr(meta.trend),
+    sleeve: arr(meta.sleeve),
+    neckline: arr(meta.neckline),
+    length: arr(meta.length),
+    fabric: arr(meta.fabric),
+    print: arr(meta.print),
+    material: str(meta.material),
+    care: str(meta.care),
+    sizeGuide: str(meta.sizeGuide),
   };
 }
 

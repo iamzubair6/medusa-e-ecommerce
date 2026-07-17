@@ -36,7 +36,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     await setProductStatus(id, parsed.data.status);
     revalidateCommerce();
     // Unpublished products must not appear in "Shop Similar"; republish re-indexes.
-    if (parsed.data.status === "draft") await deleteProductEmbedding(id);
+    // Best-effort — an index hiccup never fails the status change itself.
+    if (parsed.data.status === "draft") await deleteProductEmbedding(id).catch(() => undefined);
     else await indexProductById(id);
     return NextResponse.json({ ok: true });
   } catch (error) {
@@ -49,7 +50,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   try {
     await deleteProduct(id);
     revalidateCommerce();
-    await deleteProductEmbedding(id);
+    await deleteProductEmbedding(id).catch(() => undefined);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 502 });
