@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { pruneProductEmbeddings, upsertProductEmbedding } from "@ecom/cms";
 import { fetchProductsForIndex } from "@/lib/commerce";
 import { EMBED_DIM, embedUrlServer } from "@/lib/embedding-server";
+import { INDEX_LIMIT } from "@/lib/visual-search";
 
 export const maxDuration = 120;
 
 /** Rebuild the visual-search index server-side (no browser). Admin-gated by middleware. */
 export async function POST() {
-  const products = await fetchProductsForIndex(500);
+  const products = await fetchProductsForIndex(INDEX_LIMIT);
   let indexed = 0;
   let failed = 0;
 
@@ -38,7 +39,11 @@ export async function POST() {
 
   // Prune against the CATALOG, not against successful embeds — a transient
   // image failure must never delete a product's existing (still valid) entry.
-  if (products.length) await pruneProductEmbeddings(products.map((p) => p.productId));
+  // At the cap we can't see the whole catalog, so skip pruning entirely rather
+  // than delete valid entries for products beyond it.
+  if (products.length > 0 && products.length < INDEX_LIMIT) {
+    await pruneProductEmbeddings(products.map((p) => p.productId));
+  }
 
   return NextResponse.json({ ok: true, indexed, failed, total: products.length });
 }

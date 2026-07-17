@@ -3,6 +3,9 @@ import { getProductEmbedding, listProductEmbeddings, upsertProductEmbedding } fr
 import { EMBED_DIM, embedUrlServer } from "@/lib/embedding-server";
 import { fetchProductsForIndex } from "@/lib/commerce";
 
+/** Shared cap for index reads — the reindex prune and admin stats must agree. */
+export const INDEX_LIMIT = 500;
+
 export interface SimilarResult {
   productId: string;
   handle: string;
@@ -55,7 +58,7 @@ export async function similarToProduct(productId: string, limit: number): Promis
  */
 export async function indexProductById(productId: string): Promise<boolean> {
   try {
-    const products = await fetchProductsForIndex(500);
+    const products = await fetchProductsForIndex(INDEX_LIMIT);
     const p = products.find((x) => x.productId === productId);
     if (!p?.thumbnail) return false;
     const vector = await embedUrlServer(p.thumbnail);

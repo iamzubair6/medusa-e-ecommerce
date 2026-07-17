@@ -22,10 +22,11 @@ export async function embedBufferServer(buf: Buffer): Promise<number[] | null> {
   try {
     const { data } = await sharp(buf)
       .resize(EMBED_SIZE, EMBED_SIZE, { fit: "cover", position: sharp.strategy.attention })
+      .toColourspace("srgb") // grayscale sources would otherwise emit 1 channel
       .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    if (data.length < EMBED_DIM) return null;
+    if (data.length !== EMBED_DIM) return null;
 
     const v = new Array<number>(EMBED_DIM);
     let mean = 0;
