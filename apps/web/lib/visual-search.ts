@@ -23,14 +23,25 @@ function cosine(a: number[], b: number[]): number {
   return dot;
 }
 
-/** Rank all indexed products against a query vector. */
+/**
+ * Relevance cutoff: only results that are genuinely close make the panel.
+ * Without this, a query always returned the top `limit` products no matter how
+ * poor the match — on a small catalog that meant "most of the store, for any
+ * photo". CLIP cosine scores: same garment ≈ 0.8+, related garment ≈ top−0.07,
+ * unrelated ≈ 0.5–0.65.
+ */
+const MIN_SCORE = 0.6;
+const TOP_MARGIN = 0.07;
+const MAX_RESULTS = 12;
+
+/** Rank all indexed products against a query vector (weak matches dropped). */
 export async function rankByVector(
   query: number[],
   limit: number,
   excludeProductId?: string,
 ): Promise<SimilarResult[]> {
   const all = await listProductEmbeddings();
-  return all
+  const ranked = all
     .filter((e) => e.productId !== excludeProductId && e.vector.length === query.length)
     .map((e) => ({
       productId: e.productId,
@@ -40,8 +51,10 @@ export async function rankByVector(
       price: e.price,
       score: cosine(query, e.vector),
     }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .sort((a, b) => b.score - a.score);
+  const top = ranked[0]?.score ?? 0;
+  const floor = Math.max(MIN_SCORE, top - TOP_MARGIN);
+  return ranked.filter((r) => r.score >= floor).slice(0, Math.min(limit, MAX_RESULTS));
 }
 
 /** Products visually similar to an already-indexed product. */

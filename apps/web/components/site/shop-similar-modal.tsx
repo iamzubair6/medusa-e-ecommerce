@@ -136,7 +136,11 @@ export function ShopSimilarModal() {
                   </div>
                 ) : results.length === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    {error ? "Couldn't search right now." : "No similar items yet — upload an image to start."}
+                    {error
+                      ? "Couldn't search right now."
+                      : preview
+                        ? "No close matches for this photo — try a clearer shot of the garment."
+                        : "No similar items yet — upload an image to start."}
                   </p>
                 ) : (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
