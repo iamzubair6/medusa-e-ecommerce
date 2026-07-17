@@ -173,6 +173,11 @@ export interface NewProductInput {
   occasion?: string[];
   style?: string[];
   trend?: string[];
+  sleeve?: string[];
+  neckline?: string[];
+  length?: string[];
+  fabric?: string[];
+  print?: string[];
   material?: string;
   care?: string;
   sizeGuide?: string;
@@ -329,6 +334,11 @@ function buildMetadata(input: NewProductInput) {
     ...(input.occasion?.length ? { occasion: input.occasion } : {}),
     ...(input.style?.length ? { style: input.style } : {}),
     ...(input.trend?.length ? { trend: input.trend } : {}),
+    ...(input.sleeve?.length ? { sleeve: input.sleeve } : {}),
+    ...(input.neckline?.length ? { neckline: input.neckline } : {}),
+    ...(input.length?.length ? { length: input.length } : {}),
+    ...(input.fabric?.length ? { fabric: input.fabric } : {}),
+    ...(input.print?.length ? { print: input.print } : {}),
     ...(input.material ? { material: input.material } : {}),
     ...(input.care ? { care: input.care } : {}),
     ...(input.sizeGuide ? { sizeGuide: input.sizeGuide } : {}),
@@ -459,6 +469,11 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     occasion?: string[];
     style?: string[];
     trend?: string[];
+    sleeve?: string[];
+    neckline?: string[];
+    length?: string[];
+    fabric?: string[];
+    print?: string[];
     material?: string;
     care?: string;
     sizeGuide?: string;
@@ -511,6 +526,11 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     occasion: meta.occasion,
     style: meta.style,
     trend: meta.trend,
+    sleeve: meta.sleeve,
+    neckline: meta.neckline,
+    length: meta.length,
+    fabric: meta.fabric,
+    print: meta.print,
     material: meta.material,
     care: meta.care,
     sizeGuide: meta.sizeGuide,

@@ -18,6 +18,11 @@ export const productSchema = z.object({
   occasion: z.array(z.string().min(1).max(40)).max(20).optional(),
   style: z.array(z.string().min(1).max(40)).max(20).optional(),
   trend: z.array(z.string().min(1).max(40)).max(20).optional(),
+  sleeve: z.array(z.string().min(1).max(40)).max(20).optional(),
+  neckline: z.array(z.string().min(1).max(40)).max(20).optional(),
+  length: z.array(z.string().min(1).max(40)).max(20).optional(),
+  fabric: z.array(z.string().min(1).max(40)).max(20).optional(),
+  print: z.array(z.string().min(1).max(40)).max(20).optional(),
   material: z.string().max(300).optional(),
   care: z.string().max(300).optional(),
   sizeGuide: z.string().max(6000).optional(), // per-product size chart (HTML/text); falls back to the global one
