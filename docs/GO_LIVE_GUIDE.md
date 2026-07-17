@@ -305,8 +305,20 @@ These are baked into the repo now, but here's what they were so you understand t
 
 ## 11. Free-tier limits & upgrade path
 
-- **Render sleeps when idle** → first request after a nap is slow (~30–60s). Paid
-  Render ($7/mo) keeps it awake (or use Railway/Fly).
+- **Render sleeps when idle** → first request after a nap is slow (~30s–3min
+  measured). The GitHub Actions keep-warm workflow is NOT enough — GitHub
+  throttles free scheduled runs to ~every 2 hours in practice. **Set up a free
+  UptimeRobot account (uptimerobot.com, 5 minutes):**
+  1. Sign up free → **Add New Monitor** → type **HTTP(s)**.
+  2. Monitor 1: URL `https://medusabd.onrender.com/health`, interval **5 minutes**.
+  3. Monitor 2: URL `https://medusa-e-ecommerce-web.vercel.app/api/warm`,
+     interval **5 minutes** (this one keeps the Neon CMS database awake too).
+  Bonus: it emails you if the site actually goes down. Render's 750 free
+  instance-hours/month cover one service running 24/7, so keeping it warm is
+  free. The permanent fix is paid Render ($7/mo) when real traffic arrives.
+- **For Bangladesh customers**, latency drops a lot by recreating the Render
+  service + Neon DB in **Singapore** regions (both support it on free tiers) —
+  do this before a serious launch; it's a redeploy, not a rebuild.
 - **Payments**: Cash on Delivery works today; add **Stripe/bKash/Nagad** for online
   payments when you launch.
 - **Auth**: `/admin` is a single shared password — add per-user RBAC before a
