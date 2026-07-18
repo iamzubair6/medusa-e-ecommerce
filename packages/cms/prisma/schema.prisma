@@ -213,6 +213,23 @@ model ProductEmbedding {
   @@schema("cms")
 }
 
+/// A shopper's image-search query, persisted so results live at a shareable
+/// URL (/search?resourceId=…). Stores a resized JPEG of the uploaded photo,
+/// its CLIP vector, the auto-detected division, and per-garment crops
+/// (label + box + vector) for hotspot re-scoping. Pruned by age.
+model VisualSearchQuery {
+  id        String   @id @default(cuid())
+  image     Bytes /// resized JPEG (~512px longest side)
+  division  String? /// auto-detected: women | men | sport | kids
+  dim       Int
+  vector    Float[] /// whole-image CLIP vector
+  parts     Json     @default("[]") /// [{ label, box:{x,y,w,h}, cx, cy, vector }]
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@schema("cms")
+}
+
 // ---------------------------------------------------------------------------
 // Reviews
 // ---------------------------------------------------------------------------

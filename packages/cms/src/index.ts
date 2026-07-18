@@ -269,6 +269,47 @@ export async function deleteProductEmbedding(productId: string) {
   return prisma.productEmbedding.deleteMany({ where: { productId } });
 }
 
+// --- Visual search queries (shopper image uploads) ---------------------------
+
+/** One detected garment region in a query image (normalized 0–1 coords). */
+export interface VisualQueryPart {
+  label: string;
+  box: { x: number; y: number; w: number; h: number };
+  cx: number;
+  cy: number;
+  vector: number[];
+}
+
+export interface VisualQueryInput {
+  image: Uint8Array<ArrayBuffer>;
+  division?: string;
+  dim: number;
+  vector: number[];
+  parts: VisualQueryPart[];
+}
+
+export async function createVisualSearchQuery(input: VisualQueryInput) {
+  return prisma.visualSearchQuery.create({
+    data: {
+      image: input.image,
+      division: input.division,
+      dim: input.dim,
+      vector: input.vector,
+      parts: input.parts as unknown as object,
+    },
+  });
+}
+
+export async function getVisualSearchQuery(id: string) {
+  return prisma.visualSearchQuery.findUnique({ where: { id } });
+}
+
+/** Delete query images older than `maxAgeDays` (called opportunistically on create). */
+export async function pruneVisualSearchQueries(maxAgeDays = 30) {
+  const cutoff = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+  return prisma.visualSearchQuery.deleteMany({ where: { createdAt: { lt: cutoff } } });
+}
+
 // --- Product reviews --------------------------------------------------------
 
 export async function createReview(input: {
