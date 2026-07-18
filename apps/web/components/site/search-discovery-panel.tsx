@@ -58,14 +58,14 @@ export function SearchDiscoveryPanel({
 
   return (
     <div className="p-4">
-      {/* division tabs */}
-      <div role="tablist" aria-label="Division" className="flex gap-5 border-b border-border">
+      {/* division tabs (plain toggle buttons — full ARIA tab semantics would
+          need roving focus, overkill for a dropdown) */}
+      <div aria-label="Division" className="flex gap-5 border-b border-border">
         {divisions.map((d) => (
           <button
             key={d.handle}
             type="button"
-            role="tab"
-            aria-selected={division === d.handle}
+            aria-pressed={division === d.handle}
             onClick={() => setDivision(d.handle)}
             className={cn(
               "-mb-px cursor-pointer border-b-2 pb-2 text-xs font-bold uppercase tracking-wide transition-colors motion-reduce:transition-none",

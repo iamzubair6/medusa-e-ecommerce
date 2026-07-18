@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -29,10 +29,16 @@ export function SearchByImagePopover({
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [link, setLink] = useState("");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Keyboard support: focus lands in the dialog on open, Escape closes it.
+  useEffect(() => {
+    if (open) dialogRef.current?.focus();
+  }, [open]);
 
   const { data: samples } = useQuery({
     queryKey: ["visual-search-samples"],
@@ -63,13 +69,14 @@ export function SearchByImagePopover({
       setError(null);
       try {
         const res = await fetch("/api/visual-search/query", { method: "POST", ...init });
-        const data = (await res.json()) as {
-          resourceId?: string;
-          division?: string | null;
-          error?: string;
-        };
+        // A gateway timeout returns HTML — never surface a JSON parse error to the shopper.
+        const data: { resourceId?: string; division?: string | null; error?: string } = res.headers
+          .get("content-type")
+          ?.includes("json")
+          ? await res.json()
+          : {};
         if (!res.ok || !data.resourceId) {
-          throw new Error(data.error ?? "Search failed — try another photo.");
+          throw new Error(data.error ?? "Search timed out — please try again.");
         }
         goToResults(data.resourceId, data.division ?? null);
       } catch (e) {
@@ -95,10 +102,17 @@ export function SearchByImagePopover({
 
   const searchUrl = useCallback(
     (url: string) => {
-      if (!url.trim()) return;
+      const trimmed = url.trim();
+      if (!trimmed) return;
+      try {
+        new URL(trimmed);
+      } catch {
+        setError("Paste a valid image link (https://…).");
+        return;
+      }
       void runSearch({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: trimmed }),
       });
     },
     [runSearch],
@@ -114,7 +128,12 @@ export function SearchByImagePopover({
           transition={{ duration: 0.18, ease: "easeOut" }}
           role="dialog"
           aria-label="Search by image"
-          className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,560px)] rounded-md border border-border bg-card shadow-2xl"
+          ref={dialogRef}
+          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+          }}
+          className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,560px)] rounded-md border border-border bg-card shadow-2xl focus-visible:outline-none"
         >
           {/* header */}
           <div className="relative flex items-center justify-center border-b border-border px-4 py-3.5">
@@ -146,7 +165,7 @@ export function SearchByImagePopover({
                 searchFile(e.dataTransfer.files);
               }}
               className={cn(
-                "flex min-h-32 cursor-pointer flex-col items-center justify-center gap-3 rounded-sm border border-dashed px-6 py-8 text-center transition-colors motion-reduce:transition-none sm:flex-row",
+                "flex min-h-32 cursor-pointer flex-col items-center justify-center gap-3 rounded-sm border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none sm:flex-row",
                 dragOver ? "border-foreground bg-muted/60" : "border-border bg-background/40",
               )}
             >
