@@ -65,8 +65,15 @@ export function ImageQueryPanel({
       const fd = new FormData();
       fd.append("image", file);
       const res = await fetch("/api/visual-search/query", { method: "POST", body: fd });
-      const data = (await res.json()) as { resourceId?: string; division?: string | null; error?: string };
-      if (!res.ok || !data.resourceId) throw new Error(data.error ?? "Search failed — try another photo.");
+      // A gateway timeout returns HTML — never surface a JSON parse error to the shopper.
+      const data: { resourceId?: string; division?: string | null; error?: string } = res.headers
+        .get("content-type")
+        ?.includes("json")
+        ? await res.json()
+        : {};
+      if (!res.ok || !data.resourceId) {
+        throw new Error(data.error ?? "Search timed out — please try again.");
+      }
       const q = new URLSearchParams();
       if (data.division) q.set("division", data.division);
       q.set("resourceId", data.resourceId);
@@ -98,9 +105,25 @@ export function ImageQueryPanel({
       aria-label="Search by image"
       className="fixed bottom-5 right-5 z-40 w-64 overflow-hidden rounded-md border border-border bg-card shadow-xl sm:w-72"
     >
-      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em]">
-          Search by image{division ? ` · ${division}` : ""}
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+        <p className="flex min-w-0 items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em]">
+          <span className="truncate">Search by image</span>
+          {division && (
+            <button
+              type="button"
+              onClick={() => {
+                const q = new URLSearchParams(searchParams.toString());
+                q.set("division", "all");
+                q.delete("page");
+                router.push(`/search?${q.toString()}`);
+              }}
+              aria-label={`Remove the ${division} filter`}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[0.6rem] transition-colors hover:border-foreground motion-reduce:transition-none"
+            >
+              {division}
+              <X className="h-2.5 w-2.5" aria-hidden />
+            </button>
+          )}
         </p>
         <button
           type="button"

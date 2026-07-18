@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@ecom/ui";
-import { getVisualSearchQuery, type VisualQueryPart } from "@ecom/cms";
+import { getVisualSearchQuery, parseVisualQueryParts } from "@ecom/cms";
 import { fetchListing } from "@/lib/commerce";
 import { parseListingParams } from "@/lib/listing-params";
 import { FACET_KEYS } from "@/lib/listing-config";
@@ -53,42 +53,49 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     );
   }
 
-  const parts = (Array.isArray(record.parts) ? record.parts : []) as unknown as VisualQueryPart[];
-  const partRaw = Number(one("part"));
+  const parts = parseVisualQueryParts(record.parts);
+  const partParam = one("part");
+  const partRaw = partParam?.length ? Number(partParam) : NaN;
   const partIdx =
     Number.isInteger(partRaw) && partRaw >= 0 && partRaw < parts.length ? partRaw : undefined;
   const vector = partIdx !== undefined ? parts[partIdx]!.vector : record.vector;
 
   const params = parseListingParams(sp);
-  // Division comes from the URL (user can clear it); first landing uses the detected one.
-  const division = params.division ?? record.division ?? undefined;
+  // First landing scopes to the auto-detected division; `division=all` (the ✕
+  // on the panel chip) explicitly clears it.
+  let division =
+    one("division") === "all" ? undefined : (params.division ?? record.division ?? undefined);
+
+  const ranked = await rankByVector(vector, PAGE_RESULTS, { cap: PAGE_RESULTS });
+  const ids = ranked.map((r) => r.productId);
+  const refinements = {
+    category: params.category,
+    colors: params.colors,
+    sizes: params.sizes,
+    occasion: params.occasion,
+    style: params.style,
+    trend: params.trend,
+    sleeve: params.sleeve,
+    neckline: params.neckline,
+    length: params.length,
+    fabric: params.fabric,
+    print: params.print,
+    priceMin: params.priceMin,
+    priceMax: params.priceMax,
+  };
+  let listing = await fetchListing({ ids, division, ...refinements }, { sort: params.sort, page: params.page });
+  // A wrong division guess must not blank a page that HAS visual matches.
+  if (listing.total === 0 && division && ids.length > 0) {
+    division = undefined;
+    listing = await fetchListing({ ids, ...refinements }, { sort: params.sort, page: params.page });
+  }
+
   params.division = division;
   params.extra = {
     resourceId: record.id,
+    ...(division === undefined ? { division: "all" } : {}),
     ...(partIdx !== undefined ? { part: String(partIdx) } : {}),
   };
-
-  const ranked = await rankByVector(vector, PAGE_RESULTS, { cap: PAGE_RESULTS });
-  const listing = await fetchListing(
-    {
-      ids: ranked.map((r) => r.productId),
-      division,
-      category: params.category,
-      colors: params.colors,
-      sizes: params.sizes,
-      occasion: params.occasion,
-      style: params.style,
-      trend: params.trend,
-      sleeve: params.sleeve,
-      neckline: params.neckline,
-      length: params.length,
-      fabric: params.fabric,
-      print: params.print,
-      priceMin: params.priceMin,
-      priceMax: params.priceMax,
-    },
-    { sort: params.sort, page: params.page },
-  );
 
   const props: ListingPageProps = {
     title: "Your Image Results",
