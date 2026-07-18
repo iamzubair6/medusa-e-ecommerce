@@ -17,8 +17,8 @@ export interface SearchPanelData {
 const COLUMN_SIZE = 4;
 const HOT_COUNT = 8;
 
-/** Deterministic-enough shuffle for "random" discovery rows (fresh per cache cycle). */
-function shuffle<T>(arr: T[]): T[] {
+/** Fisher–Yates copy-shuffle, shared by the discovery panel and sample tiles. */
+export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

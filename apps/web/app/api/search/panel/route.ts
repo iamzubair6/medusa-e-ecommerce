@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { DIVISION_HANDLES } from "@/lib/commerce";
 import { buildSearchPanel } from "@/lib/search-panel";
 
-export const revalidate = 300;
+// No `revalidate` — reading search params makes this dynamic anyway; the
+// 300s commerce cache under fetchListing keeps it cheap, and the client
+// holds results for 5 min (staleTime).
 
 /** Discovery content for the search dropdown, per division tab. */
 export async function GET(request: Request) {
