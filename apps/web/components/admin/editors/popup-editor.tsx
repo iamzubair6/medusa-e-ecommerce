@@ -8,6 +8,7 @@ import { Badge, Button, Card } from "@ecom/ui";
 import { popupConfigSchema, type PopupConfig } from "@ecom/cms";
 import { TextField, TextareaField, CheckboxField } from "../fields";
 import { EnumCombobox } from "../combobox";
+import { MediaUploadField } from "../media-upload-field";
 
 export interface AdminPopup {
   id: string;
@@ -23,6 +24,7 @@ interface Form {
   trigger: AdminPopup["trigger"];
   heading: string;
   body: string;
+  mediaUrl: string;
   captureEmail: boolean;
   ctaLabel: string;
   ctaHref: string;
@@ -41,6 +43,7 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
       trigger: popup.trigger,
       heading: popup.config.heading,
       body: popup.config.body ?? "",
+      mediaUrl: popup.config.media?.url ?? "",
       captureEmail: popup.config.captureEmail,
       ctaLabel: popup.config.cta?.label ?? "",
       ctaHref: popup.config.cta?.href ?? "",
@@ -58,6 +61,7 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
       const config = popupConfigSchema.safeParse({
         heading: f.heading,
         body: f.body || undefined,
+        media: f.mediaUrl.trim() ? { url: f.mediaUrl.trim() } : undefined,
         captureEmail: f.captureEmail,
         cta: f.ctaLabel.trim() ? { label: f.ctaLabel, href: f.ctaHref || "#" } : undefined,
         dismissLabel: f.dismissLabel,
@@ -113,6 +117,12 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
         </div>
         <TextField label="Heading" {...register("heading")} />
         <TextareaField label="Body" {...register("body")} />
+        <MediaUploadField
+          label="Image"
+          value={watch("mediaUrl")}
+          onChange={(u) => setValue("mediaUrl", u, { shouldDirty: true })}
+          hint="Upload or paste a URL — shown beside the popup text"
+        />
         <CheckboxField label="Capture email (newsletter signup → guest lead)" {...register("captureEmail")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="CTA label" {...register("ctaLabel")} />
