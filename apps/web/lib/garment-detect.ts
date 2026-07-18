@@ -60,13 +60,22 @@ const LABEL_GROUP: Record<string, string> = {
 
 const DETECT_THRESHOLD = 0.35;
 const MAX_PARTS = 4;
-/** Prompt set chosen by measured margins (women/men 0.6–0.86 on test photos). */
-const DIVISION_PROMPTS: Record<string, string> = {
-  "women's fashion": "women",
-  "men's fashion": "men",
-  "children's clothing": "kids",
-};
-const DIVISION_MIN_SCORE = 0.5;
+/**
+ * Zero-shot division: an ensemble of prompts per division (single prompts
+ * proved brittle — a woman-in-a-dress photo scored "kids" once in prod use).
+ * Scores are summed per division; kids only wins with a clear margin, and a
+ * detected dress/skirt biases to women unless men clearly dominates.
+ */
+const DIVISION_PROMPTS: { text: string; division: "women" | "men" | "kids" }[] = [
+  { text: "women's fashion", division: "women" },
+  { text: "a photo of a woman wearing an outfit", division: "women" },
+  { text: "men's fashion", division: "men" },
+  { text: "a photo of a man wearing an outfit", division: "men" },
+  { text: "children's clothing", division: "kids" },
+  { text: "a photo of a small child", division: "kids" },
+];
+const DIVISION_MIN_SUM = 0.45;
+const KIDS_MARGIN = 0.2;
 
 type Detector = {
   processor: Awaited<ReturnType<typeof AutoProcessor.from_pretrained>>;
@@ -150,13 +159,32 @@ async function detectGarments(image: RawImage): Promise<Detection[]> {
 
 const zsOutputSchema = z.array(z.object({ label: z.string(), score: z.number() }));
 
-async function classifyDivision(image: RawImage): Promise<string | undefined> {
+async function classifyDivision(
+  image: RawImage,
+  detectedGroups: string[],
+): Promise<string | undefined> {
   const zs = await getZeroShot();
-  const raw: unknown = await zs(image, Object.keys(DIVISION_PROMPTS));
+  const raw: unknown = await zs(image, DIVISION_PROMPTS.map((p) => p.text));
   const out = zsOutputSchema.safeParse(Array.isArray(raw) ? raw.flat() : raw);
-  const top = out.success ? out.data[0] : undefined;
-  if (!top || top.score < DIVISION_MIN_SCORE) return undefined;
-  return DIVISION_PROMPTS[top.label];
+  if (!out.success) return undefined;
+
+  const sums = new Map<string, number>();
+  for (const item of out.data) {
+    const division = DIVISION_PROMPTS.find((p) => p.text === item.label)?.division;
+    if (division) sums.set(division, (sums.get(division) ?? 0) + item.score);
+  }
+  const ranked = [...sums.entries()].sort((a, b) => b[1] - a[1]);
+  let [top] = ranked;
+  if (!top || top[1] < DIVISION_MIN_SUM) return undefined;
+
+  // Kids is CLIP's most common false positive — demand a clear win.
+  if (top[0] === "kids" && ranked[1] && top[1] - ranked[1][1] < KIDS_MARGIN) {
+    top = ranked[1];
+  }
+  // A dress/skirt in frame is a strong womenswear signal.
+  const hasDress = detectedGroups.includes("dress");
+  if (hasDress && top[0] !== "men") return "women";
+  return top[0];
 }
 
 export interface QueryContext {
@@ -171,10 +199,8 @@ export interface QueryContext {
  */
 export async function detectQueryContext(stored: Buffer): Promise<QueryContext> {
   const image = await RawImage.fromBlob(new Blob([new Uint8Array(stored)]));
-  const [detections, division] = await Promise.all([
-    detectGarments(image),
-    classifyDivision(image),
-  ]);
+  const detections = await detectGarments(image);
+  const division = await classifyDivision(image, detections.map((d) => d.group));
 
   const W = image.width;
   const H = image.height;
