@@ -48,3 +48,4 @@ playwright/.cache/
 
 # impeccable live-mode transient session state
 .impeccable/live/sessions/
+.playwright-mcp/
