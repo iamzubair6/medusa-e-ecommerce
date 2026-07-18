@@ -13,6 +13,7 @@ import type { NavCollection, Navigation } from "@/lib/navigation";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { SearchByImagePopover } from "@/components/site/search-by-image";
+import { SearchDiscoveryPanel } from "@/components/site/search-discovery-panel";
 import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
 import { useWishlist } from "@/lib/wishlist-context";
 
@@ -123,7 +124,12 @@ export function Navbar({ navData }: NavbarProps) {
 
             {/* search + utilities */}
             <div className="ml-auto flex items-center gap-2">
-              <SearchAutocomplete divLabel={divLabel} reduce={!!reduce} />
+              <SearchAutocomplete
+                divLabel={divLabel}
+                division={division}
+                divisions={divisions.map((d) => ({ handle: d.handle, label: d.label }))}
+                reduce={!!reduce}
+              />
               <button type="button" aria-label="Search" className="cursor-pointer p-2 md:hidden">
                 <Search className="h-5 w-5" />
               </button>
@@ -260,7 +266,17 @@ const SUGGEST_MIN_CHARS = 2;
 const SUGGEST_LIMIT = 6;
 
 /** Desktop search box with a product-suggestion dropdown (combobox pattern). */
-function SearchAutocomplete({ divLabel, reduce }: { divLabel: string; reduce: boolean }) {
+function SearchAutocomplete({
+  divLabel,
+  division,
+  divisions,
+  reduce,
+}: {
+  divLabel: string;
+  division: string;
+  divisions: { handle: string; label: string }[];
+  reduce: boolean;
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [term, setTerm] = useState("");
@@ -304,6 +320,8 @@ function SearchAutocomplete({ divLabel, reduce }: { divLabel: string; reduce: bo
   const optionCount = suggestions.length > 0 ? suggestions.length + 1 : 0;
   // Errors show an honest row instead of silently hiding the panel.
   const showPanel = open && enabled;
+  // Empty input → the discovery panel (division tabs + hot searches + columns).
+  const showDiscovery = open && !enabled;
 
   const close = () => {
     setOpen(false);
@@ -382,6 +400,20 @@ function SearchAutocomplete({ divLabel, reduce }: { divLabel: string; reduce: bo
       </button>
 
       <SearchByImagePopover open={imageOpen} onClose={() => setImageOpen(false)} reduce={reduce} />
+
+      <AnimatePresence>
+        {showDiscovery && !imageOpen && (
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: 4 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="absolute right-0 top-full z-50 mt-1 w-[min(92vw,620px)] overflow-hidden rounded-md border border-border bg-card shadow-2xl"
+          >
+            <SearchDiscoveryPanel divisions={divisions} initialDivision={division} onNavigate={close} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showPanel && (
