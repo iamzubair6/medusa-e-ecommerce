@@ -589,6 +589,8 @@ export interface ListingFilters {
   collection?: string;
   /** Restrict to these product ids (visual search); results keep this order. */
   ids?: string[];
+  /** Any-of category allowlist (visual search part scoping, e.g. bottom → bottoms/jeans). */
+  categories?: string[];
   occasion?: string[];
   style?: string[];
   trend?: string[];
@@ -721,6 +723,7 @@ export async function fetchListing(
     if (idRank && !idRank.has(p.id)) return false;
     if (filters.division && p.division !== filters.division) return false;
     if (filters.category && !(p.categoryHandles ?? []).includes(filters.category)) return false;
+    if (filters.categories?.length && !filters.categories.some((c) => (p.categoryHandles ?? []).includes(c))) return false;
     if (filters.collection && p.collectionHandle !== filters.collection) return false;
     return true;
   });

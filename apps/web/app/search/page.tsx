@@ -17,6 +17,23 @@ export const metadata: Metadata = { title: "Your Image Results" };
 
 const PAGE_RESULTS = 48;
 
+/**
+ * Detected garment group → catalog categories (FN behavior: tapping the
+ * "bottom" dot shows bottoms, not whatever the crop vaguely resembles). The
+ * crop's vector then only orders within the allowlist.
+ */
+const PART_CATEGORIES: Record<string, string[]> = {
+  // No "activewear" here — gym items carry activewear+tops or activewear+bottoms,
+  // so the broad handle would leak leggings into a top search (and vice versa).
+  top: ["tops", "bodysuits", "swim"],
+  bottom: ["bottoms", "jeans", "swim"],
+  dress: ["dresses", "matching-sets"],
+  outerwear: ["outerwear"],
+  shoes: ["shoes"],
+  bag: ["accessories"],
+  accessory: ["accessories"],
+};
+
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
 /**
@@ -56,9 +73,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const parts = parseVisualQueryParts(record.parts);
   const partParam = one("part");
   const partRaw = partParam?.length ? Number(partParam) : NaN;
+  // FN behavior: the most prominent garment starts selected (parts arrive
+  // score-sorted); `part=all` searches the whole photo.
   const partIdx =
-    Number.isInteger(partRaw) && partRaw >= 0 && partRaw < parts.length ? partRaw : undefined;
-  const vector = partIdx !== undefined ? parts[partIdx]!.vector : record.vector;
+    Number.isInteger(partRaw) && partRaw >= 0 && partRaw < parts.length
+      ? partRaw
+      : partParam === "all" || parts.length === 0
+        ? undefined
+        : 0;
+  const selectedPart = partIdx !== undefined ? parts[partIdx]! : undefined;
+  const vector = selectedPart?.vector ?? record.vector;
+  const partCategories = selectedPart ? PART_CATEGORIES[selectedPart.label] : undefined;
 
   const params = parseListingParams(sp);
   // First landing scopes to the auto-detected division; `division=all` (the ✕
@@ -66,8 +91,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   let division =
     one("division") === "all" ? undefined : (params.division ?? record.division ?? undefined);
 
-  const ranked = await rankByVector(vector, PAGE_RESULTS, { cap: PAGE_RESULTS });
-  const ids = ranked.map((r) => r.productId);
+  // Part searches skip the relevance floor — the category allowlist scopes,
+  // the crop vector orders (a garment crop scores low vs full-body shots).
+  const ranked = await rankByVector(vector, PAGE_RESULTS, {
+    cap: PAGE_RESULTS,
+    floor: !selectedPart,
+  });
+  let ids = ranked.map((r) => r.productId);
   const refinements = {
     category: params.category,
     colors: params.colors,
@@ -83,18 +113,42 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     priceMin: params.priceMin,
     priceMax: params.priceMax,
   };
-  let listing = await fetchListing({ ids, division, ...refinements }, { sort: params.sort, page: params.page });
-  // A wrong division guess must not blank a page that HAS visual matches.
+  const explicitPart = partIdx !== undefined && partParam !== undefined;
+  const listingOpts = { sort: params.sort, page: params.page };
+  let effectivePartIdx = partIdx;
+  let listing = await fetchListing(
+    { ids, division, categories: partCategories, ...refinements },
+    listingOpts,
+  );
+  // Fallbacks, but honest ones. An AUTO-selected garment with no catalog
+  // coverage is deselected — back to the whole-photo search — so the panel
+  // never highlights a part the grid isn't showing. An explicitly tapped dot
+  // keeps its category scope: an empty "no matches" beats category-wrong
+  // results. A wrong division guess is always dropped rather than blanking a
+  // page that has matches.
+  if (listing.total === 0 && selectedPart && !explicitPart) {
+    effectivePartIdx = undefined;
+    const whole = await rankByVector(record.vector, PAGE_RESULTS, { cap: PAGE_RESULTS });
+    ids = whole.map((r) => r.productId);
+    listing = await fetchListing({ ids, division, ...refinements }, listingOpts);
+  }
   if (listing.total === 0 && division && ids.length > 0) {
     division = undefined;
-    listing = await fetchListing({ ids, ...refinements }, { sort: params.sort, page: params.page });
+    listing = await fetchListing(
+      {
+        ids,
+        categories: effectivePartIdx !== undefined ? partCategories : undefined,
+        ...refinements,
+      },
+      listingOpts,
+    );
   }
 
   params.division = division;
   params.extra = {
     resourceId: record.id,
     ...(division === undefined ? { division: "all" } : {}),
-    ...(partIdx !== undefined ? { part: String(partIdx) } : {}),
+    ...(effectivePartIdx !== undefined ? { part: String(effectivePartIdx) } : {}),
   };
 
   const props: ListingPageProps = {
@@ -117,8 +171,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       <ListingView {...props} />
       <ImageQueryPanel
         resourceId={record.id}
-        parts={parts.map((p) => ({ label: p.label, cx: p.cx, cy: p.cy }))}
-        selectedPart={partIdx}
+        parts={parts.map((p) => ({ label: p.label, cx: p.cx, cy: p.cy, box: p.box }))}
+        selectedPart={effectivePartIdx}
         division={division}
       />
     </main>

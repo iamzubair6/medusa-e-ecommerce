@@ -34,11 +34,16 @@ const MIN_SCORE = 0.6;
 const TOP_MARGIN = 0.07;
 const MAX_RESULTS = 12;
 
-/** Rank all indexed products against a query vector (weak matches dropped). */
+/**
+ * Rank all indexed products against a query vector (weak matches dropped).
+ * `floor: false` skips the relevance cutoff — used by garment-part searches,
+ * where a category allowlist does the scoping and the vector only orders
+ * (a crop of shorts scores low against full-body thumbnails across the board).
+ */
 export async function rankByVector(
   query: number[],
   limit: number,
-  opts: { exclude?: string; cap?: number } = {},
+  opts: { exclude?: string; cap?: number; floor?: boolean } = {},
 ): Promise<SimilarResult[]> {
   const all = await listProductEmbeddings();
   const ranked = all
@@ -53,7 +58,7 @@ export async function rankByVector(
     }))
     .sort((a, b) => b.score - a.score);
   const top = ranked[0]?.score ?? 0;
-  const floor = Math.max(MIN_SCORE, top - TOP_MARGIN);
+  const floor = opts.floor === false ? -1 : Math.max(MIN_SCORE, top - TOP_MARGIN);
   return ranked.filter((r) => r.score >= floor).slice(0, Math.min(limit, opts.cap ?? MAX_RESULTS));
 }
 
