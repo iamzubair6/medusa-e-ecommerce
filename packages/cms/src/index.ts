@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { prisma } from "./client";
 import {
   parseSectionConfig,
@@ -272,12 +273,19 @@ export async function deleteProductEmbedding(productId: string) {
 // --- Visual search queries (shopper image uploads) ---------------------------
 
 /** One detected garment region in a query image (normalized 0–1 coords). */
-export interface VisualQueryPart {
-  label: string;
-  box: { x: number; y: number; w: number; h: number };
-  cx: number;
-  cy: number;
-  vector: number[];
+export const visualQueryPartSchema = z.object({
+  label: z.string(),
+  box: z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }),
+  cx: z.number(),
+  cy: z.number(),
+  vector: z.array(z.number()),
+});
+export type VisualQueryPart = z.infer<typeof visualQueryPartSchema>;
+
+/** Validate `parts` read back from the Json column (bad/legacy data → none). */
+export function parseVisualQueryParts(json: unknown): VisualQueryPart[] {
+  const parsed = z.array(visualQueryPartSchema).safeParse(json);
+  return parsed.success ? parsed.data : [];
 }
 
 export interface VisualQueryInput {
@@ -295,7 +303,7 @@ export async function createVisualSearchQuery(input: VisualQueryInput) {
       division: input.division,
       dim: input.dim,
       vector: input.vector,
-      parts: input.parts as unknown as object,
+      parts: input.parts,
     },
   });
 }

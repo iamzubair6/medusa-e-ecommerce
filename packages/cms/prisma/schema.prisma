@@ -218,7 +218,7 @@ model ProductEmbedding {
 /// its CLIP vector, the auto-detected division, and per-garment crops
 /// (label + box + vector) for hotspot re-scoping. Pruned by age.
 model VisualSearchQuery {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(4)) /// random (not time-ordered) — ids are public URLs
   image     Bytes /// resized JPEG (~512px longest side)
   division  String? /// auto-detected: women | men | sport | kids
   dim       Int
