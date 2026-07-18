@@ -38,11 +38,11 @@ const MAX_RESULTS = 12;
 export async function rankByVector(
   query: number[],
   limit: number,
-  excludeProductId?: string,
+  opts: { exclude?: string; cap?: number } = {},
 ): Promise<SimilarResult[]> {
   const all = await listProductEmbeddings();
   const ranked = all
-    .filter((e) => e.productId !== excludeProductId && e.vector.length === query.length)
+    .filter((e) => e.productId !== opts.exclude && e.vector.length === query.length)
     .map((e) => ({
       productId: e.productId,
       handle: e.handle,
@@ -54,14 +54,14 @@ export async function rankByVector(
     .sort((a, b) => b.score - a.score);
   const top = ranked[0]?.score ?? 0;
   const floor = Math.max(MIN_SCORE, top - TOP_MARGIN);
-  return ranked.filter((r) => r.score >= floor).slice(0, Math.min(limit, MAX_RESULTS));
+  return ranked.filter((r) => r.score >= floor).slice(0, Math.min(limit, opts.cap ?? MAX_RESULTS));
 }
 
 /** Products visually similar to an already-indexed product. */
 export async function similarToProduct(productId: string, limit: number): Promise<SimilarResult[]> {
   const e = await getProductEmbedding(productId);
   if (!e) return [];
-  return rankByVector(e.vector, limit, productId);
+  return rankByVector(e.vector, limit, { exclude: productId });
 }
 
 /**

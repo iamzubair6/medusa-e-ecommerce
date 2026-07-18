@@ -22,6 +22,8 @@ export interface ListingParams {
   print: string[];
   priceMin?: number; // ?pmin= (inclusive, in the store currency's whole units)
   priceMax?: number; // ?pmax=
+  /** Params outside the facet system carried through every facet link (e.g. visual search's resourceId). */
+  extra?: Record<string, string>;
 }
 
 const csv = (v?: string) =>
@@ -84,6 +86,7 @@ export function listingQuery(p: ListingParams, overrides: Partial<ListingParams>
   if (m.print.length) q.set("print", m.print.join(","));
   if (m.priceMin !== undefined) q.set("pmin", String(m.priceMin));
   if (m.priceMax !== undefined) q.set("pmax", String(m.priceMax));
+  for (const [k, v] of Object.entries(m.extra ?? {})) q.set(k, v);
   const s = q.toString();
   return s ? `?${s}` : "";
 }

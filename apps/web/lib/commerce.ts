@@ -587,6 +587,8 @@ export interface ListingFilters {
   division?: string;
   category?: string;
   collection?: string;
+  /** Restrict to these product ids (visual search); results keep this order. */
+  ids?: string[];
   occasion?: string[];
   style?: string[];
   trend?: string[];
@@ -713,13 +715,16 @@ export async function fetchListing(
   const [all, cats] = await Promise.all([getCatalog(), listCategories()]);
   const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
 
-  // base scope (division + category + collection) — facets computed from here
-  const scoped = all.filter((p) => {
+  // base scope (division + category + collection [+ id allowlist]) — facets computed from here
+  const idRank = filters.ids ? new Map(filters.ids.map((id, i) => [id, i])) : null;
+  let scoped = all.filter((p) => {
+    if (idRank && !idRank.has(p.id)) return false;
     if (filters.division && p.division !== filters.division) return false;
     if (filters.category && !(p.categoryHandles ?? []).includes(filters.category)) return false;
     if (filters.collection && p.collectionHandle !== filters.collection) return false;
     return true;
   });
+  if (idRank) scoped = scoped.sort((a, b) => idRank.get(a.id)! - idRank.get(b.id)!);
   const facets = buildFacets(scoped, nameByHandle);
 
   // refinement filters
