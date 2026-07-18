@@ -1,5 +1,6 @@
 import "server-only";
 import sharp from "sharp";
+import { z } from "zod";
 import {
   AutoModelForObjectDetection,
   AutoProcessor,
@@ -131,7 +132,8 @@ async function detectGarments(image: RawImage): Promise<Detection[]> {
     [[image.height, image.width]],
   );
   if (!result) return [];
-  const id2label = (model.config as { id2label?: Record<string, string> }).id2label ?? {};
+  const cfg = z.object({ id2label: z.record(z.string()).optional() }).safeParse(model.config);
+  const id2label = cfg.success ? (cfg.data.id2label ?? {}) : {};
   const best = new Map<string, Detection>();
   result.boxes.forEach((box, i) => {
     const label = id2label[String(result.classes[i])] ?? "";
@@ -146,13 +148,13 @@ async function detectGarments(image: RawImage): Promise<Detection[]> {
   return [...best.values()].sort((a, b) => b.score - a.score).slice(0, MAX_PARTS);
 }
 
+const zsOutputSchema = z.array(z.object({ label: z.string(), score: z.number() }));
+
 async function classifyDivision(image: RawImage): Promise<string | undefined> {
   const zs = await getZeroShot();
-  const out = (await zs(image, Object.keys(DIVISION_PROMPTS))) as {
-    label: string;
-    score: number;
-  }[];
-  const top = out[0];
+  const raw: unknown = await zs(image, Object.keys(DIVISION_PROMPTS));
+  const out = zsOutputSchema.safeParse(Array.isArray(raw) ? raw.flat() : raw);
+  const top = out.success ? out.data[0] : undefined;
   if (!top || top.score < DIVISION_MIN_SCORE) return undefined;
   return DIVISION_PROMPTS[top.label];
 }
@@ -179,21 +181,26 @@ export async function detectQueryContext(stored: Buffer): Promise<QueryContext> 
   const pad = Math.round(Math.max(W, H) * 0.04);
   const parts: VisualQueryPart[] = [];
   for (const det of detections) {
-    const left = Math.max(0, Math.round(det.box.xmin) - pad);
-    const top = Math.max(0, Math.round(det.box.ymin) - pad);
-    const width = Math.min(W - left, Math.round(det.box.xmax - det.box.xmin) + pad * 2);
-    const height = Math.min(H - top, Math.round(det.box.ymax - det.box.ymin) + pad * 2);
-    if (width < 24 || height < 24) continue;
-    const crop = await sharp(stored).extract({ left, top, width, height }).jpeg().toBuffer();
-    const vector = await embedBufferServer(crop);
-    if (!vector) continue;
-    parts.push({
-      label: det.group,
-      box: { x: left / W, y: top / H, w: width / W, h: height / H },
-      cx: (det.box.xmin + det.box.xmax) / 2 / W,
-      cy: (det.box.ymin + det.box.ymax) / 2 / H,
-      vector,
-    });
+    // One degenerate box must not lose the remaining parts (or the division).
+    try {
+      const left = Math.max(0, Math.round(det.box.xmin) - pad);
+      const top = Math.max(0, Math.round(det.box.ymin) - pad);
+      const width = Math.min(W - left, Math.round(det.box.xmax - det.box.xmin) + pad * 2);
+      const height = Math.min(H - top, Math.round(det.box.ymax - det.box.ymin) + pad * 2);
+      if (width < 24 || height < 24) continue;
+      const crop = await sharp(stored).extract({ left, top, width, height }).jpeg().toBuffer();
+      const vector = await embedBufferServer(crop);
+      if (!vector) continue;
+      parts.push({
+        label: det.group,
+        box: { x: left / W, y: top / H, w: width / W, h: height / H },
+        cx: (det.box.xmin + det.box.xmax) / 2 / W,
+        cy: (det.box.ymin + det.box.ymax) / 2 / H,
+        vector,
+      });
+    } catch {
+      continue;
+    }
   }
   return { division, parts };
 }
