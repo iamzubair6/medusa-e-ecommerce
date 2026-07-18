@@ -8,9 +8,10 @@ import { cn } from "@ecom/ui";
 
 interface Hotspot {
   label: string;
-  /** Normalized (0–1) dot position on the query image. */
+  /** Normalized (0–1) dot position + garment box on the query image. */
   cx: number;
   cy: number;
+  box: { x: number; y: number; w: number; h: number };
 }
 
 const PART_NAMES: Record<string, string> = {
@@ -24,10 +25,12 @@ const PART_NAMES: Record<string, string> = {
 };
 
 /**
- * The floating "Search By Image" panel on /search (Fashion Nova pattern):
- * shows the uploaded photo with a dot on each detected garment — tapping a dot
- * re-scopes results to that piece — plus an "Upload New Image" action.
- * Collapsible to a small pill so it never buries the results on mobile.
+ * The "Search By Image" panel on /search (Fashion Nova pattern): sits where
+ * the search popover was — top right, under the header — so the flow from
+ * popover → results feels continuous. Shows the uploaded photo with a dot per
+ * detected garment; the selected garment gets a translucent highlight box and
+ * scopes the results. Tapping the selected dot again searches the whole photo.
+ * Collapsible to a pill so it never buries results on mobile.
  */
 export function ImageQueryPanel({
   resourceId,
@@ -47,11 +50,21 @@ export function ImageQueryPanel({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageSrc = `/api/visual-search/query/${resourceId}/image`;
+  const selected = selectedPart !== undefined ? parts[selectedPart] : undefined;
 
   const selectPart = (idx: number) => {
     const q = new URLSearchParams(searchParams.toString());
-    if (idx === selectedPart) q.delete("part");
+    // Re-tapping the active dot searches the whole photo ("all" — the most
+    // prominent garment is otherwise auto-selected server-side).
+    if (idx === selectedPart) q.set("part", "all");
     else q.set("part", String(idx));
+    q.delete("page");
+    router.push(`/search?${q.toString()}`);
+  };
+
+  const clearDivision = () => {
+    const q = new URLSearchParams(searchParams.toString());
+    q.set("division", "all");
     q.delete("page");
     router.push(`/search?${q.toString()}`);
   };
@@ -91,7 +104,7 @@ export function ImageQueryPanel({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] shadow-lg transition-colors hover:border-foreground motion-reduce:transition-none"
+        className="fixed right-4 top-36 z-40 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] shadow-lg transition-colors hover:border-foreground motion-reduce:transition-none sm:right-6"
         aria-label="Show your search image"
       >
         <Camera className="h-4 w-4" />
@@ -103,7 +116,7 @@ export function ImageQueryPanel({
   return (
     <aside
       aria-label="Search by image"
-      className="fixed bottom-5 right-5 z-40 w-64 overflow-hidden rounded-md border border-border bg-card shadow-xl sm:w-72"
+      className="fixed right-4 top-36 z-40 w-60 overflow-hidden rounded-md border border-border bg-card shadow-2xl sm:right-6 sm:w-72"
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <p className="flex min-w-0 items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em]">
@@ -111,12 +124,7 @@ export function ImageQueryPanel({
           {division && (
             <button
               type="button"
-              onClick={() => {
-                const q = new URLSearchParams(searchParams.toString());
-                q.set("division", "all");
-                q.delete("page");
-                router.push(`/search?${q.toString()}`);
-              }}
+              onClick={clearDivision}
               aria-label={`Remove the ${division} filter`}
               className="flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[0.6rem] transition-colors hover:border-foreground motion-reduce:transition-none"
             >
@@ -137,12 +145,31 @@ export function ImageQueryPanel({
 
       <div className="relative">
         <img src={imageSrc} alt="Your uploaded search photo" className="block w-full" />
+
+        {/* FN-style translucent highlight over the selected garment */}
+        {selected && (
+          <span
+            aria-hidden
+            style={{
+              left: `${selected.box.x * 100}%`,
+              top: `${selected.box.y * 100}%`,
+              width: `${selected.box.w * 100}%`,
+              height: `${selected.box.h * 100}%`,
+            }}
+            className="absolute rounded-lg bg-white/25 ring-2 ring-white/80"
+          />
+        )}
+
         {parts.map((p, i) => (
           <button
             key={`${p.label}-${i}`}
             type="button"
             onClick={() => selectPart(i)}
-            aria-label={`Search the ${PART_NAMES[p.label] ?? p.label} in this photo`}
+            aria-label={
+              selectedPart === i
+                ? `Stop searching only the ${PART_NAMES[p.label] ?? p.label}`
+                : `Search the ${PART_NAMES[p.label] ?? p.label} in this photo`
+            }
             aria-pressed={selectedPart === i}
             style={{ left: `${p.cx * 100}%`, top: `${p.cy * 100}%` }}
             className={cn(
@@ -161,6 +188,12 @@ export function ImageQueryPanel({
           </button>
         ))}
       </div>
+
+      {selected && (
+        <p className="border-t border-border px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Showing: {PART_NAMES[selected.label] ?? selected.label}
+        </p>
+      )}
 
       <div className="border-t border-border p-3">
         <input

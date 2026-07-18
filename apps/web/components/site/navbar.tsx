@@ -399,7 +399,16 @@ function SearchAutocomplete({
         <Camera className="h-4 w-4" />
       </button>
 
-      <SearchByImagePopover open={imageOpen} onClose={() => setImageOpen(false)} reduce={reduce} />
+      <SearchByImagePopover
+        open={imageOpen}
+        onClose={() => setImageOpen(false)}
+        onCollapse={() => {
+          // FN behavior: the ^ chevron returns to the text-search dropdown.
+          setImageOpen(false);
+          setOpen(true);
+        }}
+        reduce={reduce}
+      />
 
       <AnimatePresence>
         {showDiscovery && !imageOpen && (

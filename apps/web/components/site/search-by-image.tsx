@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, ChevronUp, ImagePlus, Link2, Loader2 } from "lucide-react";
@@ -21,24 +21,41 @@ interface Sample {
 export function SearchByImagePopover({
   open,
   onClose,
+  onCollapse,
   reduce,
 }: {
   open: boolean;
+  /** Plain close (outside click, Escape, after navigating to results). */
   onClose: () => void;
+  /** The ^ chevron — collapse back to the text-search dropdown, FN style. */
+  onCollapse: () => void;
   reduce: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [link, setLink] = useState("");
   const [searching, setSearching] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Keyboard support: focus lands in the dialog on open, Escape closes it.
   useEffect(() => {
     if (open) dialogRef.current?.focus();
   }, [open]);
+
+  // The popover (and its searching overlay) stays up until the results page
+  // has actually arrived — closing on push would leave a blank gap while
+  // /search server-renders. The panel on /search takes over in the same spot.
+  useEffect(() => {
+    if (open && pendingId && searchParams.get("resourceId") === pendingId) {
+      setPendingId(null);
+      setSearching(false);
+      onClose();
+    }
+  }, [open, pendingId, searchParams, onClose]);
 
   const { data: samples } = useQuery({
     queryKey: ["visual-search-samples"],
@@ -57,10 +74,10 @@ export function SearchByImagePopover({
       const q = new URLSearchParams();
       if (division) q.set("division", division);
       q.set("resourceId", resourceId);
-      onClose();
+      setPendingId(resourceId);
       router.push(`/search?${q.toString()}`);
     },
-    [onClose, router],
+    [router],
   );
 
   const runSearch = useCallback(
@@ -78,10 +95,11 @@ export function SearchByImagePopover({
         if (!res.ok || !data.resourceId) {
           throw new Error(data.error ?? "Search timed out — please try again.");
         }
+        // Success: the overlay stays until the results page arrives (see the
+        // pendingId effect above).
         goToResults(data.resourceId, data.division ?? null);
       } catch (e) {
         setError((e as Error).message);
-      } finally {
         setSearching(false);
       }
     },
@@ -143,8 +161,8 @@ export function SearchByImagePopover({
             <h2 className="font-serif text-lg">Search By Image</h2>
             <button
               type="button"
-              onClick={onClose}
-              aria-label="Close image search"
+              onClick={onCollapse}
+              aria-label="Back to text search"
               className="absolute right-4 rounded-sm p-1.5 text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none"
             >
               <ChevronUp className="h-5 w-5" />
