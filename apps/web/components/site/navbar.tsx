@@ -12,8 +12,8 @@ import type { NavCategory, NavData } from "@/lib/nav-data";
 import type { NavCollection, Navigation } from "@/lib/navigation";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { SearchByImagePopover } from "@/components/site/search-by-image";
 import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
-import { useVisualSearch } from "@/lib/visual-search-context";
 import { useWishlist } from "@/lib/wishlist-context";
 
 interface NavbarProps {
@@ -28,7 +28,6 @@ export function Navbar({ navData }: NavbarProps) {
   const { divisions, categoriesByDivision, facets, brandByDivision, announcement } = navData;
   const pathname = usePathname();
   const reduce = useReducedMotion();
-  const { openUpload } = useVisualSearch();
   const { count: wishlistCount } = useWishlist();
   const [openMega, setOpenMega] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -124,7 +123,7 @@ export function Navbar({ navData }: NavbarProps) {
 
             {/* search + utilities */}
             <div className="ml-auto flex items-center gap-2">
-              <SearchAutocomplete divLabel={divLabel} onVisualSearch={openUpload} reduce={!!reduce} />
+              <SearchAutocomplete divLabel={divLabel} reduce={!!reduce} />
               <button type="button" aria-label="Search" className="cursor-pointer p-2 md:hidden">
                 <Search className="h-5 w-5" />
               </button>
@@ -261,20 +260,13 @@ const SUGGEST_MIN_CHARS = 2;
 const SUGGEST_LIMIT = 6;
 
 /** Desktop search box with a product-suggestion dropdown (combobox pattern). */
-function SearchAutocomplete({
-  divLabel,
-  onVisualSearch,
-  reduce,
-}: {
-  divLabel: string;
-  onVisualSearch: () => void;
-  reduce: boolean;
-}) {
+function SearchAutocomplete({ divLabel, reduce }: { divLabel: string; reduce: boolean }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
+  const [imageOpen, setImageOpen] = useState(false);
   const [active, setActive] = useState(-1);
 
   // Debounce the typed value; the debounced value drives useQuery below.
@@ -286,7 +278,10 @@ function SearchAutocomplete({
   // Close on outside click.
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      if (formRef.current && !formRef.current.contains(e.target as Node)) setOpen(false);
+      if (formRef.current && !formRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setImageOpen(false);
+      }
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
@@ -355,7 +350,10 @@ function SearchAutocomplete({
           setActive(-1);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true);
+          setImageOpen(false);
+        }}
         onKeyDown={onKeyDown}
         placeholder={`Search within ${divLabel}'s`}
         aria-label="Search"
@@ -373,11 +371,17 @@ function SearchAutocomplete({
       <button
         type="button"
         aria-label="Search by image"
-        onClick={onVisualSearch}
-        className="cursor-pointer text-muted-foreground hover:text-accent"
+        aria-expanded={imageOpen}
+        onClick={() => {
+          setOpen(false);
+          setImageOpen((v) => !v);
+        }}
+        className={cn("cursor-pointer hover:text-accent", imageOpen ? "text-accent" : "text-muted-foreground")}
       >
         <Camera className="h-4 w-4" />
       </button>
+
+      <SearchByImagePopover open={imageOpen} onClose={() => setImageOpen(false)} reduce={reduce} />
 
       <AnimatePresence>
         {showPanel && (
