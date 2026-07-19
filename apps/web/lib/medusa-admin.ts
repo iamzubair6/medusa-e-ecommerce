@@ -1605,3 +1605,57 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
     pendingFulfilment,
   };
 }
+
+export interface TopProduct {
+  title: string;
+  thumbnail?: string;
+  units: number;
+}
+
+/** Best-selling products by units, aggregated from recent orders' line items. */
+export async function getTopProducts(limit = 5): Promise<TopProduct[]> {
+  const fields = "items.product_title,items.title,items.quantity,items.thumbnail,created_at";
+  const data = await adminFetch<{
+    orders?: { items?: { product_title?: string; title?: string; quantity: number; thumbnail?: string | null }[] }[];
+  }>(`/admin/orders?fields=${encodeURIComponent(fields)}&order=-created_at&limit=300`);
+  const agg = new Map<string, TopProduct>();
+  for (const o of data?.orders ?? []) {
+    for (const it of o.items ?? []) {
+      const title = it.product_title || it.title || "Unknown";
+      const prev = agg.get(title) ?? { title, thumbnail: it.thumbnail ?? undefined, units: 0 };
+      prev.units += it.quantity ?? 0;
+      if (!prev.thumbnail && it.thumbnail) prev.thumbnail = it.thumbnail;
+      agg.set(title, prev);
+    }
+  }
+  return [...agg.values()].sort((a, b) => b.units - a.units).slice(0, limit);
+}
+
+export interface LowStockVariant {
+  product: string;
+  variant: string;
+  thumbnail?: string;
+  quantity: number;
+}
+
+/**
+ * Variants at or below a stock threshold (still in stock). Best-effort: Medusa
+ * only exposes `inventory_quantity` when inventory is managed, so this returns
+ * [] rather than erroring when the data isn't available.
+ */
+export async function getLowStock(threshold = 5, limit = 10): Promise<LowStockVariant[]> {
+  const fields = "title,thumbnail,variants.title,variants.inventory_quantity";
+  const data = await adminFetch<{
+    products?: { title: string; thumbnail?: string | null; variants?: { title?: string; inventory_quantity?: number | null }[] }[];
+  }>(`/admin/products?fields=${encodeURIComponent(fields)}&limit=200`);
+  const low: LowStockVariant[] = [];
+  for (const p of data?.products ?? []) {
+    for (const v of p.variants ?? []) {
+      const q = v.inventory_quantity;
+      if (typeof q === "number" && q > 0 && q <= threshold) {
+        low.push({ product: p.title, variant: v.title ?? "—", thumbnail: p.thumbnail ?? undefined, quantity: q });
+      }
+    }
+  }
+  return low.sort((a, b) => a.quantity - b.quantity).slice(0, limit);
+}
