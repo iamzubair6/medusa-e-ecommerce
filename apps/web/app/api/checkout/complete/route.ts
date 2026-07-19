@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSiteSetting } from "@ecom/cms";
+import { getSiteSetting, markCartRecovered } from "@ecom/cms";
 import { clearCartId, getCartId } from "@/lib/cart-cookie";
 import { completeCart, getCartPaymentInfo, initPayment, setCartMetadata } from "@/lib/medusa-store";
 import { orderConfirmationSmsText, sendTransactionalSms } from "@/lib/otp-sms";
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
     await clearCartId();
+    markCartRecovered(id).catch(() => {}); // this cart converted — drop it from recovery
 
     // Confirmation email + SMS (both best-effort; false/ignored on failure).
     const orderId = formatOrderId(result.order.displayId);

@@ -77,6 +77,28 @@ export function CheckoutClient({
     },
   });
 
+  // Capture the cart + email for recovery once a valid email is entered (best-
+  // effort, debounced). Marked recovered server-side when the order completes.
+  const emailValue = watch("email");
+  useEffect(() => {
+    if (!cart || cart.items.length === 0) return;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailValue ?? "")) return;
+    const t = setTimeout(() => {
+      fetch("/api/cart/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cartId: cart.id,
+          email: emailValue,
+          itemCount: cart.items.reduce((n, i) => n + i.quantity, 0),
+          total: cart.total,
+          items: cart.items.slice(0, 50).map((i) => ({ title: i.title, quantity: i.quantity, thumbnail: i.thumbnail })),
+        }),
+      }).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [emailValue, cart]);
+
   // Persona: when all questions are answered, apply the configured promo (stacks).
   const personaActive = persona.enabled && persona.questions.length > 0 && Boolean(persona.promoCode);
   const allAnswered = personaActive && persona.questions.every((q) => answers[q.id]);
