@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Star } from "lucide-react";
+import { ImagePlus, Loader2, Star, X } from "lucide-react";
 import { Button, cn } from "@ecom/ui";
 
 export interface ReviewItem {
@@ -11,12 +11,15 @@ export interface ReviewItem {
   author: string;
   title: string | null;
   body: string;
+  photos: string[];
   createdAt: string;
 }
 export interface ReviewSummary {
   count: number;
   average: number;
 }
+
+type SortKey = "newest" | "highest" | "lowest";
 
 function Stars({ value, className }: { value: number; className?: string }) {
   return (
@@ -47,10 +50,42 @@ export function ProductReviews({
   const [author, setAuthor] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews);
   const [liveSummary, setLiveSummary] = useState<ReviewSummary>(summary);
+
+  const [sort, setSort] = useState<SortKey>("newest");
+  const [onlyPhotos, setOnlyPhotos] = useState(false);
+
+  const shown = useMemo(() => {
+    let list = onlyPhotos ? reviews.filter((r) => r.photos.length > 0) : reviews;
+    if (sort === "highest") list = [...list].sort((a, b) => b.rating - a.rating);
+    else if (sort === "lowest") list = [...list].sort((a, b) => a.rating - b.rating);
+    else list = [...list].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    return list;
+  }, [reviews, onlyPhotos, sort]);
+  const photoCount = reviews.filter((r) => r.photos.length > 0).length;
+
+  const uploadPhotos = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      Array.from(files).slice(0, 4).forEach((f) => fd.append("files", f));
+      const res = await fetch("/api/reviews/upload", { method: "POST", body: fd });
+      const d = (await res.json().catch(() => ({}))) as { urls?: string[]; error?: string };
+      if (!res.ok || !d.urls) throw new Error(d.error ?? "Upload failed");
+      setPhotos((p) => [...p, ...d.urls!].slice(0, 6));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const submit = async () => {
     setError(null);
@@ -62,20 +97,20 @@ export function ProductReviews({
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productHandle: handle, rating, author, title: title || undefined, body }),
+        body: JSON.stringify({ productHandle: handle, rating, author, title: title || undefined, body, photos }),
       });
       if (!res.ok) {
         const d = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(d.error ?? "Could not submit review");
       }
       const created = (await res.json().catch(() => ({}))) as { id?: string };
-      // Optimistically show the new review immediately (ISR page won't refetch instantly).
       const newReview: ReviewItem = {
         id: created.id ?? `tmp-${reviews.length + 1}`,
         rating,
         author: author.trim(),
         title: title.trim() || null,
         body: body.trim(),
+        photos,
         createdAt: new Date().toISOString(),
       };
       setReviews((prev) => [newReview, ...prev]);
@@ -89,6 +124,7 @@ export function ProductReviews({
       setAuthor("");
       setTitle("");
       setBody("");
+      setPhotos([]);
       router.refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -145,6 +181,32 @@ export function ProductReviews({
             <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="What did you think?" className="min-h-28 w-full rounded-sm border border-input bg-card p-3 text-sm" />
             <span className="pointer-events-none absolute right-3 top-3 text-destructive">*</span>
           </div>
+
+          {/* photo upload */}
+          <div className="flex flex-wrap items-center gap-2">
+            {photos.map((url) => (
+              <span key={url} className="relative h-16 w-16 overflow-hidden rounded-sm border border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  aria-label="Remove photo"
+                  onClick={() => setPhotos((p) => p.filter((u) => u !== url))}
+                  className="absolute right-0.5 top-0.5 rounded-full bg-background/85 p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+            {photos.length < 6 && (
+              <label className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border border-dashed border-border text-[0.6rem] text-muted-foreground hover:border-foreground">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <ImagePlus className="h-4 w-4" />}
+                {uploading ? "…" : "Add photo"}
+                <input type="file" accept="image/*" multiple className="hidden" disabled={uploading} onChange={(e) => uploadPhotos(e.target.files)} />
+              </label>
+            )}
+          </div>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button variant="solid" loading={saving} onClick={submit} className="w-fit">
             Submit review
@@ -152,8 +214,39 @@ export function ProductReviews({
         </div>
       )}
 
+      {/* filter + sort */}
+      {reviews.length > 1 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
+          {photoCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setOnlyPhotos((v) => !v)}
+              aria-pressed={onlyPhotos}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors motion-reduce:transition-none",
+                onlyPhotos ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+              )}
+            >
+              With photos ({photoCount})
+            </button>
+          )}
+          <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+            Sort
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="cursor-pointer rounded-sm border border-border bg-card px-2 py-1 text-foreground"
+            >
+              <option value="newest">Newest</option>
+              <option value="highest">Highest rated</option>
+              <option value="lowest">Lowest rated</option>
+            </select>
+          </label>
+        </div>
+      )}
+
       <ul className="mt-6 flex flex-col divide-y divide-border">
-        {reviews.map((r) => (
+        {shown.map((r) => (
           <li key={r.id} className="py-5">
             <div className="flex items-center justify-between">
               <Stars value={r.rating} />
@@ -161,11 +254,23 @@ export function ProductReviews({
             </div>
             {r.title && <p className="mt-2 font-medium">{r.title}</p>}
             <p className="mt-1 text-sm text-foreground/80">{r.body}</p>
+            {r.photos.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {r.photos.map((url) => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer" className="h-20 w-20 overflow-hidden rounded-sm border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="Customer photo" className="h-full w-full object-cover transition-transform hover:scale-105 motion-reduce:hover:scale-100" />
+                  </a>
+                ))}
+              </div>
+            )}
             <p className="mt-2 text-xs text-muted-foreground">— {r.author}</p>
           </li>
         ))}
-        {reviews.length === 0 && (
-          <li className="py-8 text-center text-sm text-muted-foreground">No reviews yet — be the first to review this piece.</li>
+        {shown.length === 0 && (
+          <li className="py-8 text-center text-sm text-muted-foreground">
+            {onlyPhotos ? "No reviews with photos yet." : "No reviews yet — be the first to review this piece."}
+          </li>
         )}
       </ul>
     </section>
