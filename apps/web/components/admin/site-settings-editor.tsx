@@ -7,10 +7,20 @@ import { Button, Card } from "@ecom/ui";
 import { TextField, TextareaField, CheckboxField } from "./fields";
 import { MediaUploadField } from "./media-upload-field";
 import { useToast } from "./toast";
-import type { SiteSettings } from "@/lib/site-settings";
+import type { SiteSettings, Landing } from "@/lib/site-settings";
 
 interface Tile { label: string; image: string; href: string }
 type CollabSlide = SiteSettings["landing"]["collabSlides"][number];
+
+/** Pages whose curated landing can be edited ("home" = Women/global). */
+const LANDING_PAGES = [
+  { key: "home", label: "Home (Women)" },
+  { key: "men", label: "Men" },
+  { key: "plus", label: "Curve" },
+  { key: "sport", label: "Sport" },
+  { key: "kids", label: "Kids" },
+  { key: "beauty", label: "Beauty" },
+] as const;
 
 /** Reusable add/remove editor for a list of {label, image, href} tiles. */
 function TileArray({ label, items, onChange }: { label: string; items: Tile[]; onChange: (items: Tile[]) => void }) {
@@ -88,16 +98,48 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [sizeGuide] = useState(initial.sizeGuide);
   const [shippingReturns, setShippingReturns] = useState(initial.shippingReturns);
   const [tileCount, setTileCount] = useState(String(initial.categoryTileCount));
-  const [landing, setLanding] = useState(initial.landing);
   const [saving, setSaving] = useState(false);
 
+  // Curated landing content, per page: "home" is the global default; each
+  // division key is an override that only exists once edited (else it inherits
+  // home). This is what lets /pages/men show its own hero/promo/feature.
+  const [landings, setLandings] = useState<Record<string, Landing>>(() => ({
+    home: initial.landing,
+    ...initial.landingByDivision,
+  }));
+  const [editingPage, setEditingPage] = useState("home");
+  const landing = landings[editingPage] ?? landings.home!;
+  const isOverride = editingPage !== "home" && landings[editingPage] !== undefined;
+  const setLanding = (updater: (l: Landing) => Landing) =>
+    setLandings((ls) => ({ ...ls, [editingPage]: updater(ls[editingPage] ?? ls.home!) }));
+  const resetPage = () =>
+    setLandings((ls) => {
+      const next = { ...ls };
+      delete next[editingPage];
+      return next;
+    });
+
   type LandingObjBlock = "hero" | "promo" | "feature" | "sale";
-  const setL = <B extends LandingObjBlock>(block: B, key: keyof SiteSettings["landing"][B], value: string) =>
+  const setL = <B extends LandingObjBlock>(block: B, key: keyof Landing[B], value: string) =>
     setLanding((l) => ({ ...l, [block]: { ...l[block], [key]: value } }));
 
   const save = async () => {
     setSaving(true);
     try {
+      const cleanLanding = (l: Landing): Landing => ({
+        ...l,
+        collabSlides: l.collabSlides.map((s) => ({
+          image: s.image.trim(),
+          title: s.title.trim(),
+          href: s.href.trim(),
+          eyebrow: s.eyebrow?.trim() || undefined,
+          cta: s.cta?.trim() || undefined,
+        })),
+      });
+      const landingByDivision: Record<string, Landing> = {};
+      for (const [key, value] of Object.entries(landings)) {
+        if (key !== "home") landingByDivision[key] = cleanLanding(value);
+      }
       const body: SiteSettings = {
         announcement: { active: annActive, message: annMsg.trim(), href: annHref.trim() || "/products" },
         marquee: { enabled: mqEnabled, items: mqItems.split(",").map((s) => s.trim()).filter(Boolean) },
@@ -107,16 +149,8 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         sizeGuide,
         shippingReturns,
         categoryTileCount: Math.min(9, Math.max(3, Number(tileCount) || 7)),
-        landing: {
-          ...landing,
-          collabSlides: landing.collabSlides.map((s) => ({
-            image: s.image.trim(),
-            title: s.title.trim(),
-            href: s.href.trim(),
-            eyebrow: s.eyebrow?.trim() || undefined,
-            cta: s.cta?.trim() || undefined,
-          })),
-        },
+        landing: cleanLanding(landings.home!),
+        landingByDivision,
       };
       const res = await fetch("/api/admin/site", {
         method: "POST",
@@ -212,7 +246,48 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
       </Card>
 
       <Card className="flex flex-col gap-5 p-6">
-        <h3 className="font-display text-lg font-bold">Landing blocks</h3>
+        <div className="flex flex-col gap-2">
+          <h3 className="font-display text-lg font-bold">Landing blocks</h3>
+          <p className="text-sm text-muted-foreground">
+            Edit the curated (Fashion-Nova) landing per page. Each department can have its own
+            hero, promo and feature — pick a page below. A page shows the <strong>Home</strong>{" "}
+            content until you customize it here. (Only applies where a page&rsquo;s Landing style is
+            &ldquo;Fashion-Nova&rdquo; — see Landing style.)
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {LANDING_PAGES.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setEditingPage(p.key)}
+                className={
+                  editingPage === p.key
+                    ? "rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background"
+                    : "rounded-full border border-border px-3.5 py-1.5 text-xs hover:border-foreground"
+                }
+              >
+                {p.label}
+                {p.key !== "home" && landings[p.key] ? " ●" : ""}
+              </button>
+            ))}
+            {isOverride && (
+              <button
+                type="button"
+                onClick={resetPage}
+                className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Reset to Home content
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {editingPage === "home"
+              ? "Editing: Home (Women)."
+              : isOverride
+                ? `Editing: ${LANDING_PAGES.find((p) => p.key === editingPage)?.label} — customized.`
+                : `Editing: ${LANDING_PAGES.find((p) => p.key === editingPage)?.label} — currently inherits Home. Any change makes it a custom page.`}
+          </p>
+        </div>
 
         <div className="flex flex-col gap-3 rounded-md border border-border p-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Hero offer</span>
