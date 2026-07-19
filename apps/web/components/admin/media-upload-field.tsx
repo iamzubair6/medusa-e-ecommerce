@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Images, UploadCloud, X } from "lucide-react";
 import { cn } from "@ecom/ui";
 
@@ -12,21 +13,38 @@ interface Asset {
 
 /** Modal grid of previously-uploaded assets to pick from. */
 function LibraryPicker({ onPick, onClose }: { onPick: (url: string) => void; onClose: () => void }) {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const { data: assets = [], isPending: loading } = useQuery({
+    queryKey: ["admin-media"],
+    staleTime: 30_000,
+    queryFn: async ({ signal }): Promise<Asset[]> => {
+      const res = await fetch("/api/admin/media", { signal });
+      if (!res.ok) throw new Error("media failed");
+      return ((await res.json()) as { assets?: Asset[] }).assets ?? [];
+    },
+  });
 
+  // Keyboard: focus the dialog on open, Escape closes.
   useEffect(() => {
-    fetch("/api/admin/media")
-      .then((r) => r.json())
-      .then((d: { assets?: Asset[] }) => setAssets(d.assets ?? []))
-      .catch(() => setAssets([]))
-      .finally(() => setLoading(false));
-  }, []);
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-label="Media library">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Media library"
+        className="relative flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl focus-visible:outline-none"
+      >
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <h3 className="font-display font-bold">Media library</h3>
           <button type="button" aria-label="Close" onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">

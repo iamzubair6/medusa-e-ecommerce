@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Ruler, X } from "lucide-react";
 import { Button, cn } from "@ecom/ui";
@@ -58,6 +58,15 @@ export function FindMySize({ guide }: { guide: SizeGuide }) {
   const [fit, setFit] = useState<Fit>("regular");
   const [result, setResult] = useState<string | null | undefined>(undefined);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   // The body-measurement columns (skip an "inseam"-style length column heuristically).
   const cols = guide.columns.map((label, i) => ({ label, i })).filter((c) => !/inseam|length/i.test(c.label));
 
@@ -94,6 +103,7 @@ export function FindMySize({ guide }: { guide: SizeGuide }) {
             <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <motion.div
               role="dialog"
+              aria-modal="true"
               aria-label="Find my size"
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}

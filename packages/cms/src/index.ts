@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "./client";
 import {
   parseSectionConfig,
@@ -409,7 +410,7 @@ export async function upsertAbandonedCart(input: AbandonedCartInput) {
     email: input.email,
     itemCount: input.itemCount,
     total: input.total,
-    items: input.items as unknown as object,
+    items: input.items as Prisma.InputJsonValue,
   };
   return prisma.abandonedCart.upsert({
     where: { cartId: input.cartId },

@@ -78,17 +78,20 @@ export function CheckoutClient({
   });
 
   // Capture the cart + email for recovery once a valid email is entered (best-
-  // effort, debounced). Marked recovered server-side when the order completes.
+  // effort, debounced). Keyed on a cheap signature so a background cart refetch
+  // (same id/contents) doesn't re-POST. Marked recovered when the order completes.
   const emailValue = watch("email");
+  const cartId = cart?.id;
+  const cartSig = cart ? `${cart.items.length}:${cart.total}` : "";
   useEffect(() => {
-    if (!cart || cart.items.length === 0) return;
+    if (!cartId || !cart || cart.items.length === 0) return;
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailValue ?? "")) return;
     const t = setTimeout(() => {
       fetch("/api/cart/capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cartId: cart.id,
+          cartId,
           email: emailValue,
           itemCount: cart.items.reduce((n, i) => n + i.quantity, 0),
           total: cart.total,
@@ -97,7 +100,8 @@ export function CheckoutClient({
       }).catch(() => {});
     }, 1200);
     return () => clearTimeout(t);
-  }, [emailValue, cart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cartSig captures the parts we care about
+  }, [emailValue, cartId, cartSig]);
 
   // Persona: when all questions are answered, apply the configured promo (stacks).
   const personaActive = persona.enabled && persona.questions.length > 0 && Boolean(persona.promoCode);
