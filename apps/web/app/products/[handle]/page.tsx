@@ -14,6 +14,7 @@ import { Footer } from "@/components/site/footer";
 import { PdpClient } from "@/components/site/pdp-client";
 import { ProductReviews } from "@/components/site/product-reviews";
 import { ProductGrid } from "@/components/site/product-grid";
+import { RecentlyViewed } from "@/components/site/recently-viewed";
 
 export const revalidate = 300;
 
@@ -135,6 +136,10 @@ export default async function ProductPage({ params }: { params: Params }) {
             <ProductGrid products={trending} />
           </section>
         )}
+
+        <RecentlyViewed
+          current={{ handle: product.handle, title: product.title, thumbnail: product.thumbnail, price: product.price }}
+        />
       </Container>
       <Footer />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
