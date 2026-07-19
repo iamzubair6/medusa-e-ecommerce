@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -28,13 +28,25 @@ export function QuickShopModal({
   const { addItem } = useCart();
   const { openCart } = useCartUI();
   const { has, toggle } = useWishlist();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [ci, setCi] = useState(0);
   const [size, setSize] = useState<string | null>(null);
 
   useEffect(() => {
     setCi(0);
     setSize(null);
-  }, [product?.handle]);
+    if (product) dialogRef.current?.focus();
+  }, [product?.handle, product]);
+
+  // Close on Escape (keyboard operability).
+  useEffect(() => {
+    if (!product) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [product, onClose]);
 
   const colors = product?.cardColors ?? [];
   const active = colors[ci];
@@ -69,11 +81,13 @@ export function QuickShopModal({
           <motion.div
             role="dialog"
             aria-label={`Quick shop ${product.title}`}
+            ref={dialogRef}
+            tabIndex={-1}
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.97 }}
             animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
+            className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl focus-visible:outline-none"
           >
             <div className="relative border-b border-border py-4 text-center">
               <h2 className="font-display text-base font-bold uppercase tracking-wide">Style It With</h2>

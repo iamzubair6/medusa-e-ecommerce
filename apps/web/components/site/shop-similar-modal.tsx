@@ -50,6 +50,8 @@ export function ShopSimilarModal({
 }) {
   const reduce = useReducedMotion();
   const fileRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [part, setPart] = useState<number | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -67,8 +69,27 @@ export function ShopSimilarModal({
       setSizeFilter(new Set());
       setSort("similar");
       setError(null);
+      dialogRef.current?.focus();
     }
   }, [open, productId]);
+
+  // Close on Escape (keyboard operability).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  // Revoke any object URL created for an uploaded photo when it's replaced/unmounted.
+  useEffect(
+    () => () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    },
+    [],
+  );
 
   // Fire-and-forget: build a query from the product photo so garment dots +
   // re-scoping become available (the grid already works without it).
@@ -118,9 +139,14 @@ export function ShopSimilarModal({
     },
   });
 
+  // Use the query engine once a garment dot is selected OR the shopper uploaded
+  // a different photo (whole-image results); otherwise show similars of THIS
+  // product. This is what makes an uploaded photo actually change the grid.
+  const usingQuery = Boolean(resourceId) && (part !== null || Boolean(uploadedImage));
+
   const scoped = useQuery({
     queryKey: ["shop-similar-scoped", resourceId, part],
-    enabled: open && Boolean(resourceId) && part !== null,
+    enabled: open && usingQuery,
     staleTime: 5 * 60_000,
     queryFn: async ({ signal }): Promise<StoreProduct[]> => {
       const q = part !== null ? `?part=${part}` : "";
@@ -130,8 +156,8 @@ export function ShopSimilarModal({
     },
   });
 
-  const baseProducts = part !== null ? (scoped.data ?? []) : (initial.data ?? []);
-  const loading = part !== null ? scoped.isPending : initial.isPending;
+  const baseProducts = usingQuery ? (scoped.data ?? []) : (initial.data ?? []);
+  const loading = usingQuery ? scoped.isPending : initial.isPending;
 
   const allSizes = useMemo(() => {
     const s = new Set<string>();
@@ -160,7 +186,10 @@ export function ShopSimilarModal({
       const res = await fetch("/api/visual-search/query", { method: "POST", body: fd });
       const data = (await res.json().catch(() => ({}))) as { resourceId?: string; error?: string };
       if (!res.ok || !data.resourceId) throw new Error(data.error ?? "Search failed.");
-      setUploadedImage(URL.createObjectURL(file));
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      const objUrl = URL.createObjectURL(file);
+      objectUrlRef.current = objUrl;
+      setUploadedImage(objUrl);
       setResourceId(data.resourceId);
       setPart(null);
     } catch (e) {
@@ -195,11 +224,13 @@ export function ShopSimilarModal({
           <motion.div
             role="dialog"
             aria-label={`Shop similar to ${productTitle}`}
+            ref={dialogRef}
+            tabIndex={-1}
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
             animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+            className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl focus-visible:outline-none"
           >
             {/* header */}
             <div className="relative flex items-center justify-between border-b border-border px-6 py-4">
