@@ -14,7 +14,6 @@ import { CartButton } from "@/components/cart/cart-button";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { SearchByImagePopover } from "@/components/site/search-by-image";
 import { SearchDiscoveryPanel } from "@/components/site/search-discovery-panel";
-import { ShopSimilarModal } from "@/components/site/shop-similar-modal";
 import { useWishlist } from "@/lib/wishlist-context";
 
 interface NavbarProps {
@@ -244,7 +243,6 @@ export function Navbar({ navData }: NavbarProps) {
       </AnimatePresence>
 
       <CartDrawer />
-      <ShopSimilarModal />
     </header>
   );
 }
