@@ -82,6 +82,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [mqEnabled, setMqEnabled] = useState(initial.marquee.enabled);
   const [mqItems, setMqItems] = useState(initial.marquee.items.join(", "));
   const [brands, setBrands] = useState(initial.brands);
+  const [accents, setAccents] = useState(initial.accentByDivision);
   const [deliveryLine, setDeliveryLine] = useState(initial.deliveryLine);
   const [sizeGuide, setSizeGuide] = useState(initial.sizeGuide);
   const [shippingReturns, setShippingReturns] = useState(initial.shippingReturns);
@@ -100,6 +101,7 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         announcement: { active: annActive, message: annMsg.trim(), href: annHref.trim() || "/products" },
         marquee: { enabled: mqEnabled, items: mqItems.split(",").map((s) => s.trim()).filter(Boolean) },
         brands,
+        accentByDivision: accents,
         deliveryLine: deliveryLine.trim(),
         sizeGuide,
         shippingReturns,
@@ -153,6 +155,46 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
         <div className="grid gap-4 sm:grid-cols-2">
           {(Object.keys(brands) as (keyof SiteSettings["brands"])[]).map((k) => (
             <TextField key={k} label={k} value={brands[k]} onChange={(e) => setBrand(k, e.target.value)} />
+          ))}
+        </div>
+      </Card>
+
+      <Card className="flex flex-col gap-4 p-6">
+        <h3 className="font-display text-lg font-bold">Accent color per division</h3>
+        <p className="text-sm text-muted-foreground">
+          Optional — give a department its own accent (buttons, highlights). Leave empty to use the
+          brand claret. Applies to that division&rsquo;s home/landing pages.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {(Object.keys(accents) as (keyof SiteSettings["accentByDivision"])[]).map((k) => (
+            <label key={k} className="flex flex-col gap-2">
+              <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{k}</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  aria-label={`${k} accent color`}
+                  value={/^#[0-9a-f]{6}$/i.test(accents[k]) ? accents[k] : "#7a2230"}
+                  onChange={(e) => setAccents((a) => ({ ...a, [k]: e.target.value }))}
+                  className="h-10 w-12 cursor-pointer rounded-sm border border-border bg-card"
+                />
+                <input
+                  type="text"
+                  value={accents[k]}
+                  onChange={(e) => setAccents((a) => ({ ...a, [k]: e.target.value }))}
+                  placeholder="default"
+                  className="h-10 w-full rounded-sm border border-input bg-card/60 px-3 text-sm"
+                />
+                {accents[k] && (
+                  <button
+                    type="button"
+                    onClick={() => setAccents((a) => ({ ...a, [k]: "" }))}
+                    className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </label>
           ))}
         </div>
       </Card>
