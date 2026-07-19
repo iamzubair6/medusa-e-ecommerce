@@ -6,6 +6,8 @@ import { detectQueryContext } from "@/lib/garment-detect";
 import { similarCardsByVector } from "@/lib/visual-search";
 import { listCategories } from "@/lib/commerce";
 import { parseVisualSearchSettings } from "@/lib/visual-search-settings";
+import { fetchSafeImage } from "@/lib/safe-image-fetch";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
@@ -18,22 +20,29 @@ const bodySchema = z.object({ imageUrl: z.string().url().max(2048) });
  * admin can accept or tweak — no manual clicking/searching required.
  */
 export async function POST(request: Request) {
+  const limit = rateLimit(`autotag:${clientKey(request)}`, 20, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json({ error: "Too many requests — try again shortly." }, { status: 429 });
+  }
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "A valid image URL is required." }, { status: 422 });
   }
 
+  // Same SSRF-vetted fetch as the public visual-search route.
+  const raw = await fetchSafeImage(parsed.data.imageUrl);
+  if (!raw) {
+    return NextResponse.json({ error: "Couldn't load that photo." }, { status: 422 });
+  }
   let stored: Buffer;
   try {
-    const res = await fetch(parsed.data.imageUrl, { signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) throw new Error("fetch failed");
-    stored = await sharp(Buffer.from(await res.arrayBuffer()))
+    stored = await sharp(raw)
       .rotate()
       .resize(640, 640, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 82 })
       .toBuffer();
   } catch {
-    return NextResponse.json({ error: "Couldn't load that photo." }, { status: 422 });
+    return NextResponse.json({ error: "Couldn't read that photo." }, { status: 422 });
   }
 
   const { parts } = await detectQueryContext(stored).catch(() => ({ parts: [] }));
