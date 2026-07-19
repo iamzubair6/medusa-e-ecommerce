@@ -80,6 +80,52 @@ Local: storefront `bunx next dev -p 3200` in `apps/web`; admin at `/admin`.
 | 7.1 | Save on any admin editor (site, popup, sections, size guides, visual search…) | A toast appears (no inline "Saved" text) |
 | 7.2 | Trigger a save error (e.g. bad value) | An error toast |
 
+## 9. Back-in-stock notify-me
+
+| # | Step | Expect |
+|---|------|--------|
+| 9.1 | Open a product with a sold-out size (set a variant to 0 stock in commerce), pick that size | The buy button becomes a **bell + email field** ("get notified") |
+| 9.2 | Enter an email → Notify me | "We'll email you when … is back" |
+| 9.3 | Admin: **/admin/restock** | The waiting shopper appears, grouped by variant with a count |
+| 9.4 | Restock the item, then click **Notify** | Subscribers emailed (if Brevo on), row clears |
+
+## 10. Dashboard
+
+| # | Step | Expect |
+|---|------|--------|
+| 10.1 | **/admin** | Commerce cards incl. **Restock waiting**; **Top sellers**, **Recent orders**, **Low stock** sections |
+
+## 11. Recently viewed + abandoned carts
+
+| # | Step | Expect |
+|---|------|--------|
+| 11.1 | View 2+ products, then open a 3rd | A **Recently viewed** rail at the bottom (excludes the current) |
+| 11.2 | Add to cart, go to checkout, enter your email, then leave | ~30 min later it shows in **/admin/abandoned-carts** |
+| 11.3 | Admin: **Send recovery** on a row | Recovery email sent (if Brevo on) |
+
+## 12. Media library
+
+| # | Step | Expect |
+|---|------|--------|
+| 12.1 | Any admin image field → **Choose from library** | A grid of everything you've uploaded; click to reuse |
+| 12.2 | **/admin/media** | Browse, copy URL, remove |
+
+## 13. Reviews with photos + Find my size + bundle
+
+| # | Step | Expect |
+|---|------|--------|
+| 13.1 | Product page → **Write a review** → **Add photo** | Uploads, thumbnails preview; submit shows them in the list |
+| 13.2 | Review list → **With photos** filter + **Sort** | Filters/orders reviews |
+| 13.3 | Next to Size → **Find my size**, enter measurements | Recommends a size from the guide |
+| 13.4 | Admin: **/admin/shop-the-look → Bundle offer**, set a % + a real promo code | PDP "Add the whole look" shows "save X%" and applies the code |
+
+## 14. Bulk edit + scheduling
+
+| # | Step | Expect |
+|---|------|--------|
+| 14.1 | **/admin/products** → tick some products | A bulk bar: **Publish / Unpublish / Delete** |
+| 14.2 | Admin: **/admin/popups → a popup → Schedule** — set Starts/Ends | The popup auto-runs only inside that window |
+
 ## 8. Popup image
 
 | # | Step | Expect |
