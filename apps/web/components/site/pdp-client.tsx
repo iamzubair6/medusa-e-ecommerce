@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Bell,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +26,7 @@ import { useWishlist } from "@/lib/wishlist-context";
 import type { SizeGuide } from "@/lib/size-guides";
 import { SizeGuideModal } from "./size-guide-modal";
 import { SimilarStylesCard } from "./similar-styles-card";
+import { RestockNotify } from "./restock-notify";
 
 export function PdpClient({
   product,
@@ -213,17 +215,21 @@ export function PdpClient({
                 <button
                   key={s.size}
                   type="button"
-                  disabled={soldOut}
                   onClick={() => { setSize(s.size); setAdded(false); }}
                   aria-pressed={isActive}
                   className={cn(
                     "relative flex min-w-14 cursor-pointer items-center justify-center gap-1 rounded-sm border px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
-                    soldOut && "cursor-not-allowed opacity-40 line-through",
+                    // Sold-out stays selectable (routes to the notify-me flow) but reads as unavailable.
+                    soldOut && !isActive && "text-muted-foreground line-through decoration-muted-foreground/60",
                   )}
                 >
                   {s.size}
-                  {s.lowStock && !soldOut && <Zap className="h-3 w-3 text-accent" aria-label="Low stock" />}
+                  {soldOut ? (
+                    <Bell className={cn("h-3 w-3", isActive ? "text-background" : "text-muted-foreground")} aria-label="Notify when back" />
+                  ) : (
+                    s.lowStock && <Zap className="h-3 w-3 text-accent" aria-label="Low stock" />
+                  )}
                 </button>
               );
             })}
@@ -235,26 +241,38 @@ export function PdpClient({
           )}
         </div>
 
-        {/* Add to bag + wishlist */}
+        {/* Add to bag + wishlist — or the notify-me flow for a sold-out size */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="solid"
-            size="lg"
-            disabled={!ready}
-            loading={addItem.isPending}
-            onClick={addToBag}
-            className="h-14 flex-1 rounded-full text-sm"
-          >
-            {added && !addItem.isPending ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
-            {added && !addItem.isPending ? "Added to Bag" : ready ? "Add to Bag" : size ? "Unavailable" : "Select a Size"}
-          </Button>
+          {sizeObj && sizeObj.stock <= 0 && sizeObj.variantId ? (
+            <div className="flex-1">
+              <RestockNotify
+                productHandle={product.handle}
+                productTitle={product.title}
+                variantId={sizeObj.variantId}
+                size={sizeObj.size}
+                colorName={color.name}
+              />
+            </div>
+          ) : (
+            <Button
+              variant="solid"
+              size="lg"
+              disabled={!ready}
+              loading={addItem.isPending}
+              onClick={addToBag}
+              className="h-14 flex-1 rounded-full text-sm"
+            >
+              {added && !addItem.isPending ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
+              {added && !addItem.isPending ? "Added to Bag" : ready ? "Add to Bag" : size ? "Unavailable" : "Select a Size"}
+            </Button>
+          )}
           <button
             type="button"
             aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
             aria-pressed={wished}
             onClick={() => toggleWishlist({ handle: product.handle, title: product.title, thumbnail: product.thumbnail, price: color.price })}
             className={cn(
-              "flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors hover:border-foreground",
+              "flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center self-start rounded-full border transition-colors hover:border-foreground",
               wished ? "border-accent text-accent" : "border-border hover:text-accent",
             )}
           >
