@@ -18,7 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button, cn } from "@ecom/ui";
-import type { StoreProductDetail } from "@/lib/commerce";
+import type { StoreProduct, StoreProductDetail } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
@@ -35,6 +35,7 @@ export function PdpClient({
   shippingReturns,
   similarStyles = [],
   styleWith = [],
+  productId,
 }: {
   product: StoreProductDetail;
   reviewSummary?: { count: number; average: number };
@@ -43,7 +44,8 @@ export function PdpClient({
   sizeGuideContent?: string;
   shippingReturns?: string;
   similarStyles?: { handle: string; title: string; thumbnail: string }[];
-  styleWith?: { handle: string; title: string; thumbnail: string }[];
+  styleWith?: StoreProduct[];
+  productId: string;
 }) {
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
@@ -270,6 +272,8 @@ export function PdpClient({
 
         {/* FN "We see similar styles" module */}
         <SimilarStylesCard
+          productId={productId}
+          productTitle={product.title}
           queryImage={images[imageIdx] ?? product.thumbnail}
           similar={similarStyles}
           styleWith={styleWith}

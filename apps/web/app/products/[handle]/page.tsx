@@ -55,15 +55,14 @@ export default async function ProductPage({ params }: { params: Params }) {
     product.division,
   );
 
-  // "Style it with" = the pieces tagged on this product's look (max 3 shown).
+  // "Style it with" = the pieces tagged on this product's look (max 4 shown),
+  // passed as full cards so the quick-shop modal has colors/sizes/variants.
   const lookHandles = [...new Set((look?.hotspots ?? []).map((h) => h.productHandle))]
     .filter((h) => h !== handle)
-    .slice(0, 3);
+    .slice(0, 4);
   const styleWith =
     lookHandles.length > 0
-      ? (await fetchListing({}, { limit: 200 })).products
-          .filter((p) => lookHandles.includes(p.handle))
-          .map((p) => ({ handle: p.handle, title: p.title, thumbnail: p.thumbnail }))
+      ? (await fetchListing({}, { limit: 200 })).products.filter((p) => lookHandles.includes(p.handle))
       : [];
   const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
@@ -108,6 +107,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           shippingReturns={site.shippingReturns}
           similarStyles={similar.map((s) => ({ handle: s.handle, title: s.title, thumbnail: s.thumbnail }))}
           styleWith={styleWith}
+          productId={product.id}
         />
 
         {look && <ShopTheLook look={look} />}
