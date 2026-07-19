@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 /* eslint-disable @next/next/no-img-element -- the query image is a dynamic API route, not a static asset */
 import { Camera, Loader2, X } from "lucide-react";
-import { cn } from "@ecom/ui";
 
 interface Hotspot {
   label: string;
@@ -146,47 +145,38 @@ export function ImageQueryPanel({
       <div className="relative">
         <img src={imageSrc} alt="Your uploaded search photo" className="block w-full" />
 
-        {/* FN-style translucent highlight over the selected garment */}
+        {/* FN mechanics: the SELECTED garment shows a translucent highlight
+            box (its dot disappears); the other garments keep their dots.
+            Tapping the box searches the whole photo again. */}
         {selected && (
-          <span
-            aria-hidden
+          <button
+            type="button"
+            onClick={() => selectPart(selectedPart!)}
+            aria-label={`Stop searching only the ${PART_NAMES[selected.label] ?? selected.label}`}
             style={{
               left: `${selected.box.x * 100}%`,
               top: `${selected.box.y * 100}%`,
               width: `${selected.box.w * 100}%`,
               height: `${selected.box.h * 100}%`,
             }}
-            className="absolute rounded-lg bg-white/25 ring-2 ring-white/80"
+            className="absolute rounded-lg bg-white/25 ring-2 ring-white/80 transition-colors hover:bg-white/35 focus-visible:outline-none focus-visible:ring-4 motion-reduce:transition-none"
           />
         )}
 
-        {parts.map((p, i) => (
-          <button
-            key={`${p.label}-${i}`}
-            type="button"
-            onClick={() => selectPart(i)}
-            aria-label={
-              selectedPart === i
-                ? `Stop searching only the ${PART_NAMES[p.label] ?? p.label}`
-                : `Search the ${PART_NAMES[p.label] ?? p.label} in this photo`
-            }
-            aria-pressed={selectedPart === i}
-            style={{ left: `${p.cx * 100}%`, top: `${p.cy * 100}%` }}
-            className={cn(
-              "absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
-              selectedPart === i
-                ? "border-foreground bg-background/95 shadow-[0_0_0_4px_rgba(0,0,0,0.18)]"
-                : "border-white/90 bg-white/40 backdrop-blur-sm shadow-md",
-            )}
-          >
-            <span
-              className={cn(
-                "absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full",
-                selectedPart === i ? "bg-foreground" : "bg-white",
-              )}
-            />
-          </button>
-        ))}
+        {parts.map((p, i) =>
+          selectedPart === i ? null : (
+            <button
+              key={`${p.label}-${i}`}
+              type="button"
+              onClick={() => selectPart(i)}
+              aria-label={`Search the ${PART_NAMES[p.label] ?? p.label} in this photo`}
+              style={{ left: `${p.cx * 100}%`, top: `${p.cy * 100}%` }}
+              className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/90 bg-white/40 shadow-md backdrop-blur-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
+            </button>
+          ),
+        )}
       </div>
 
       {selected && (
