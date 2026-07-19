@@ -16,6 +16,8 @@ export interface AdminPopup {
   active: boolean;
   trigger: "TIMER" | "SCROLL" | "EXIT_INTENT" | "IMMEDIATE";
   config: PopupConfig;
+  startsAt: string | null;
+  endsAt: string | null;
 }
 
 interface Form {
@@ -32,7 +34,17 @@ interface Form {
   delayMs: number;
   scrollPercent: number;
   frequencyDays: number;
+  startsAt: string;
+  endsAt: string;
 }
+
+/** ISO string → value for <input type="datetime-local"> (local time, no seconds). */
+const toLocalInput = (iso: string | null): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+};
 
 export function PopupEditor({ popup }: { popup: AdminPopup }) {
   const router = useRouter();
@@ -52,6 +64,8 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
       delayMs: popup.config.delayMs,
       scrollPercent: popup.config.scrollPercent,
       frequencyDays: popup.config.frequencyDays,
+      startsAt: toLocalInput(popup.startsAt),
+      endsAt: toLocalInput(popup.endsAt),
     },
   });
   const trigger = watch("trigger");
@@ -73,7 +87,14 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
       const res = await fetch(`/api/admin/popups/${popup.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: f.name, active: f.active, trigger: f.trigger, config: config.data }),
+        body: JSON.stringify({
+          name: f.name,
+          active: f.active,
+          trigger: f.trigger,
+          config: config.data,
+          startsAt: f.startsAt ? new Date(f.startsAt).toISOString() : null,
+          endsAt: f.endsAt ? new Date(f.endsAt).toISOString() : null,
+        }),
       });
       if (!res.ok) throw new Error("Save failed");
       return res.json();
@@ -132,6 +153,18 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="Dismiss label" {...register("dismissLabel")} />
           <TextField label="Don't reshow for (days)" type="number" {...register("frequencyDays")} />
+        </div>
+        <div className="rounded-md border border-border p-4">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Schedule (optional)
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Leave empty to run whenever active. Set a window to auto-start/stop — no need to toggle by hand.
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <TextField label="Starts at" type="datetime-local" {...register("startsAt")} />
+            <TextField label="Ends at" type="datetime-local" {...register("endsAt")} />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" variant="gold" loading={save.isPending}>

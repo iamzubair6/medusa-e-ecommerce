@@ -9,7 +9,17 @@ export default async function PopupsPage() {
   const popups: AdminPopup[] = rows.flatMap((row) => {
     const parsed = popupConfigSchema.safeParse(row.config);
     if (!parsed.success) return [];
-    return [{ id: row.id, name: row.name, active: row.active, trigger: row.trigger, config: parsed.data }];
+    return [
+      {
+        id: row.id,
+        name: row.name,
+        active: row.active,
+        trigger: row.trigger,
+        config: parsed.data,
+        startsAt: row.startsAt ? row.startsAt.toISOString() : null,
+        endsAt: row.endsAt ? row.endsAt.toISOString() : null,
+      },
+    ];
   });
 
   return (
