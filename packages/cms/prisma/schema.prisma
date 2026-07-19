@@ -266,6 +266,25 @@ model RestockSubscription {
   @@schema("cms")
 }
 
+/// A cart whose shopper gave an email at checkout but didn't complete the
+/// order — the base for recovery emails. Keyed by cartId (upserted as the
+/// shopper progresses); cleared/marked when the order completes.
+model AbandonedCart {
+  id          String    @id @default(cuid())
+  cartId      String    @unique
+  email       String
+  itemCount   Int       @default(0)
+  total       String    @default("")
+  items       Json      @default("[]") /// [{title, quantity, thumbnail}]
+  recoveredAt DateTime?
+  remindedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([recoveredAt, updatedAt])
+  @@schema("cms")
+}
+
 /// Phone OTP challenges (passwordless capture + registration phone verify).
 model OtpChallenge {
   id        String   @id @default(cuid())

@@ -372,6 +372,57 @@ export async function markRestockNotified(ids: string[]) {
   });
 }
 
+// --- Abandoned carts --------------------------------------------------------
+
+export interface AbandonedCartInput {
+  cartId: string;
+  email: string;
+  itemCount: number;
+  total: string;
+  items: { title: string; quantity: number; thumbnail?: string }[];
+}
+
+/** Upsert a cart as "in progress" (called when the shopper enters their email). */
+export async function upsertAbandonedCart(input: AbandonedCartInput) {
+  const data = {
+    email: input.email,
+    itemCount: input.itemCount,
+    total: input.total,
+    items: input.items as unknown as object,
+  };
+  return prisma.abandonedCart.upsert({
+    where: { cartId: input.cartId },
+    create: { cartId: input.cartId, ...data },
+    update: data,
+  });
+}
+
+/** Mark a cart recovered when its order completes (best-effort). */
+export async function markCartRecovered(cartId: string) {
+  return prisma.abandonedCart.updateMany({
+    where: { cartId, recoveredAt: null },
+    data: { recoveredAt: new Date() },
+  });
+}
+
+/** Carts abandoned at least `minAgeMinutes` ago and not recovered (newest first). */
+export async function listAbandonedCarts(minAgeMinutes = 30, take = 100) {
+  const cutoff = new Date(Date.now() - minAgeMinutes * 60 * 1000);
+  return prisma.abandonedCart.findMany({
+    where: { recoveredAt: null, updatedAt: { lt: cutoff } },
+    orderBy: { updatedAt: "desc" },
+    take,
+  });
+}
+
+export async function getAbandonedCart(id: string) {
+  return prisma.abandonedCart.findUnique({ where: { id } });
+}
+
+export async function markCartReminded(id: string) {
+  return prisma.abandonedCart.update({ where: { id }, data: { remindedAt: new Date() } });
+}
+
 // --- Product reviews --------------------------------------------------------
 
 export async function createReview(input: {
