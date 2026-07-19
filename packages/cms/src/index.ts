@@ -318,6 +318,60 @@ export async function pruneVisualSearchQueries(maxAgeDays = 30) {
   return prisma.visualSearchQuery.deleteMany({ where: { createdAt: { lt: cutoff } } });
 }
 
+// --- Back-in-stock notifications --------------------------------------------
+
+export interface RestockInput {
+  productHandle: string;
+  productTitle: string;
+  variantId: string;
+  size: string;
+  email: string;
+}
+
+/** Subscribe an email to a variant's restock (idempotent per variant+email). */
+export async function createRestockSubscription(input: RestockInput) {
+  const existing = await prisma.restockSubscription.findFirst({
+    where: { variantId: input.variantId, email: input.email, notifiedAt: null },
+  });
+  if (existing) return existing;
+  return prisma.restockSubscription.create({ data: input });
+}
+
+/** Pending (not-yet-notified) subscriptions, newest first. */
+export async function listRestockSubscriptions(opts: { take?: number; skip?: number } = {}) {
+  return prisma.restockSubscription.findMany({
+    where: { notifiedAt: null },
+    orderBy: { createdAt: "desc" },
+    take: opts.take ?? 200,
+    skip: opts.skip ?? 0,
+  });
+}
+
+/** Pending subscriber count grouped by variant (demand ranking). */
+export async function restockDemandByVariant() {
+  return prisma.restockSubscription.groupBy({
+    by: ["variantId", "productHandle", "productTitle", "size"],
+    where: { notifiedAt: null },
+    _count: { _all: true },
+  });
+}
+
+export async function pendingRestockCount() {
+  return prisma.restockSubscription.count({ where: { notifiedAt: null } });
+}
+
+/** Pending subscriptions for one variant (to email + mark notified). */
+export async function pendingRestockForVariant(variantId: string) {
+  return prisma.restockSubscription.findMany({ where: { variantId, notifiedAt: null } });
+}
+
+export async function markRestockNotified(ids: string[]) {
+  return prisma.restockSubscription.updateMany({
+    where: { id: { in: ids } },
+    data: { notifiedAt: new Date() },
+  });
+}
+
 // --- Product reviews --------------------------------------------------------
 
 export async function createReview(input: {

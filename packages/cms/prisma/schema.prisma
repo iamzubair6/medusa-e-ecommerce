@@ -249,6 +249,23 @@ model ProductReview {
   @@schema("cms")
 }
 
+/// A shopper who asked to be emailed when a sold-out variant is restocked.
+/// Deduped per (variantId, email) at the application layer.
+model RestockSubscription {
+  id            String    @id @default(cuid())
+  productHandle String
+  productTitle  String
+  variantId     String
+  size          String
+  email         String
+  notifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([variantId])
+  @@index([productHandle])
+  @@schema("cms")
+}
+
 /// Phone OTP challenges (passwordless capture + registration phone verify).
 model OtpChallenge {
   id        String   @id @default(cuid())
