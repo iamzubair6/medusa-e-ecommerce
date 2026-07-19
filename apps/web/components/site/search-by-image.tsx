@@ -151,7 +151,7 @@ export function SearchByImagePopover({
           onKeyDown={(e) => {
             if (e.key === "Escape") onClose();
           }}
-          className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,560px)] rounded-md border border-border bg-card shadow-2xl focus-visible:outline-none"
+          className="absolute right-0 top-full z-50 mt-1 w-[min(92vw,620px)] rounded-md border border-border bg-card shadow-2xl focus-visible:outline-none"
         >
           {/* header */}
           <div className="relative flex items-center justify-center border-b border-border px-4 py-3.5">

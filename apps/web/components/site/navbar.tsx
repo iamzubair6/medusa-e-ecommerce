@@ -278,6 +278,11 @@ function SearchAutocomplete({
   reduce: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Active image search (on /search) → FN shows its thumbnail as a chip
+  // inside the search input, with an ✕ to leave image mode.
+  const activeImageQuery = pathname === "/search" ? searchParams.get("resourceId") : null;
   const formRef = useRef<HTMLFormElement>(null);
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -360,6 +365,24 @@ function SearchAutocomplete({
       className="relative hidden items-center gap-2 rounded-sm border border-border bg-muted/50 px-3 py-2 md:flex"
     >
       <Search className="h-4 w-4 text-muted-foreground" />
+      {activeImageQuery && (
+        <span className="relative flex shrink-0 items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- dynamic API route */}
+          <img
+            src={`/api/visual-search/query/${activeImageQuery}/image`}
+            alt="Your search image"
+            className="h-7 w-6 rounded-[3px] object-cover"
+          />
+          <button
+            type="button"
+            aria-label="Clear image search"
+            onClick={() => router.push("/products")}
+            className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-foreground text-background"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        </span>
+      )}
       <input
         name="q"
         value={term}
