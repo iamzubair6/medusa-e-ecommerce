@@ -12,7 +12,6 @@ import {
   Plus,
   Share2,
   ShoppingBag,
-  Sparkles,
   Star,
   Truck,
   X,
@@ -22,22 +21,29 @@ import { Button, cn } from "@ecom/ui";
 import type { StoreProductDetail } from "@/lib/commerce";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
-import { useVisualSearch } from "@/lib/visual-search-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import type { SizeGuide } from "@/lib/size-guides";
 import { SizeGuideModal } from "./size-guide-modal";
+import { SimilarStylesCard } from "./similar-styles-card";
 
 export function PdpClient({
   product,
   reviewSummary,
   deliveryLine,
+  sizeGuide: structuredGuide,
   sizeGuideContent,
   shippingReturns,
+  similarStyles = [],
+  styleWith = [],
 }: {
   product: StoreProductDetail;
   reviewSummary?: { count: number; average: number };
   deliveryLine?: string;
+  sizeGuide?: SizeGuide;
   sizeGuideContent?: string;
   shippingReturns?: string;
+  similarStyles?: { handle: string; title: string; thumbnail: string }[];
+  styleWith?: { handle: string; title: string; thumbnail: string }[];
 }) {
   const [colorIdx, setColorIdx] = useState(0);
   const [imageIdx, setImageIdx] = useState(0);
@@ -68,7 +74,6 @@ export function PdpClient({
 
   const { addItem } = useCart();
   const { openCart } = useCartUI();
-  const { openSimilar } = useVisualSearch();
   const { has: wishHas, toggle: toggleWishlist } = useWishlist();
   const wished = wishHas(product.handle);
 
@@ -256,19 +261,19 @@ export function PdpClient({
         </div>
         {addItem.isError && <p className="text-sm text-destructive">{(addItem.error as Error).message}</p>}
 
-        {/* delivery + shop similar */}
+        {/* delivery */}
         <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <Truck className="h-4 w-4" /> {deliveryLine || "Standard delivery in 3–5 days · Free shipping over ৳2,000"}
           </span>
-          <button
-            type="button"
-            onClick={() => openSimilar(product.id, images[imageIdx] ?? product.thumbnail)}
-            className="flex w-fit cursor-pointer items-center gap-1.5 text-foreground underline-offset-4 hover:underline"
-          >
-            <Sparkles className="h-4 w-4" /> Shop Similar
-          </button>
         </div>
+
+        {/* FN "We see similar styles" module */}
+        <SimilarStylesCard
+          queryImage={images[imageIdx] ?? product.thumbnail}
+          similar={similarStyles}
+          styleWith={styleWith}
+        />
 
         <Accordions product={product} shippingReturns={shippingReturns} />
       </div>
@@ -279,7 +284,12 @@ export function PdpClient({
         )}
       </AnimatePresence>
 
-      <SizeGuideModal open={sizeGuide} onClose={() => setSizeGuide(false)} content={sizeGuideContent} />
+      <SizeGuideModal
+        open={sizeGuide}
+        onClose={() => setSizeGuide(false)}
+        guide={structuredGuide}
+        content={sizeGuideContent}
+      />
     </div>
   );
 }

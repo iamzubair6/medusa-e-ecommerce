@@ -6,6 +6,8 @@ import { getReviewSummary, listReviews, getSiteSetting } from "@ecom/cms";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { fetchProductByHandle, fetchRelatedProducts, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
 import { lookForProduct, parseShopTheLook } from "@/lib/shop-the-look";
+import { parseSizeGuides, resolveSizeGuide } from "@/lib/size-guides";
+import { similarToProduct } from "@/lib/visual-search";
 import { ShopTheLook } from "@/components/site/shop-the-look";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
@@ -35,15 +37,34 @@ export default async function ProductPage({ params }: { params: Params }) {
 
   const divSet = new Set<string>(DIVISION_HANDLES);
   const primaryCat = (product.categoryHandles ?? []).find((h) => !divSet.has(h));
-  const [related, trendingResult, reviewSummary, reviewsData, site, lookRaw] = await Promise.all([
-    fetchRelatedProducts(handle, { category: primaryCat, division: product.division, limit: 4 }),
-    fetchListing({ collection: "trending" }, { limit: 5 }),
-    getReviewSummary(handle),
-    listReviews(handle, { take: 20 }),
-    getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
-    getSiteSetting("shopTheLook").catch(() => null),
-  ]);
+  const [related, trendingResult, reviewSummary, reviewsData, site, lookRaw, sizeGuidesRaw, similar] =
+    await Promise.all([
+      fetchRelatedProducts(handle, { category: primaryCat, division: product.division, limit: 4 }),
+      fetchListing({ collection: "trending" }, { limit: 5 }),
+      getReviewSummary(handle),
+      listReviews(handle, { take: 20 }),
+      getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
+      getSiteSetting("shopTheLook").catch(() => null),
+      getSiteSetting("sizeGuides").catch(() => null),
+      similarToProduct(product.id, 4).catch(() => []),
+    ]);
   const look = lookForProduct(parseShopTheLook(lookRaw), handle);
+  const structuredGuide = resolveSizeGuide(
+    parseSizeGuides(sizeGuidesRaw),
+    product.categoryHandles ?? [],
+    product.division,
+  );
+
+  // "Style it with" = the pieces tagged on this product's look (max 3 shown).
+  const lookHandles = [...new Set((look?.hotspots ?? []).map((h) => h.productHandle))]
+    .filter((h) => h !== handle)
+    .slice(0, 3);
+  const styleWith =
+    lookHandles.length > 0
+      ? (await fetchListing({}, { limit: 200 })).products
+          .filter((p) => lookHandles.includes(p.handle))
+          .map((p) => ({ handle: p.handle, title: p.title, thumbnail: p.thumbnail }))
+      : [];
   const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
   const priceNumber = Number(product.price.replace(/[^0-9.]/g, "")) || undefined;
@@ -78,7 +99,16 @@ export default async function ProductPage({ params }: { params: Params }) {
           <span className="text-foreground">{product.title}</span>
         </nav>
 
-        <PdpClient product={product} reviewSummary={reviewSummary} deliveryLine={site.deliveryLine} sizeGuideContent={product.sizeGuide || site.sizeGuide} shippingReturns={site.shippingReturns} />
+        <PdpClient
+          product={product}
+          reviewSummary={reviewSummary}
+          deliveryLine={site.deliveryLine}
+          sizeGuide={product.sizeGuide ? undefined : structuredGuide}
+          sizeGuideContent={product.sizeGuide || site.sizeGuide}
+          shippingReturns={site.shippingReturns}
+          similarStyles={similar.map((s) => ({ handle: s.handle, title: s.title, thumbnail: s.thumbnail }))}
+          styleWith={styleWith}
+        />
 
         {look && <ShopTheLook look={look} />}
 
