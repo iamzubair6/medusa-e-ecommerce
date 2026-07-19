@@ -1,6 +1,6 @@
 import { getActivePopup, getPublishedPage, getSiteSetting, popupConfigSchema } from "@ecom/cms";
 import { getLandingData } from "@/lib/commerce";
-import { parseSiteSettings } from "@/lib/site-settings";
+import { parseSiteSettings, accentStyleFor } from "@/lib/site-settings";
 import { parsePhoneCaptureSettings } from "@/lib/phone-capture-settings";
 import { parseLandingMode, landingModeFor } from "@/lib/landing-mode";
 import { SiteNavbar } from "@/components/site/site-navbar";
@@ -54,7 +54,7 @@ export default async function HomePage() {
   // `home` PageLayout when present, else falls back to <Landing> (#19/#20).
   const sectionPage = landingModeFor(landingMode, "home") === "sections" ? cmsHome : null;
   return (
-    <main>
+    <main style={accentStyleFor(site, "women")}>
       <SiteNavbar />
       {sectionPage ? (
         sectionPage.sections.map((section) => <SectionRenderer key={section.id} section={section} />)

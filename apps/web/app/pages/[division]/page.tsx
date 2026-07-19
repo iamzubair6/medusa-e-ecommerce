@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedPage, getSiteSetting } from "@ecom/cms";
 import { getLandingData, DIVISION_HANDLES } from "@/lib/commerce";
-import { parseSiteSettings } from "@/lib/site-settings";
+import { parseSiteSettings, accentStyleFor } from "@/lib/site-settings";
 import { parseLandingMode, landingModeFor } from "@/lib/landing-mode";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
@@ -60,7 +60,7 @@ export default async function DivisionPage({ params }: { params: Promise<{ divis
   const sectionPage = landingModeFor(landingMode, handle) === "sections" ? cmsPage : null;
 
   return (
-    <main>
+    <main style={accentStyleFor(site, handle)}>
       <SiteNavbar />
       {sectionPage ? (
         sectionPage.sections.map((section) => <SectionRenderer key={section.id} section={section} />)

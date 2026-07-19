@@ -79,7 +79,7 @@ export function Landing({ data, site }: { data: LandingData; site?: SiteSettings
 
       {/* Shop by Brand */}
       <Container className="py-8">
-        <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop by Brand</h2>
+        <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">Shop by Department</h2>
         <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
           {L.brandTiles.map((b) => (
             <Link key={b.label} href={b.href} className="group relative block aspect-square overflow-hidden">
