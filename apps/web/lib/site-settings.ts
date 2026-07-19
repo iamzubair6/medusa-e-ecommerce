@@ -29,6 +29,18 @@ export const siteSettingsSchema = z.object({
       beauty: z.string().max(40).default("MAISON BEAUTY"),
     })
     .default({}),
+  // Optional accent color per division (hex). Empty = the brand claret. Lets a
+  // division feel distinct without abandoning the owner-approved default.
+  accentByDivision: z
+    .object({
+      women: z.string().max(9).default(""),
+      plus: z.string().max(9).default(""),
+      men: z.string().max(9).default(""),
+      sport: z.string().max(9).default(""),
+      kids: z.string().max(9).default(""),
+      beauty: z.string().max(9).default(""),
+    })
+    .default({}),
   deliveryLine: z.string().max(200).default("Standard delivery in 3–5 days · Free shipping over ৳2,000"),
   sizeGuide: z.string().max(6000).default(""), // optional HTML/text shown in the size-guide modal
   shippingReturns: z.string().max(6000).default(""), // optional HTML/text for the PDP "Shipping & Returns" accordion
@@ -116,4 +128,43 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = siteSettingsSchema.parse({});
 export function parseSiteSettings(raw: unknown): SiteSettings {
   const r = siteSettingsSchema.safeParse(raw);
   return r.success ? r.data : DEFAULT_SITE_SETTINGS;
+}
+
+/** Inline `--accent`/`--ring` override for a division's `<main>`, or undefined
+ *  when that division uses the default claret. */
+export function accentStyleFor(
+  site: SiteSettings,
+  division: string,
+): Record<string, string> | undefined {
+  const hex = site.accentByDivision[division as keyof SiteSettings["accentByDivision"]];
+  const triplet = hex ? hexToHslTriplet(hex) : null;
+  return triplet ? { "--accent": triplet, "--ring": triplet } : undefined;
+}
+
+/**
+ * "#7a2230" → "356 46% 32%" — an HSL triplet for the `--accent` CSS var, which
+ * every `hsl(var(--accent))` consumer reads. Returns null for empty/invalid
+ * input so callers fall back to the default claret token.
+ */
+export function hexToHslTriplet(hex: string): string | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const int = parseInt(m[1]!, 16);
+  const r = ((int >> 16) & 255) / 255;
+  const g = ((int >> 8) & 255) / 255;
+  const b = (int & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
