@@ -154,7 +154,20 @@ async function detectGarments(image: RawImage): Promise<Detection[]> {
     const prev = best.get(group);
     if (!prev || det.score > prev.score) best.set(group, det);
   });
-  return [...best.values()].sort((a, b) => b.score - a.score).slice(0, MAX_PARTS);
+  let groups = [...best.values()].sort((a, b) => b.score - a.score).slice(0, MAX_PARTS);
+  // Smoothing: a "dress" alongside separate bottoms is almost always a long
+  // top misread (e.g. a zip jacket) — a real dress and shorts don't coexist.
+  // Re-dedupe afterwards in case a real top was also detected.
+  if (groups.some((g) => g.group === "bottom")) {
+    for (const g of groups) if (g.group === "dress") g.group = "top";
+    const seen = new Map<string, Detection>();
+    for (const g of groups) {
+      const prev = seen.get(g.group);
+      if (!prev || g.score > prev.score) seen.set(g.group, g);
+    }
+    groups = [...seen.values()].sort((a, b) => b.score - a.score);
+  }
+  return groups;
 }
 
 const zsOutputSchema = z.array(z.object({ label: z.string(), score: z.number() }));
