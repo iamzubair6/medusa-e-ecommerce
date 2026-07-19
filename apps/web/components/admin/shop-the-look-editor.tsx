@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { Combobox } from "./combobox";
 import { TextField } from "./fields";
@@ -28,6 +28,7 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
   const toast = useToast();
   const [active, setActive] = useState<number | null>(initial.looks.length > 0 ? 0 : null);
   const [confirmingRemove, setConfirmingRemove] = useState<number | null>(null);
+  const [detecting, setDetecting] = useState(false);
 
   const {
     watch,
@@ -66,6 +67,46 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
       { shouldDirty: true },
     );
     toast.success("Photo updated — tags cleared, re-drop them on the new photo.");
+  };
+
+  const autoDetect = async () => {
+    if (active === null) return;
+    const look = looks[active];
+    if (!look?.imageUrl) return;
+    setDetecting(true);
+    try {
+      const res = await fetch("/api/admin/shop-the-look/auto-detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: look.imageUrl }),
+      });
+      const d = (await res.json().catch(() => ({}))) as {
+        hotspots?: { x: number; y: number; label: string; productHandle: string }[];
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(d.error ?? "Auto-detect failed.");
+      const detected = (d.hotspots ?? []).slice(0, 8);
+      if (detected.length === 0) {
+        toast.info(d.message ?? "No wearable items detected.");
+        return;
+      }
+      setValue(
+        "looks",
+        looks.map((l, idx) =>
+          idx === active
+            ? { ...l, hotspots: detected.map((h) => ({ x: h.x, y: h.y, productHandle: h.productHandle, label: h.label })) }
+            : l,
+        ),
+        { shouldDirty: true },
+      );
+      const matched = detected.filter((h) => h.productHandle).length;
+      toast.success(`Detected ${detected.length} item${detected.length === 1 ? "" : "s"} — ${matched} auto-matched. Review each tag.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDetecting(false);
+    }
   };
 
   const placeHotspot = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -146,7 +187,14 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
               onChange={changePhoto}
               hint="Defaults to the product's own image — upload a real outfit photo so every tagged piece is visible. Changing the photo clears existing tags."
             />
-            <p className="mb-2 mt-4 text-sm text-muted-foreground">Click the photo to drop a tag (max 8).</p>
+            <div className="mb-2 mt-4 flex flex-wrap items-center gap-3">
+              <Button type="button" variant="outline" size="sm" onClick={autoDetect} loading={detecting}>
+                <Sparkles className="mr-1 h-4 w-4" /> Auto-detect items
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                or click the photo to drop a tag (max 8).
+              </p>
+            </div>
             <div className="relative inline-block cursor-crosshair" onClick={placeHotspot}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={current.imageUrl} alt="Look photo" className="max-h-[560px] w-auto select-none" draggable={false} />
