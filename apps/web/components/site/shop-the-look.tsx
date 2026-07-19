@@ -1,41 +1,140 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { Loader2, ShoppingBag } from "lucide-react";
+import { Button, cn } from "@ecom/ui";
 import type { Look } from "@/lib/shop-the-look";
+import type { StoreProduct } from "@/lib/commerce";
+import { useCart } from "@/hooks/use-cart";
+import { useCartUI } from "@/lib/cart-context";
+import { QuickShopModal } from "./quick-shop-modal";
 
 /**
- * PDP "Shop the Look" — the tagged outfit photo with numbered dots linking each
- * piece to its product page. Server component: pure links, no client JS; the
- * dot pulse is CSS-only and disabled under prefers-reduced-motion.
+ * PDP "Shop the Look": the tagged outfit photo with numbered dots that open a
+ * quick-shop modal (add each piece without leaving), a strip of the tagged
+ * products, and "Add the whole look" — every piece's first in-stock variant
+ * added in one click.
  */
-export function ShopTheLook({ look }: { look: Look }) {
+export function ShopTheLook({ look, products }: { look: Look; products: StoreProduct[] }) {
+  const { addItem } = useCart();
+  const { openCart } = useCartUI();
+  const [quickShop, setQuickShop] = useState<StoreProduct | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [addingAll, setAddingAll] = useState(false);
+
+  const byHandle = new Map(products.map((p) => [p.handle, p]));
+
+  const firstVariant = (p: StoreProduct): string | undefined =>
+    (p.cardColors ?? []).flatMap((c) => c.sizes).find((s) => s.variantId)?.variantId;
+
+  const addWholeLook = async () => {
+    const variantIds = products.map(firstVariant).filter((v): v is string => Boolean(v));
+    if (variantIds.length === 0) return;
+    setAddingAll(true);
+    try {
+      // Sequential so the cart totals settle cleanly.
+      for (const variantId of variantIds) {
+        await addItem.mutateAsync({ variantId, quantity: 1 });
+      }
+      openCart();
+    } finally {
+      setAddingAll(false);
+    }
+  };
+
+  const openHotspot = (handle: string) => {
+    const p = byHandle.get(handle);
+    if (p) setQuickShop(p);
+  };
+
   return (
-    <section aria-label="Shop the look" className="mt-12">
+    <section aria-label="Shop the look" className="mt-16">
       <h2 className="font-display text-xl font-bold uppercase tracking-tight">Shop the Look</h2>
       <p className="mt-1 text-sm text-muted-foreground">Tap a dot to shop each piece.</p>
-      <div className="relative mt-4 inline-block max-w-xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={look.imageUrl} alt="Model wearing the full look" className="w-full" />
-        {look.hotspots.map((h, i) => (
-          <Link
-            key={i}
-            href={`/products/${h.productHandle}`}
-            aria-label={h.label || `Shop tagged item ${i + 1}`}
-            className="group absolute -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none"
-            style={{ left: `${h.x}%`, top: `${h.y}%` }}
-          >
-            <span className="relative flex h-7 w-7 items-center justify-center">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-white/60 motion-safe:animate-ping motion-safe:[animation-duration:2s]" />
-              <span className="relative flex h-6 w-6 items-center justify-center rounded-full border border-ink/20 bg-white text-[11px] font-bold text-ink shadow-sm transition-transform group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-accent">
-                {i + 1}
+
+      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,22rem)_1fr]">
+        {/* tagged photo */}
+        <div className="relative self-start overflow-hidden rounded-md">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={look.imageUrl} alt="Model wearing the full look" className="w-full" />
+          {look.hotspots.map((h, i) => (
+            <button
+              key={i}
+              type="button"
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => openHotspot(h.productHandle)}
+              aria-label={h.label || `Shop tagged item ${i + 1}`}
+              className="group absolute -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none"
+              style={{ left: `${h.x}%`, top: `${h.y}%` }}
+            >
+              <span className="relative flex h-7 w-7 items-center justify-center">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-white/60 motion-safe:animate-ping motion-safe:[animation-duration:2s]" />
+                <span className="relative flex h-6 w-6 items-center justify-center rounded-full border border-ink/20 bg-white text-[11px] font-bold text-ink shadow-sm transition-transform group-hover:scale-110 group-focus-visible:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-accent">
+                  {i + 1}
+                </span>
               </span>
-            </span>
-            {h.label && (
-              <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 hidden -translate-x-1/2 whitespace-nowrap bg-ink px-2 py-1 text-xs text-white group-hover:block group-focus-visible:block">
-                {h.label}
-              </span>
-            )}
-          </Link>
-        ))}
+              {h.label && (
+                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 hidden -translate-x-1/2 whitespace-nowrap bg-ink px-2 py-1 text-xs text-white group-hover:block group-focus-visible:block">
+                  {h.label}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* product strip + add-all */}
+        <div className="flex flex-col">
+          <ul className="flex flex-col divide-y divide-border">
+            {look.hotspots.map((h, i) => {
+              const p = byHandle.get(h.productHandle);
+              if (!p) return null;
+              return (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => setQuickShop(p)}
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                    className={cn(
+                      "flex w-full items-center gap-4 py-3 text-left transition-colors motion-reduce:transition-none",
+                      hovered === i && "bg-muted/40",
+                    )}
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-[11px] font-bold">
+                      {i + 1}
+                    </span>
+                    <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-sm bg-muted">
+                      <Image src={p.thumbnail} alt="" fill sizes="48px" className="object-cover" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{p.title}</span>
+                      <span className="block text-sm text-muted-foreground">{p.price}</span>
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-accent">
+                      Quick add
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {products.length > 0 && (
+            <Button variant="solid" className="mt-5 self-start" onClick={addWholeLook} loading={addingAll}>
+              {addingAll ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
+              ) : (
+                <ShoppingBag className="mr-2 h-4 w-4" />
+              )}
+              Add the whole look
+            </Button>
+          )}
+        </div>
       </div>
+
+      <QuickShopModal product={quickShop} onClose={() => setQuickShop(null)} />
     </section>
   );
 }

@@ -55,15 +55,18 @@ export default async function ProductPage({ params }: { params: Params }) {
     product.division,
   );
 
-  // "Style it with" = the pieces tagged on this product's look (max 4 shown),
-  // passed as full cards so the quick-shop modal has colors/sizes/variants.
-  const lookHandles = [...new Set((look?.hotspots ?? []).map((h) => h.productHandle))]
-    .filter((h) => h !== handle)
-    .slice(0, 4);
-  const styleWith =
-    lookHandles.length > 0
-      ? (await fetchListing({}, { limit: 200 })).products.filter((p) => lookHandles.includes(p.handle))
+  // The look's tagged pieces as full cards (colors/sizes/variants), for the
+  // Shop-the-Look quick-shop dots and the "Style it with" row.
+  const allLookHandles = [...new Set((look?.hotspots ?? []).map((h) => h.productHandle))];
+  const lookCards =
+    allLookHandles.length > 0
+      ? (await fetchListing({}, { limit: 200 })).products.filter((p) => allLookHandles.includes(p.handle))
       : [];
+  const lookCardByHandle = new Map(lookCards.map((p) => [p.handle, p]));
+  const lookProducts = (look?.hotspots ?? [])
+    .map((h) => lookCardByHandle.get(h.productHandle))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  const styleWith = lookCards.filter((p) => p.handle !== handle).slice(0, 4);
   const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
   const priceNumber = Number(product.price.replace(/[^0-9.]/g, "")) || undefined;
@@ -110,7 +113,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           productId={product.id}
         />
 
-        {look && <ShopTheLook look={look} />}
+        {look && <ShopTheLook look={look} products={lookProducts} />}
 
         <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 
