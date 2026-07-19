@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { z } from "zod";
 import { createVisualSearchQuery, pruneVisualSearchQueries, type VisualQueryPart } from "@ecom/cms";
+import { catalogDivisions } from "@/lib/commerce";
 import { EMBED_DIM, embedBufferServer } from "@/lib/embedding-server";
 import { detectQueryContext } from "@/lib/garment-detect";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
@@ -148,6 +149,12 @@ export async function POST(request: Request) {
     }
   } catch {
     /* detection is optional */
+  }
+  // Only auto-scope to a division this store actually carries — a client
+  // selling e.g. only beauty must not get a phantom women/men filter.
+  if (division) {
+    const present = await catalogDivisions().catch(() => null);
+    if (present && !present.has(division)) division = undefined;
   }
 
   const record = await createVisualSearchQuery({

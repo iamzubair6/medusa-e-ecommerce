@@ -654,6 +654,13 @@ const getCatalog = cache(async (): Promise<StoreProduct[]> => {
   return (data?.products ?? []).map(mapCard).filter(hasPrice);
 });
 
+/** Divisions that actually have products in this catalog (visual search only
+ *  auto-applies a detected division when the store carries it). */
+export async function catalogDivisions(): Promise<Set<string>> {
+  const all = await getCatalog();
+  return new Set(all.map((p) => p.division).filter((d): d is string => Boolean(d)));
+}
+
 /** All categories (handle → name), cached. */
 export const listCategories = cache(async (): Promise<{ handle: string; name: string }[]> => {
   const data = (await medusaFetch(
