@@ -9,6 +9,9 @@ const ADMIN_ONLY = [
   "/admin/users",
   "/api/admin/users",
   "/api/admin/customers",
+  // Bulk publish/unpublish/DELETE across the catalog — editors edit one product
+  // at a time; mass catalog mutation is an owner action.
+  "/api/admin/products/bulk",
 ];
 
 function isUnder(pathname: string, base: string): boolean {
