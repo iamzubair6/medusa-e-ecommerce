@@ -1,8 +1,72 @@
 "use client";
 
-import { useState } from "react";
-import { UploadCloud, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Images, UploadCloud, X } from "lucide-react";
 import { cn } from "@ecom/ui";
+
+interface Asset {
+  id: string;
+  url: string;
+  type: "IMAGE" | "VIDEO";
+}
+
+/** Modal grid of previously-uploaded assets to pick from. */
+function LibraryPicker({ onPick, onClose }: { onPick: (url: string) => void; onClose: () => void }) {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/media")
+      .then((r) => r.json())
+      .then((d: { assets?: Asset[] }) => setAssets(d.assets ?? []))
+      .catch(() => setAssets([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-label="Media library">
+      <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <h3 className="font-display font-bold">Media library</h3>
+          <button type="button" aria-label="Close" onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-4">
+          {loading ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
+          ) : assets.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              No uploads yet — anything you upload here becomes reusable.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+              {assets.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => {
+                    onPick(a.url);
+                    onClose();
+                  }}
+                  className="relative aspect-square overflow-hidden rounded-sm border border-border hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {a.type === "VIDEO" ? (
+                    <video src={a.url} className="h-full w-full object-cover" muted playsInline />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.url} alt="" className="h-full w-full object-cover" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Reusable media field: upload an image/video from the device OR paste a URL.
@@ -24,6 +88,7 @@ export function MediaUploadField({
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(value);
 
   const upload = async (files: FileList | null) => {
@@ -74,16 +139,24 @@ export function MediaUploadField({
             placeholder="https://… or upload from device"
             className="h-10 rounded-sm border border-input bg-card px-3 text-sm"
           />
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <label className="cursor-pointer text-xs text-accent hover:underline">
               {uploading ? "Uploading…" : "Upload from device"}
               <input type="file" accept={accept} className="hidden" disabled={uploading} onChange={(e) => upload(e.target.files)} />
             </label>
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              className="flex items-center gap-1 text-xs text-accent hover:underline"
+            >
+              <Images className="h-3.5 w-3.5" /> Choose from library
+            </button>
             {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
           </div>
           {error && <span className="text-xs text-destructive">{error}</span>}
         </div>
       </div>
+      {libraryOpen && <LibraryPicker onPick={onChange} onClose={() => setLibraryOpen(false)} />}
     </div>
   );
 }
