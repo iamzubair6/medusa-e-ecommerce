@@ -1,7 +1,7 @@
 import "server-only";
 import { getProductEmbedding, listProductEmbeddings, upsertProductEmbedding } from "@ecom/cms";
 import { EMBED_DIM, embedUrlServer } from "@/lib/embedding-server";
-import { fetchProductsForIndex } from "@/lib/commerce";
+import { fetchProductsForIndex, getCatalogCardsByHandle, type StoreProduct } from "@/lib/commerce";
 
 /** Shared cap for index reads — the reindex prune and admin stats must agree. */
 export const INDEX_LIMIT = 500;
@@ -67,6 +67,45 @@ export async function similarToProduct(productId: string, limit: number): Promis
   const e = await getProductEmbedding(productId);
   if (!e) return [];
   return rankByVector(e.vector, limit, { exclude: productId });
+}
+
+/**
+ * Ranked similar products AS CARDS (with colors/sizes/variants) in similarity
+ * order — powers the Shop Similar modal grid (size facets + quick-add). Ranks
+ * without the relevance floor so the modal always has a full grid to sort/filter.
+ */
+export async function similarCards(
+  ranked: SimilarResult[],
+): Promise<StoreProduct[]> {
+  const byHandle = await getCatalogCardsByHandle();
+  return ranked.map((r) => byHandle.get(r.handle)).filter((p): p is StoreProduct => Boolean(p));
+}
+
+/** Cards similar to an indexed product (Shop Similar initial load). */
+export async function similarProductCards(productId: string, limit: number): Promise<StoreProduct[]> {
+  const e = await getProductEmbedding(productId);
+  if (!e) return [];
+  const ranked = await rankByVector(e.vector, limit, { exclude: productId, cap: limit, floor: false });
+  return similarCards(ranked);
+}
+
+/**
+ * Cards ranked by an arbitrary query/part vector (Shop Similar dot / upload).
+ * An optional category allowlist keeps a garment-part search on-category
+ * (top → tops, not visually-similar leggings) — matching the /search behavior.
+ */
+export async function similarCardsByVector(
+  vector: number[],
+  limit: number,
+  categories?: string[],
+): Promise<StoreProduct[]> {
+  const ranked = await rankByVector(vector, limit, { cap: limit, floor: false });
+  const cards = await similarCards(ranked);
+  if (!categories?.length) return cards;
+  const allow = new Set(categories);
+  const scoped = cards.filter((p) => (p.categoryHandles ?? []).some((h) => allow.has(h)));
+  // If the allowlist over-filters (catalog gap), fall back to the unscoped ranking.
+  return scoped.length > 0 ? scoped : cards;
 }
 
 /**

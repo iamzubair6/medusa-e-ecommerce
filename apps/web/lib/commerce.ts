@@ -661,6 +661,12 @@ export async function catalogDivisions(): Promise<Set<string>> {
   return new Set(all.map((p) => p.division).filter((d): d is string => Boolean(d)));
 }
 
+/** Catalog cards indexed by handle (for joining ranked handles → cards). */
+export async function getCatalogCardsByHandle(): Promise<Map<string, StoreProduct>> {
+  const all = await getCatalog();
+  return new Map(all.map((p) => [p.handle, p]));
+}
+
 /** All categories (handle → name), cached. */
 export const listCategories = cache(async (): Promise<{ handle: string; name: string }[]> => {
   const data = (await medusaFetch(
@@ -811,31 +817,53 @@ export interface LandingData {
 }
 
 const TILE_FALLBACK = img(0, 800, 1000);
-const TILE_CATEGORIES = ["dresses", "matching-sets", "swim", "accessories", "tops", "shoes", "bottoms"];
 
-export const getLandingData = cache(async (): Promise<LandingData> => {
-  const [all, cats] = await Promise.all([getCatalog(), listCategories()]);
-  const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
-  const tileFor = (h: string): CategoryTile => {
-    const p = all.find((x) => (x.categoryHandles ?? []).includes(h));
-    return { handle: h, name: nameByHandle.get(h) ?? prettify(h), image: p?.thumbnail ?? TILE_FALLBACK, href: `/collections/${h}?division=women` };
-  };
-  const categoryTiles = TILE_CATEGORIES.map(tileFor);
-
-  const [newR, saleR, dressR, jeansR, setsR] = await Promise.all([
-    fetchListing({ collection: "new" }, { limit: 8 }),
-    fetchListing({ collection: "sale" }, { limit: 8 }),
-    fetchListing({ category: "dresses" }, { limit: 8 }),
-    fetchListing({ category: "jeans" }, { limit: 8 }),
-    fetchListing({ category: "matching-sets" }, { limit: 8 }),
+/**
+ * Landing data scoped to a division (defaults to women / the home page).
+ * Category tiles and product rails are derived from the division's OWN catalog
+ * so /pages/men shows men's categories and products — not the women homepage
+ * (#109). Every href carries the division so the shopper stays in-department.
+ */
+export const getLandingData = cache(async (division = "women"): Promise<LandingData> => {
+  const [all, cats, divCats] = await Promise.all([
+    getCatalog(),
+    listCategories(),
+    fetchDivisionCategories(division),
   ]);
+  const nameByHandle = new Map(cats.map((c) => [c.handle, c.name]));
+  const inDivision = all.filter((p) => p.division === division);
+  const q = `?division=${division}`;
+
+  const tileFor = (h: string): CategoryTile => {
+    const p = inDivision.find((x) => (x.categoryHandles ?? []).includes(h));
+    return {
+      handle: h,
+      name: nameByHandle.get(h) ?? prettify(h),
+      image: p?.thumbnail ?? TILE_FALLBACK,
+      href: `/collections/${h}${q}`,
+    };
+  };
+  // Up to 7 of the division's most-populated categories as tiles.
+  const categoryTiles = divCats.slice(0, 7).map((c) => tileFor(c.handle));
+
+  const [newR, saleR] = await Promise.all([
+    fetchListing({ division, collection: "new" }, { limit: 8 }),
+    fetchListing({ division, collection: "sale" }, { limit: 8 }),
+  ]);
+  // "Shop the latest" tabs: For You + New + Sale + the division's top 3 categories.
+  const catTabs = await Promise.all(
+    divCats.slice(0, 3).map(async (c) => ({
+      key: c.handle,
+      label: c.name,
+      href: `/collections/${c.handle}${q}`,
+      products: (await fetchListing({ division, category: c.handle }, { limit: 8 })).products,
+    })),
+  );
   const latest: LatestTab[] = [
-    { key: "foryou", label: "For You", href: "/products", products: all.slice(0, 8) },
-    { key: "new", label: "New In", href: "/collections/new", products: newR.products },
-    { key: "sale", label: "Sale", href: "/collections/sale", products: saleR.products },
-    { key: "dresses", label: "Dresses", href: "/c/dresses", products: dressR.products },
-    { key: "jeans", label: "Jeans", href: "/c/jeans", products: jeansR.products },
-    { key: "sets", label: "Sets", href: "/c/matching-sets", products: setsR.products },
+    { key: "foryou", label: "For You", href: `/products${q}`, products: inDivision.slice(0, 8) },
+    { key: "new", label: "New In", href: `/collections/new${q}`, products: newR.products },
+    { key: "sale", label: "Sale", href: `/collections/sale${q}`, products: saleR.products },
+    ...catTabs,
   ].filter((t) => t.products.length > 0);
 
   return { categoryTiles, latest };
