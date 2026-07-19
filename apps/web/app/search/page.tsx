@@ -11,7 +11,6 @@ import type { ListingPageProps } from "@/lib/build-listing";
 import { ListingView } from "@/components/site/listing-view";
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
-import { ImageQueryPanel } from "@/components/site/image-query-panel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your Image Results" };
@@ -165,15 +164,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     totalPages: listing.totalPages,
   };
 
+  // The persistent Search-By-Image panel (photo + hotspot dots) renders from
+  // the navbar popover — same panel, same position as the upload flow.
   return (
     <main>
       <ListingView {...props} />
-      <ImageQueryPanel
-        resourceId={record.id}
-        parts={parts.map((p) => ({ label: p.label, cx: p.cx, cy: p.cy, box: p.box }))}
-        selectedPart={effectivePartIdx}
-        division={division}
-      />
     </main>
   );
 }
