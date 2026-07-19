@@ -371,7 +371,7 @@ function SearchAutocomplete({
       action="/products"
       role="search"
       onSubmit={close}
-      className="relative hidden items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-sm md:flex"
+      className="relative hidden h-11 items-center gap-2 rounded-full border border-border bg-card px-4 shadow-sm md:flex md:w-72 lg:w-[446px]"
     >
       <Search className="h-4 w-4 text-muted-foreground" />
       {activeImageQuery && (
@@ -413,7 +413,7 @@ function SearchAutocomplete({
         aria-controls="search-suggestions"
         aria-autocomplete="list"
         aria-activedescendant={active >= 0 ? `search-option-${active}` : undefined}
-        className="w-40 bg-transparent text-sm outline-none lg:w-56"
+        className="w-full flex-1 bg-transparent text-sm outline-none"
       />
       {enabled && isFetching && (
         <Loader2 aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground motion-safe:animate-spin" />
@@ -446,11 +446,11 @@ function SearchAutocomplete({
       <AnimatePresence>
         {showDiscovery && !imageOpen && (
           <motion.div
-            initial={reduce ? false : { opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? undefined : { opacity: 0, y: 4 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="absolute right-0 top-full z-50 mt-1 w-[min(92vw,620px)] overflow-hidden rounded-md border border-border bg-card shadow-2xl"
+            initial={reduce ? false : { opacity: 0, y: -6, scaleY: 0.92, scaleX: 0.99 }}
+            animate={{ opacity: 1, y: 0, scaleY: 1, scaleX: 1 }}
+            exit={reduce ? undefined : { opacity: 0, y: -6, scaleY: 0.96 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,446px)] origin-top overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
           >
             <SearchDiscoveryPanel divisions={divisions} initialDivision={division} onNavigate={close} />
           </motion.div>

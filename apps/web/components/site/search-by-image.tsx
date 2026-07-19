@@ -213,9 +213,9 @@ export function SearchByImagePopover({
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduce ? undefined : { opacity: 0, y: 6 }}
+          initial={reduce ? false : { opacity: 0, y: -6, scaleY: 0.92, scaleX: 0.99 }}
+          animate={{ opacity: 1, y: 0, scaleY: 1, scaleX: 1 }}
+          exit={reduce ? undefined : { opacity: 0, y: -6, scaleY: 0.96 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
           role="dialog"
           aria-label="Search by image"
@@ -224,7 +224,7 @@ export function SearchByImagePopover({
           onKeyDown={(e) => {
             if (e.key === "Escape") onClose();
           }}
-          className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,620px)] rounded-2xl border border-border bg-card shadow-2xl focus-visible:outline-none"
+          className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,446px)] origin-top rounded-2xl border border-border bg-card shadow-2xl focus-visible:outline-none"
         >
           {/* header — identical in every state, so the panel never "changes widget" */}
           <div className="relative flex items-center justify-center border-b border-border px-4 py-3.5">
