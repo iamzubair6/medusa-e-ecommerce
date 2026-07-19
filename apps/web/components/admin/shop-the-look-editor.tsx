@@ -245,6 +245,30 @@ export function ShopTheLookEditor({ initial, products }: { initial: ShopTheLook;
         </Card>
       )}
 
+      <Card className="flex flex-col gap-4 p-6">
+        <div>
+          <h3 className="font-display text-lg font-bold">Bundle offer (optional)</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Reward shoppers who add the whole look. Enter a discount % to advertise, and the promo
+            code to auto-apply — create that code first under Discounts.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Bundle discount %"
+            type="number"
+            value={String(watch("bundlePercent") ?? 0)}
+            onChange={(e) => setValue("bundlePercent", Math.max(0, Math.min(50, Number(e.target.value) || 0)), { shouldDirty: true })}
+          />
+          <TextField
+            label="Promo code (auto-applied)"
+            value={watch("bundleCode") ?? ""}
+            onChange={(e) => setValue("bundleCode", e.target.value.trim().toUpperCase(), { shouldDirty: true })}
+            placeholder="e.g. LOOK10"
+          />
+        </div>
+      </Card>
+
       <div className="flex items-center gap-3">
         <Button type="submit" variant="gold" loading={isSubmitting} className="w-fit">
           Save Shop the Look

@@ -49,7 +49,8 @@ export default async function ProductPage({ params }: { params: Params }) {
       getSiteSetting("sizeGuides").catch(() => null),
       similarToProduct(product.id, 4).catch(() => []),
     ]);
-  const look = lookForProduct(parseShopTheLook(lookRaw), handle);
+  const shopTheLook = parseShopTheLook(lookRaw);
+  const look = lookForProduct(shopTheLook, handle);
   const structuredGuide = resolveSizeGuide(
     parseSizeGuides(sizeGuidesRaw),
     product.categoryHandles ?? [],
@@ -115,7 +116,14 @@ export default async function ProductPage({ params }: { params: Params }) {
           productId={product.id}
         />
 
-        {look && <ShopTheLook look={look} products={lookProducts} />}
+        {look && (
+          <ShopTheLook
+            look={look}
+            products={lookProducts}
+            bundlePercent={shopTheLook.bundlePercent}
+            bundleCode={shopTheLook.bundleCode}
+          />
+        )}
 
         <ProductReviews handle={handle} summary={reviewSummary} initialReviews={reviews} />
 

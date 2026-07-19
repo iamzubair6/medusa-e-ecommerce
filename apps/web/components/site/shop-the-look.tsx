@@ -16,8 +16,18 @@ import { QuickShopModal } from "./quick-shop-modal";
  * products, and "Add the whole look" — every piece's first in-stock variant
  * added in one click.
  */
-export function ShopTheLook({ look, products }: { look: Look; products: StoreProduct[] }) {
-  const { addItem } = useCart();
+export function ShopTheLook({
+  look,
+  products,
+  bundlePercent = 0,
+  bundleCode = "",
+}: {
+  look: Look;
+  products: StoreProduct[];
+  bundlePercent?: number;
+  bundleCode?: string;
+}) {
+  const { addItem, applyPromo } = useCart();
   const { openCart } = useCartUI();
   const [quickShop, setQuickShop] = useState<StoreProduct | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -25,6 +35,10 @@ export function ShopTheLook({ look, products }: { look: Look; products: StorePro
   const [addAllError, setAddAllError] = useState<string | null>(null);
 
   const byHandle = new Map(products.map((p) => [p.handle, p]));
+  const priceNum = (p: StoreProduct) => Number(p.price.replace(/[^0-9.]/g, "")) || 0;
+  const lookTotal = products.reduce((n, p) => n + priceNum(p), 0);
+  const bundleActive = bundlePercent > 0 && products.length > 1;
+  const saved = Math.round((lookTotal * bundlePercent) / 100);
 
   // First available variant — prefer one that's in stock, else any real variant.
   const firstVariant = (p: StoreProduct): string | undefined => {
@@ -46,6 +60,14 @@ export function ShopTheLook({ look, products }: { look: Look; products: StorePro
         added += 1;
       } catch {
         /* keep going — report the shortfall below */
+      }
+    }
+    // Apply the bundle promo once the full look is in the cart.
+    if (added > 0 && bundleActive && bundleCode) {
+      try {
+        await applyPromo.mutateAsync(bundleCode);
+      } catch {
+        /* promo optional — cart still has the items */
       }
     }
     setAddingAll(false);
@@ -145,8 +167,15 @@ export function ShopTheLook({ look, products }: { look: Look; products: StorePro
                 ) : (
                   <ShoppingBag className="mr-2 h-4 w-4" />
                 )}
-                Add the whole look
+                Add the whole look{bundleActive ? ` · save ${bundlePercent}%` : ""}
               </Button>
+              {bundleActive && (
+                <p className="text-sm text-accent">
+                  Buy all {products.length} together and save {bundlePercent}%
+                  {saved > 0 ? ` (৳${saved.toLocaleString("en-US")})` : ""}
+                  {bundleCode ? " — applied at checkout." : "."}
+                </p>
+              )}
               {addAllError && <p className="text-sm text-destructive">{addAllError}</p>}
             </div>
           )}

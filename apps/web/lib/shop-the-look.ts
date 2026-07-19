@@ -24,6 +24,10 @@ export const lookSchema = z.object({
 
 export const shopTheLookSchema = z.object({
   looks: z.array(lookSchema).max(60).default([]),
+  /** Optional bundle incentive for "Add the whole look": a display percent and
+   *  a pre-created Medusa promo code auto-applied when the full look is added. */
+  bundlePercent: z.number().int().min(0).max(50).default(0),
+  bundleCode: z.string().max(40).default(""),
 });
 
 export type LookHotspot = z.infer<typeof lookHotspotSchema>;
