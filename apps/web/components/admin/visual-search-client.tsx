@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button, Card } from "@ecom/ui";
 import { PART_GROUPS, type VisualSearchSettings } from "@/lib/visual-search-settings";
 import { TextField } from "./fields";
+import { useToast } from "./toast";
 
 interface IndexProduct {
   productId: string;
@@ -35,6 +36,7 @@ export function VisualSearchClient({
   settings: VisualSearchSettings;
   categoryHandles: string[];
 }) {
+  const toast = useToast();
   const [products, setProducts] = useState<IndexProduct[]>([]);
   const [indexed, setIndexed] = useState<number>(0);
   const [serverBusy, setServerBusy] = useState(false);
@@ -47,7 +49,6 @@ export function VisualSearchClient({
     ),
   );
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   const live = new Set(categoryHandles);
 
@@ -83,7 +84,6 @@ export function VisualSearchClient({
 
   const saveMapping = async () => {
     setSaving(true);
-    setSaveMsg(null);
     try {
       const partCategories = Object.fromEntries(
         Object.entries(mapping).map(([g, csv]) => [
@@ -101,9 +101,9 @@ export function VisualSearchClient({
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) throw new Error(data.error ?? "Save failed");
-      setSaveMsg("Saved");
+      toast.success("Mapping saved.");
     } catch (e) {
-      setSaveMsg(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -190,11 +190,6 @@ export function VisualSearchClient({
           <Button variant="gold" loading={saving} onClick={saveMapping}>
             Save mapping
           </Button>
-          {saveMsg && (
-            <span className={saveMsg === "Saved" ? "text-sm text-gold" : "text-sm text-destructive"}>
-              {saveMsg}
-            </span>
-          )}
         </div>
       </Card>
     </div>

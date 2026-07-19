@@ -6,6 +6,7 @@ import { Button, Card } from "@ecom/ui";
 import type { SizeGuide, SizeGuidesSetting } from "@/lib/size-guides";
 import { TextField, TextareaField } from "./fields";
 import { MediaUploadField } from "./media-upload-field";
+import { useToast } from "./toast";
 
 /**
  * Editor for the FN-style structured size guides. Follows the site-settings
@@ -20,9 +21,9 @@ export function SizeGuidesEditor({
   initial: SizeGuidesSetting;
   categoryHandles: string[];
 }) {
+  const toast = useToast();
   const [guides, setGuides] = useState<SizeGuide[]>(initial.guides);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
   const set = (i: number, patch: Partial<SizeGuide>) =>
     setGuides((g) => g.map((x, j) => (j === i ? { ...x, ...patch } : x)));
@@ -46,7 +47,6 @@ export function SizeGuidesEditor({
 
   const save = async () => {
     setSaving(true);
-    setMsg(null);
     try {
       const res = await fetch("/api/admin/size-guides", {
         method: "POST",
@@ -55,9 +55,9 @@ export function SizeGuidesEditor({
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) throw new Error(data.error ?? "Save failed");
-      setMsg("Saved");
+      toast.success("Size guides saved.");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Save failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -276,9 +276,6 @@ export function SizeGuidesEditor({
         <Button variant="gold" loading={saving} onClick={save}>
           Save size guides
         </Button>
-        {msg && (
-          <span className={msg === "Saved" ? "text-sm text-gold" : "text-sm text-destructive"}>{msg}</span>
-        )}
       </div>
     </div>
   );
