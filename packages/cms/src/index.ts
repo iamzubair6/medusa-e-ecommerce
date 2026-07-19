@@ -372,6 +372,27 @@ export async function markRestockNotified(ids: string[]) {
   });
 }
 
+// --- Media library ----------------------------------------------------------
+
+/** Record an uploaded asset (idempotent by url). */
+export async function recordMediaAsset(input: { url: string; type?: "IMAGE" | "VIDEO" }) {
+  const existing = await prisma.mediaAsset.findFirst({ where: { url: input.url } });
+  if (existing) return existing;
+  return prisma.mediaAsset.create({ data: { url: input.url, type: input.type ?? "IMAGE" } });
+}
+
+export async function listMediaAssets(opts: { take?: number; skip?: number } = {}) {
+  return prisma.mediaAsset.findMany({
+    orderBy: { createdAt: "desc" },
+    take: opts.take ?? 60,
+    skip: opts.skip ?? 0,
+  });
+}
+
+export async function deleteMediaAsset(id: string) {
+  return prisma.mediaAsset.deleteMany({ where: { id } });
+}
+
 // --- Abandoned carts --------------------------------------------------------
 
 export interface AbandonedCartInput {
