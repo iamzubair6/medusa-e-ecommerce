@@ -1,8 +1,14 @@
 import Link from "next/link";
-import { prisma } from "@ecom/cms";
+import { prisma, pendingRestockCount } from "@ecom/cms";
 import { Card, CardContent } from "@ecom/ui";
-import { Banknote, Receipt, ShoppingBag, UserRound, Truck } from "lucide-react";
-import { getDashboardStats, getDashboardSeries } from "@/lib/medusa-admin";
+import { Banknote, Bell, Receipt, ShoppingBag, UserRound, Truck } from "lucide-react";
+import {
+  getDashboardStats,
+  getDashboardSeries,
+  getTopProducts,
+  getLowStock,
+  listOrders,
+} from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
 import { BarChart } from "@/components/admin/bar-chart";
 
@@ -18,11 +24,17 @@ async function getContentStats() {
   return { pages, popups, leads, campaigns };
 }
 
+const statusLabel = (s: string) => s.replace(/_/g, " ");
+
 export default async function AdminDashboard() {
-  const [commerce, content, series] = await Promise.all([
+  const [commerce, content, series, topProducts, lowStock, recent, restockWaiting] = await Promise.all([
     getDashboardStats(),
     getContentStats(),
     getDashboardSeries(14),
+    getTopProducts(5).catch(() => []),
+    getLowStock(5, 6).catch(() => []),
+    listOrders(6).then((r) => r.orders).catch(() => []),
+    pendingRestockCount().catch(() => 0),
   ]);
   const revenueTotal = series.reduce((s, p) => s + p.revenue, 0);
   const ordersTotal = series.reduce((s, p) => s + p.orders, 0);
@@ -33,6 +45,7 @@ export default async function AdminDashboard() {
     { label: "To fulfil", value: commerce.pendingFulfilment, href: "/admin/orders", icon: Truck },
     { label: "Products", value: commerce.products, href: "/admin/products", icon: ShoppingBag },
     { label: "Customers", value: commerce.customers, href: "/admin/customers", icon: UserRound },
+    { label: "Restock waiting", value: restockWaiting, href: "/admin/restock", icon: Bell },
   ];
   const contentCards = [
     { label: "Pages", value: content.pages, href: "/admin/pages" },
@@ -47,7 +60,7 @@ export default async function AdminDashboard() {
       <div className="flex flex-col gap-8 p-8">
         <section>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Commerce</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {commerceCards.map((c) => {
               const Icon = c.icon;
               return (
@@ -83,6 +96,89 @@ export default async function AdminDashboard() {
             />
           </div>
         </section>
+
+        {/* Top products + recent orders */}
+        <section className="grid gap-4 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top sellers</h2>
+            <Card>
+              <CardContent className="p-0">
+                {topProducts.length === 0 ? (
+                  <p className="p-5 text-sm text-muted-foreground">No sales yet.</p>
+                ) : (
+                  <ol className="divide-y divide-border">
+                    {topProducts.map((p, i) => (
+                      <li key={p.title} className="flex items-center gap-3 p-3">
+                        <span className="w-4 text-sm font-bold text-muted-foreground">{i + 1}</span>
+                        {p.thumbnail ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.thumbnail} alt="" className="h-10 w-8 shrink-0 rounded-sm object-cover" />
+                        ) : (
+                          <span className="h-10 w-8 shrink-0 rounded-sm bg-muted" />
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-sm">{p.title}</span>
+                        <span className="shrink-0 text-sm font-semibold">{p.units} sold</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent orders</h2>
+            <Card>
+              <CardContent className="p-0">
+                {recent.length === 0 ? (
+                  <p className="p-5 text-sm text-muted-foreground">No orders yet.</p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {recent.map((o) => (
+                      <li key={o.id}>
+                        <Link href={`/admin/orders/${o.id}`} className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/40">
+                          <span className="shrink-0 text-sm font-semibold">MSN-{String(o.displayId).padStart(5, "0")}</span>
+                          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{o.email}</span>
+                          <span className="shrink-0 text-xs capitalize text-muted-foreground">{statusLabel(o.fulfillmentStatus)}</span>
+                          <span className="shrink-0 text-sm font-semibold">{o.total}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Low stock */}
+        {lowStock.length > 0 && (
+          <section>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Low stock</h2>
+            <Card>
+              <CardContent className="p-0">
+                <ul className="divide-y divide-border">
+                  {lowStock.map((v, i) => (
+                    <li key={`${v.product}-${v.variant}-${i}`} className="flex items-center gap-3 p-3">
+                      {v.thumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={v.thumbnail} alt="" className="h-10 w-8 shrink-0 rounded-sm object-cover" />
+                      ) : (
+                        <span className="h-10 w-8 shrink-0 rounded-sm bg-muted" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        {v.product} <span className="text-muted-foreground">· {v.variant}</span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+                        {v.quantity} left
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         <section>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Content</h2>
