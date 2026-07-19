@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Container, cn } from "@ecom/ui";
 import type { CategoryTile, LandingData } from "@/lib/commerce";
-import { type SiteSettings, DEFAULT_SITE_SETTINGS } from "@/lib/site-settings";
+import { type SiteSettings, type Landing as LandingContent, DEFAULT_SITE_SETTINGS } from "@/lib/site-settings";
 import { ShopTheLatest } from "./shop-the-latest";
 import { BrandCarousel, type BrandSlide } from "./brand-carousel";
 import { Marquee } from "./marquee";
@@ -18,10 +18,19 @@ const BRAND_SLIDES: BrandSlide[] = [
   { image: U("1525507119028-ed4c629a60a3", 1800, 1000), eyebrow: "New", title: "Golden Hours", href: "/collections/luxe" },
 ];
 
-export function Landing({ data, site }: { data: LandingData; site?: SiteSettings }) {
+export function Landing({
+  data,
+  site,
+  content,
+}: {
+  data: LandingData;
+  site?: SiteSettings;
+  /** Curated content to render — per-division when provided, else the global home. */
+  content?: LandingContent;
+}) {
   const marqueeItems = site?.marquee.items.length ? site.marquee.items : USP_ITEMS;
   const showMarquee = site ? site.marquee.enabled : true;
-  const L = site?.landing ?? DEFAULT_SITE_SETTINGS.landing;
+  const L = content ?? site?.landing ?? DEFAULT_SITE_SETTINGS.landing;
   const collabSlides: BrandSlide[] = L.collabSlides.length ? L.collabSlides : BRAND_SLIDES;
   return (
     <>

@@ -1,6 +1,6 @@
 import { getActivePopup, getPublishedPage, getSiteSetting, popupConfigSchema } from "@ecom/cms";
 import { getLandingData } from "@/lib/commerce";
-import { parseSiteSettings, accentStyleFor } from "@/lib/site-settings";
+import { parseSiteSettings, accentStyleFor, landingContentFor } from "@/lib/site-settings";
 import { parsePhoneCaptureSettings } from "@/lib/phone-capture-settings";
 import { parseLandingMode, landingModeFor } from "@/lib/landing-mode";
 import { SiteNavbar } from "@/components/site/site-navbar";
@@ -59,7 +59,7 @@ export default async function HomePage() {
       {sectionPage ? (
         sectionPage.sections.map((section) => <SectionRenderer key={section.id} section={section} />)
       ) : (
-        <Landing data={landing} site={site} />
+        <Landing data={landing} site={site} content={landingContentFor(site, "women")} />
       )}
       <Footer />
       <PhoneCapturePopup settings={phoneCapture} />
