@@ -22,24 +22,40 @@ export function ShopTheLook({ look, products }: { look: Look; products: StorePro
   const [quickShop, setQuickShop] = useState<StoreProduct | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [addingAll, setAddingAll] = useState(false);
+  const [addAllError, setAddAllError] = useState<string | null>(null);
 
   const byHandle = new Map(products.map((p) => [p.handle, p]));
 
-  const firstVariant = (p: StoreProduct): string | undefined =>
-    (p.cardColors ?? []).flatMap((c) => c.sizes).find((s) => s.variantId)?.variantId;
+  // First available variant — prefer one that's in stock, else any real variant.
+  const firstVariant = (p: StoreProduct): string | undefined => {
+    const all = (p.cardColors ?? []).flatMap((c) => c.sizes).filter((s) => s.variantId);
+    return (all.find((s) => s.stock > 0) ?? all[0])?.variantId;
+  };
 
   const addWholeLook = async () => {
     const variantIds = products.map(firstVariant).filter((v): v is string => Boolean(v));
     if (variantIds.length === 0) return;
     setAddingAll(true);
-    try {
-      // Sequential so the cart totals settle cleanly.
-      for (const variantId of variantIds) {
+    setAddAllError(null);
+    let added = 0;
+    // Sequential so the cart totals settle cleanly; one failure must not abort
+    // the rest or leave an unhandled rejection.
+    for (const variantId of variantIds) {
+      try {
         await addItem.mutateAsync({ variantId, quantity: 1 });
+        added += 1;
+      } catch {
+        /* keep going — report the shortfall below */
       }
-      openCart();
-    } finally {
-      setAddingAll(false);
+    }
+    setAddingAll(false);
+    if (added > 0) openCart();
+    if (added < variantIds.length) {
+      setAddAllError(
+        added === 0
+          ? "Couldn't add these items — please try each piece individually."
+          : `Added ${added} of ${variantIds.length} — some pieces are unavailable.`,
+      );
     }
   };
 
@@ -122,14 +138,17 @@ export function ShopTheLook({ look, products }: { look: Look; products: StorePro
           </ul>
 
           {products.length > 0 && (
-            <Button variant="solid" className="mt-5 self-start" onClick={addWholeLook} loading={addingAll}>
-              {addingAll ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
-              ) : (
-                <ShoppingBag className="mr-2 h-4 w-4" />
-              )}
-              Add the whole look
-            </Button>
+            <div className="mt-5 flex flex-col gap-2">
+              <Button variant="solid" className="self-start" onClick={addWholeLook} loading={addingAll}>
+                {addingAll ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />
+                ) : (
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                )}
+                Add the whole look
+              </Button>
+              {addAllError && <p className="text-sm text-destructive">{addAllError}</p>}
+            </div>
           )}
         </div>
       </div>
