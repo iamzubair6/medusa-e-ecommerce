@@ -48,7 +48,7 @@ export default async function DivisionPage({ params }: { params: Promise<{ divis
   if (!handle) notFound();
 
   const [landing, site, landingMode, cmsPage] = await Promise.all([
-    getLandingData(),
+    getLandingData(handle),
     getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
     getSiteSetting("landingMode").then(parseLandingMode).catch(() => parseLandingMode(null)),
     loadCmsDivision(handle),
