@@ -27,6 +27,7 @@ import type { SizeGuide } from "@/lib/size-guides";
 import { SizeGuideModal } from "./size-guide-modal";
 import { SimilarStylesCard } from "./similar-styles-card";
 import { RestockNotify } from "./restock-notify";
+import { FindMySize } from "./find-my-size";
 
 export function PdpClient({
   product,
@@ -201,11 +202,14 @@ export function PdpClient({
 
         {/* Size */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Size</span>
-            <button type="button" onClick={() => setSizeGuide(true)} className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
-              View Size Guide
-            </button>
+            <span className="flex items-center gap-3">
+              {structuredGuide && structuredGuide.rows.length > 0 && <FindMySize guide={structuredGuide} />}
+              <button type="button" onClick={() => setSizeGuide(true)} className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
+                View Size Guide
+              </button>
+            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {color.sizes.map((s) => {
