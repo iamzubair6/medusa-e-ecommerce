@@ -290,6 +290,15 @@ function SearchAutocomplete({
   const [imageOpen, setImageOpen] = useState(false);
   const [active, setActive] = useState(-1);
 
+  // FN keeps the image panel open over the results — auto-open it whenever an
+  // image search becomes active (upload flow or a shared/refreshed URL).
+  useEffect(() => {
+    if (activeImageQuery) {
+      setImageOpen(true);
+      setOpen(false);
+    }
+  }, [activeImageQuery]);
+
   // Debounce the typed value; the debounced value drives useQuery below.
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(term.trim()), SUGGEST_DEBOUNCE_MS);
@@ -362,7 +371,7 @@ function SearchAutocomplete({
       action="/products"
       role="search"
       onSubmit={close}
-      className="relative hidden items-center gap-2 rounded-sm border border-border bg-muted/50 px-3 py-2 md:flex"
+      className="relative hidden items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-sm md:flex"
     >
       <Search className="h-4 w-4 text-muted-foreground" />
       {activeImageQuery && (
@@ -430,6 +439,7 @@ function SearchAutocomplete({
           setImageOpen(false);
           setOpen(true);
         }}
+        activeQueryId={activeImageQuery}
         reduce={reduce}
       />
 
