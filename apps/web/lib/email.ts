@@ -52,6 +52,16 @@ import {
 } from "./email-templates";
 
 /** On-brand shell: ink logo band, claret accent rule, parchment card, footer. */
+/** Escape user-supplied text before interpolating it into email HTML. */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function emailShell(heading: string, bodyHtml: string): string {
   return `
 <div style="background:#eae4d6;padding:36px 16px;font-family:Georgia,'Times New Roman',serif;color:#1c1a17;">

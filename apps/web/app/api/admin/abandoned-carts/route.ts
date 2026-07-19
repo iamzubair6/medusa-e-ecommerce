@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAbandonedCart, markCartReminded } from "@ecom/cms";
-import { sendEmail, emailShell, emailMockMode } from "@/lib/email";
+import { sendEmail, emailShell, emailMockMode, escapeHtml } from "@/lib/email";
 import { requestOrigin } from "@/lib/origin";
 
 const bodySchema = z.object({ id: z.string().min(1).max(120) });
@@ -15,10 +15,10 @@ export async function POST(request: Request) {
   if (cart.recoveredAt) return NextResponse.json({ error: "Already recovered" }, { status: 409 });
 
   const link = `${requestOrigin(request)}/cart`;
-  const items = (Array.isArray(cart.items) ? cart.items : []) as { title: string; quantity: number }[];
+  const items = (Array.isArray(cart.items) ? cart.items : []) as { title?: unknown; quantity?: unknown }[];
   const lines = items
     .slice(0, 8)
-    .map((i) => `<li>${i.quantity}× ${i.title}</li>`)
+    .map((i) => `<li>${Number(i.quantity) || 1}× ${escapeHtml(String(i.title ?? "Item"))}</li>`)
     .join("");
 
   let sent = false;
