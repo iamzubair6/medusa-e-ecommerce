@@ -125,30 +125,32 @@ export function QuickShopModal({
                 </Link>
               </div>
 
-              {colors.length > 1 && (
+              {active?.name && active.name !== "Default" && (
                 <div className="mt-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {active?.name}
+                    Color: <span className="text-foreground">{active.name}</span>
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {colors.map((c, i) => (
-                      <button
-                        key={c.name}
-                        type="button"
-                        aria-label={c.name}
-                        aria-pressed={ci === i}
-                        onClick={() => {
-                          setCi(i);
-                          setSize(null);
-                        }}
-                        className={cn(
-                          "h-7 w-7 rounded-full border transition-transform hover:scale-110 motion-reduce:transition-none",
-                          ci === i ? "border-foreground ring-2 ring-foreground ring-offset-2 ring-offset-card" : "border-border",
-                        )}
-                        style={{ backgroundColor: c.swatch }}
-                      />
-                    ))}
-                  </div>
+                  {colors.length > 1 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {colors.map((c, i) => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          aria-label={c.name}
+                          aria-pressed={ci === i}
+                          onClick={() => {
+                            setCi(i);
+                            setSize(null);
+                          }}
+                          className={cn(
+                            "h-7 w-7 rounded-full border transition-transform hover:scale-110 motion-reduce:transition-none",
+                            ci === i ? "border-foreground ring-2 ring-foreground ring-offset-2 ring-offset-card" : "border-border",
+                          )}
+                          style={{ backgroundColor: c.swatch }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
