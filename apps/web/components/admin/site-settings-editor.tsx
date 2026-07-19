@@ -84,7 +84,8 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [brands, setBrands] = useState(initial.brands);
   const [accents, setAccents] = useState(initial.accentByDivision);
   const [deliveryLine, setDeliveryLine] = useState(initial.deliveryLine);
-  const [sizeGuide, setSizeGuide] = useState(initial.sizeGuide);
+  // Size guide moved to /admin/size-guides; the stored value is preserved but no longer edited here.
+  const [sizeGuide] = useState(initial.sizeGuide);
   const [shippingReturns, setShippingReturns] = useState(initial.shippingReturns);
   const [tileCount, setTileCount] = useState(String(initial.categoryTileCount));
   const [landing, setLanding] = useState(initial.landing);
@@ -202,7 +203,10 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
       <Card className="flex flex-col gap-4 p-6">
         <h3 className="font-display text-lg font-bold">Product page</h3>
         <TextField label="Delivery line (PDP)" value={deliveryLine} onChange={(e) => setDeliveryLine(e.target.value)} />
-        <TextareaField label="Size guide (HTML or text — shown in the PDP modal)" value={sizeGuide} onChange={(e) => setSizeGuide(e.target.value)} placeholder="<table>…</table> or a few lines of guidance" />
+        <p className="text-sm text-muted-foreground">
+          Size charts are managed in <strong>Size guides</strong> (sidebar) — one guide per garment
+          type. A single product can still override it from its own edit page.
+        </p>
         <TextareaField label="Shipping & Returns (HTML or text — PDP accordion)" value={shippingReturns} onChange={(e) => setShippingReturns(e.target.value)} placeholder="Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days." />
         <TextField label="Shop-by-category tiles on the homepage (3–9)" type="number" value={tileCount} onChange={(e) => setTileCount(e.target.value)} />
       </Card>

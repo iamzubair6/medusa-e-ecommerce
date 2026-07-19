@@ -107,7 +107,7 @@ export default async function ProductPage({ params }: { params: Params }) {
           reviewSummary={reviewSummary}
           deliveryLine={site.deliveryLine}
           sizeGuide={product.sizeGuide ? undefined : structuredGuide}
-          sizeGuideContent={product.sizeGuide || site.sizeGuide}
+          sizeGuideContent={product.sizeGuide}
           shippingReturns={site.shippingReturns}
           similarStyles={similar.map((s) => ({ handle: s.handle, title: s.title, thumbnail: s.thumbnail }))}
           styleWith={styleWith}
