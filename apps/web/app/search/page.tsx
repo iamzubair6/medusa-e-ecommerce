@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@ecom/ui";
-import { getVisualSearchQuery, parseVisualQueryParts } from "@ecom/cms";
-import { fetchListing } from "@/lib/commerce";
+import { getSiteSetting, getVisualSearchQuery, parseVisualQueryParts } from "@ecom/cms";
+import { fetchListing, listCategories } from "@/lib/commerce";
+import { parseVisualSearchSettings } from "@/lib/visual-search-settings";
 import { parseListingParams } from "@/lib/listing-params";
 import { FACET_KEYS } from "@/lib/listing-config";
 import { rankByVector } from "@/lib/visual-search";
@@ -16,23 +17,6 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your Image Results" };
 
 const PAGE_RESULTS = 48;
-
-/**
- * Detected garment group → catalog categories (FN behavior: tapping the
- * "bottom" dot shows bottoms, not whatever the crop vaguely resembles). The
- * crop's vector then only orders within the allowlist.
- */
-const PART_CATEGORIES: Record<string, string[]> = {
-  // No "activewear" here — gym items carry activewear+tops or activewear+bottoms,
-  // so the broad handle would leak leggings into a top search (and vice versa).
-  top: ["tops", "bodysuits", "swim"],
-  bottom: ["bottoms", "jeans", "swim"],
-  dress: ["dresses", "matching-sets"],
-  outerwear: ["outerwear"],
-  shoes: ["shoes"],
-  bag: ["accessories"],
-  accessory: ["accessories"],
-};
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
@@ -83,7 +67,22 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
         : 0;
   const selectedPart = partIdx !== undefined ? parts[partIdx]! : undefined;
   const vector = selectedPart?.vector ?? record.vector;
-  const partCategories = selectedPart ? PART_CATEGORIES[selectedPart.label] : undefined;
+
+  // Garment→category scoping comes from the admin-editable "visualSearch"
+  // setting and only handles that EXIST in this catalog count — so the feature
+  // adapts to any store (a beauty-only catalog simply gets vector-only
+  // ranking) instead of assuming this taxonomy.
+  let partCategories: string[] | undefined;
+  if (selectedPart) {
+    const [settings, cats] = await Promise.all([
+      getSiteSetting("visualSearch").catch(() => null),
+      listCategories(),
+    ]);
+    const mapped = parseVisualSearchSettings(settings).partCategories[selectedPart.label] ?? [];
+    const live = new Set(cats.map((c) => c.handle));
+    const present = mapped.filter((h) => live.has(h));
+    partCategories = present.length > 0 ? present : undefined;
+  }
 
   const params = parseListingParams(sp);
   // First landing scopes to the auto-detected division; `division=all` (the ✕
