@@ -9,6 +9,7 @@ const schema = z.object({
   author: z.string().min(1).max(60),
   title: z.string().max(80).optional(),
   body: z.string().min(3).max(2000),
+  photos: z.array(z.string().url().max(600)).max(6).optional(),
 });
 
 /** Submit a product review (public). Auto-approved for the showcase. */

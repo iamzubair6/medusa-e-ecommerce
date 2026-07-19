@@ -452,6 +452,7 @@ export async function createReview(input: {
   author: string;
   title?: string;
   body: string;
+  photos?: string[];
 }) {
   return prisma.productReview.create({
     data: {
@@ -460,6 +461,7 @@ export async function createReview(input: {
       author: input.author,
       title: input.title ?? null,
       body: input.body,
+      photos: (input.photos ?? []).slice(0, 6),
     },
   });
 }

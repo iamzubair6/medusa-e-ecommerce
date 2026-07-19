@@ -242,6 +242,7 @@ model ProductReview {
   author        String
   title         String?
   body          String
+  photos        String[] /// customer photo URLs
   approved      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
