@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Container, Reveal } from "@ecom/ui";
 import { getReviewSummary, listReviews, getSiteSetting } from "@ecom/cms";
 import { parseSiteSettings } from "@/lib/site-settings";
-import { fetchProductByHandle, fetchRelatedProducts, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
+import { fetchProductByHandle, fetchRelatedProducts, fetchListing, getCatalogCardsByHandle, DIVISION_HANDLES, type StoreProduct } from "@/lib/commerce";
 import { lookForProduct, parseShopTheLook } from "@/lib/shop-the-look";
 import { parseSizeGuides, resolveSizeGuide } from "@/lib/size-guides";
 import { similarToProduct } from "@/lib/visual-search";
@@ -58,15 +58,16 @@ export default async function ProductPage({ params }: { params: Params }) {
   // The look's tagged pieces as full cards (colors/sizes/variants), for the
   // Shop-the-Look quick-shop dots and the "Style it with" row.
   const allLookHandles = [...new Set((look?.hotspots ?? []).map((h) => h.productHandle))];
-  const lookCards =
-    allLookHandles.length > 0
-      ? (await fetchListing({}, { limit: 200 })).products.filter((p) => allLookHandles.includes(p.handle))
-      : [];
-  const lookCardByHandle = new Map(lookCards.map((p) => [p.handle, p]));
+  const lookCardByHandle =
+    allLookHandles.length > 0 ? await getCatalogCardsByHandle() : new Map<string, StoreProduct>();
   const lookProducts = (look?.hotspots ?? [])
     .map((h) => lookCardByHandle.get(h.productHandle))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
-  const styleWith = lookCards.filter((p) => p.handle !== handle).slice(0, 4);
+    .filter((p): p is StoreProduct => Boolean(p));
+  const styleWith = allLookHandles
+    .filter((h) => h !== handle)
+    .map((h) => lookCardByHandle.get(h))
+    .filter((p): p is StoreProduct => Boolean(p))
+    .slice(0, 4);
   const trending = trendingResult.products.filter((p) => p.handle !== handle).slice(0, 4);
   const reviews = reviewsData.items.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }));
   const priceNumber = Number(product.price.replace(/[^0-9.]/g, "")) || undefined;

@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+/** A 6-digit hex color (`#7a2230`) or empty string (= use the default claret). */
+const accentHex = z
+  .string()
+  .regex(/^(#[0-9a-fA-F]{6})?$/, "Use a 6-digit hex color like #7a2230, or leave empty.")
+  .default("");
+
 /**
  * Editable storefront content (admin → /admin/site, stored in CMS SiteSetting
  * "site"). Replaces hardcoded announcement / marquee / brand names / delivery line
@@ -29,16 +35,17 @@ export const siteSettingsSchema = z.object({
       beauty: z.string().max(40).default("MAISON BEAUTY"),
     })
     .default({}),
-  // Optional accent color per division (hex). Empty = the brand claret. Lets a
-  // division feel distinct without abandoning the owner-approved default.
+  // Optional accent color per division (6-digit hex, or empty for the brand
+  // claret). Rejecting bad values gives the admin feedback instead of a silent
+  // no-op. Lets a division feel distinct without abandoning the default.
   accentByDivision: z
     .object({
-      women: z.string().max(9).default(""),
-      plus: z.string().max(9).default(""),
-      men: z.string().max(9).default(""),
-      sport: z.string().max(9).default(""),
-      kids: z.string().max(9).default(""),
-      beauty: z.string().max(9).default(""),
+      women: accentHex,
+      plus: accentHex,
+      men: accentHex,
+      sport: accentHex,
+      kids: accentHex,
+      beauty: accentHex,
     })
     .default({}),
   deliveryLine: z.string().max(200).default("Standard delivery in 3–5 days · Free shipping over ৳2,000"),
