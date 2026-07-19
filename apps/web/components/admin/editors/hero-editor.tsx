@@ -172,10 +172,9 @@ export function HeroEditor({ sectionId, config }: { sectionId: string; config: H
         <Button type="submit" variant="gold" loading={save.isPending}>
           Save hero
         </Button>
-        {save.isSuccess && <span className="text-sm text-gold">Saved</span>}
-        {(validationError || save.isError) && (
+        {validationError && (
           <span className="text-sm text-destructive">
-            {validationError ?? (save.error as Error)?.message}
+            {validationError}
           </span>
         )}
       </div>

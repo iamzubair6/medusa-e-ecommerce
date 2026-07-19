@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -9,6 +8,7 @@ import { popupConfigSchema, type PopupConfig } from "@ecom/cms";
 import { TextField, TextareaField, CheckboxField } from "../fields";
 import { EnumCombobox } from "../combobox";
 import { MediaUploadField } from "../media-upload-field";
+import { useToast } from "../toast";
 
 export interface AdminPopup {
   id: string;
@@ -36,6 +36,7 @@ interface Form {
 
 export function PopupEditor({ popup }: { popup: AdminPopup }) {
   const router = useRouter();
+  const toast = useToast();
   const { register, handleSubmit, watch, setValue } = useForm<Form>({
     defaultValues: {
       name: popup.name,
@@ -54,7 +55,6 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
     },
   });
   const trigger = watch("trigger");
-  const [error, setError] = useState<string | null>(null);
 
   const save = useMutation({
     mutationFn: async (f: Form) => {
@@ -78,13 +78,14 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
       if (!res.ok) throw new Error("Save failed");
       return res.json();
     },
-    onSuccess: () => router.refresh(),
+    onSuccess: () => {
+      toast.success("Popup saved.");
+      router.refresh();
+    },
+    onError: (e) => toast.error((e as Error).message || "Save failed."),
   });
 
-  const onSubmit = (f: Form) => {
-    setError(null);
-    save.mutate(f, { onError: (e) => setError((e as Error).message) });
-  };
+  const onSubmit = (f: Form) => save.mutate(f);
 
   return (
     <Card className="p-5">
@@ -136,8 +137,6 @@ export function PopupEditor({ popup }: { popup: AdminPopup }) {
           <Button type="submit" variant="gold" loading={save.isPending}>
             Save popup
           </Button>
-          {save.isSuccess && <span className="text-sm text-gold">Saved</span>}
-          {error && <span className="text-sm text-destructive">{error}</span>}
         </div>
       </form>
     </Card>

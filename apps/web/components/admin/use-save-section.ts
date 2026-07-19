@@ -2,10 +2,12 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useToast } from "./toast";
 
 /** Saves a section's validated config to the admin API and refreshes the route. */
 export function useSaveSection(sectionId: string) {
   const router = useRouter();
+  const toast = useToast();
   return useMutation({
     mutationFn: async (config: unknown) => {
       const res = await fetch(`/api/admin/sections/${sectionId}`, {
@@ -19,6 +21,10 @@ export function useSaveSection(sectionId: string) {
       }
       return res.json() as Promise<{ ok: true }>;
     },
-    onSuccess: () => router.refresh(),
+    onSuccess: () => {
+      toast.success("Saved.");
+      router.refresh();
+    },
+    onError: (e) => toast.error((e as Error).message || "Save failed."),
   });
 }

@@ -121,9 +121,8 @@ export function ProductRowEditor({ sectionId, config }: { sectionId: string; con
         <Button type="submit" variant="gold" loading={save.isPending}>
           Save
         </Button>
-        {save.isSuccess && <span className="text-sm text-gold">Saved</span>}
-        {(error || save.isError) && (
-          <span className="text-sm text-destructive">{error ?? (save.error as Error)?.message}</span>
+        {error && (
+          <span className="text-sm text-destructive">{error}</span>
         )}
       </div>
     </form>
