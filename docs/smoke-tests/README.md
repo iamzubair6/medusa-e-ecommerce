@@ -17,5 +17,6 @@ you go. Files that need a free account signup say so at the top.
 | #126–#128 Discounts & promo editing + price lists, campaigns, leads, phone capture | [126-128-promotions.md](./126-128-promotions.md) | No |
 | #129–#137 Campaigns live, free delivery, promo chips, phone reward, email templates v2, recovery v2, consent | [129-137-round6.md](./129-137-round6.md) | Brevo for email tests |
 | #138–#143 Campaign LIVE fix, enforced free delivery, offers rework, support codes, HTML emails, admin selects | [138-143-round7.md](./138-143-round7.md) | Brevo for email tests |
+| #144–#147 Stock alerts, PDP alignment, restock centre, saved pieces, master email | [144-147-round8.md](./144-147-round8.md) | Brevo for email tests |
 
 Older rounds: [SMOKE_TEST_18-32.md](./SMOKE_TEST_18-32.md).
