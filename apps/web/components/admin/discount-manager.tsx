@@ -7,22 +7,10 @@ import { Badge, Button, Card, ConfirmDialog, cn } from "@ecom/ui";
 import { TextField, SelectField, CheckboxField } from "./fields";
 import { DatePicker } from "./date-picker";
 import { Combobox, EnumCombobox } from "./combobox";
+import { PromoEditForm } from "./promo-edit-form";
 import { useToast } from "./toast";
+import type { AdminPromotionRow as Promotion } from "@/lib/medusa-admin";
 
-interface Promotion {
-  id: string;
-  code: string;
-  status: string;
-  automatic: boolean;
-  kind: string;
-  display: string;
-  startsAt: string | null;
-  endsAt: string | null;
-  createdAt: string | null;
-  usage: { kind: "total" | "per_customer"; limit: number; used: number | null } | null;
-  targetKind: "order" | "category" | "collection" | "shipping";
-  targetIds: string[];
-}
 interface Option {
   id: string;
   name: string;
@@ -139,30 +127,12 @@ export function DiscountManager({
     setConfirmingDelete(null);
   };
 
-  const fmtDate = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
-
   const targetLabel = (p: Promotion) => {
-    if (p.targetKind === "shipping") return "Shipping cost";
-    if (p.targetKind === "order") return "Entire order";
+    if (p.targetKind === "shipping") return "shipping cost";
+    if (p.targetKind === "order") return "the entire order";
     const pool = p.targetKind === "category" ? categories : collections;
     const names = p.targetIds.map((id) => pool.find((o) => o.id === id)?.name ?? `(deleted ${p.targetKind})`);
-    return names.join(", ");
-  };
-
-  const scheduleLabel = (p: Promotion) => {
-    const from = fmtDate(p.startsAt);
-    const until = fmtDate(p.endsAt);
-    if (from && until) return `${from} → ${until}`;
-    if (from) return `From ${from}`;
-    if (until) return `Until ${until}`;
-    return "Always on (no dates)";
-  };
-
-  const usageLabel = (p: Promotion) => {
-    if (!p.usage) return "Unlimited";
-    if (p.usage.kind === "total") return `${p.usage.used ?? 0} of ${p.usage.limit} total uses`;
-    return `${p.usage.limit} per customer${p.usage.limit === 1 ? " (one-time)" : ""}`;
+    return `${p.targetKind === "category" ? "category" : "collection"} ${names.join(", ")}`;
   };
 
   return (
@@ -294,7 +264,7 @@ export function DiscountManager({
                       type="button"
                       onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
                       aria-expanded={expandedId === p.id}
-                      aria-label={`${expandedId === p.id ? "Hide" : "Show"} details for ${p.code}`}
+                      aria-label={`${expandedId === p.id ? "Close" : "Open"} editor for ${p.code}`}
                       className="flex cursor-pointer items-center gap-1.5 hover:text-gold"
                     >
                       <ChevronRight
@@ -325,38 +295,15 @@ export function DiscountManager({
                 {expandedId === p.id && (
                   <tr className="border-b border-border bg-muted/30 last:border-0">
                     <td colSpan={5} className="px-4 py-4">
-                      <dl className="grid gap-x-8 gap-y-2 text-xs sm:grid-cols-2 lg:grid-cols-3 [&_dt]:font-semibold [&_dt]:uppercase [&_dt]:tracking-wide [&_dt]:text-muted-foreground [&_dd]:mt-0.5">
-                        <div>
-                          <dt>How it applies</dt>
-                          <dd>
-                            {p.automatic
-                              ? "Automatically — added to every eligible cart, no code needed"
-                              : "Customer enters the code at checkout"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Applies to</dt>
-                          <dd>{targetLabel(p)}</dd>
-                        </div>
-                        <div>
-                          <dt>Schedule</dt>
-                          <dd>{scheduleLabel(p)}</dd>
-                        </div>
-                        <div>
-                          <dt>Usage limit</dt>
-                          <dd>{usageLabel(p)}</dd>
-                        </div>
-                        <div>
-                          <dt>Created</dt>
-                          <dd>{fmtDate(p.createdAt) ?? "—"}</dd>
-                        </div>
-                      </dl>
-                      {p.automatic && p.status === "active" && (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          This promo is <strong>active and automatic</strong> — shoppers get it without entering
-                          anything. Disable it if the discount shouldn't apply on its own.
-                        </p>
-                      )}
+                      <PromoEditForm
+                        promo={p}
+                        appliesTo={targetLabel(p)}
+                        onSaved={() => {
+                          setExpandedId(null);
+                          router.refresh();
+                        }}
+                        onCancel={() => setExpandedId(null)}
+                      />
                     </td>
                   </tr>
                 )}
