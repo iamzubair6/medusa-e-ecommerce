@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAbandonedCart, markCartReminded } from "@ecom/cms";
 import { sendEmail, renderEmail, emailMockMode } from "@/lib/email";
+import { recoveryIncentiveText } from "@/lib/recovery-incentive";
 import { requestOrigin } from "@/lib/origin";
 
 const bodySchema = z.object({ id: z.string().min(1).max(120) });
@@ -24,12 +25,13 @@ export async function POST(request: Request) {
 
   let sent = false;
   if (!emailMockMode()) {
-    // Admin-editable "abandonedCart" template.
+    // Admin-editable "abandonedCart" template (+ optional one-time discount).
     const { subject, html } = await renderEmail("abandonedCart", {
       items: lines,
       count: String(cart.itemCount),
       total: cart.total ?? "",
       cartUrl: link,
+      incentive: await recoveryIncentiveText(cart.id),
     });
     sent = await sendEmail({ to: cart.email, subject, html });
   }

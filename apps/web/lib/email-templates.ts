@@ -55,7 +55,7 @@ export const EMAIL_TEMPLATE_META: Record<EmailTemplateType, { label: string; pla
   restock: { label: "Back in stock", placeholders: ["{product}", "{size}", "{url}"] },
   abandonedCart: {
     label: "Abandoned cart recovery",
-    placeholders: ["{items}", "{count}", "{total}", "{cartUrl}"],
+    placeholders: ["{items}", "{count}", "{total}", "{cartUrl}", "{incentive}"],
   },
 };
 
@@ -117,6 +117,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
     heading: "Still thinking it over?",
     body: `<p style="margin:0 0 14px;font-size:15px;">Your bag is exactly as you left it — here's what's inside:</p>
 <p style="margin:0 0 14px;font-size:14px;color:#5c564a;">{items}</p>
+<p style="margin:0 0 14px;font-size:14px;font-weight:bold;color:#7a1f2b;">{incentive}</p>
 <p style="margin:0 0 18px;text-align:center;"><a href="{cartUrl}" style="display:inline-block;padding:13px 34px;background:#7a1f2b;color:#ffffff;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">Complete your order</a></p>
 <p style="margin:0;font-size:13px;color:#8a8272;">Checkout takes under a minute — Cash on Delivery available.</p>`,
   },
