@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Card } from "@ecom/ui";
-import { TextField, TextareaField, CheckboxField } from "./fields";
+import { TextField, CheckboxField } from "./fields";
 import { MediaUploadField } from "./media-upload-field";
 import { useToast } from "./toast";
 import type { SiteSettings, Landing } from "@/lib/site-settings";
@@ -93,10 +93,11 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
   const [mqItems, setMqItems] = useState(initial.marquee.items.join(", "));
   const [brands, setBrands] = useState(initial.brands);
   const [accents, setAccents] = useState(initial.accentByDivision);
-  const [deliveryLine, setDeliveryLine] = useState(initial.deliveryLine);
-  // Size guide moved to /admin/size-guides; the stored value is preserved but no longer edited here.
+  // Delivery line + Shipping & Returns moved to /admin/shipping, size guide to
+  // /admin/size-guides; the stored values are preserved but no longer edited here.
+  const [deliveryLine] = useState(initial.deliveryLine);
   const [sizeGuide] = useState(initial.sizeGuide);
-  const [shippingReturns, setShippingReturns] = useState(initial.shippingReturns);
+  const [shippingReturns] = useState(initial.shippingReturns);
   const [tileCount, setTileCount] = useState(String(initial.categoryTileCount));
   const [saving, setSaving] = useState(false);
 
@@ -235,14 +236,13 @@ export function SiteSettingsEditor({ initial }: { initial: SiteSettings }) {
       </Card>
 
       <Card className="flex flex-col gap-4 p-6">
-        <h3 className="font-display text-lg font-bold">Product page</h3>
-        <TextField label="Delivery line (PDP)" value={deliveryLine} onChange={(e) => setDeliveryLine(e.target.value)} />
-        <p className="text-sm text-muted-foreground">
-          Size charts are managed in <strong>Size guides</strong> (sidebar) — one guide per garment
-          type. A single product can still override it from its own edit page.
-        </p>
-        <TextareaField label="Shipping & Returns (HTML or text — PDP accordion)" value={shippingReturns} onChange={(e) => setShippingReturns(e.target.value)} placeholder="Standard delivery in 3–5 days. Cash on Delivery available. Free returns within 30 days." />
+        <h3 className="font-display text-lg font-bold">Homepage</h3>
         <TextField label="Shop-by-category tiles on the homepage (3–9)" type="number" value={tileCount} onChange={(e) => setTileCount(e.target.value)} />
+        <p className="text-sm text-muted-foreground">
+          Product-page content lives with its own settings: the <strong>delivery line</strong> and{" "}
+          <strong>Shipping &amp; Returns</strong> text are edited in <strong>Shipping</strong>{" "}
+          (sidebar), size charts in <strong>Size guides</strong>.
+        </p>
       </Card>
 
       <Card className="flex flex-col gap-5 p-6">

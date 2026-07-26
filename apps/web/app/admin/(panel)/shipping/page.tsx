@@ -2,20 +2,24 @@ import { getSiteSetting } from "@ecom/cms";
 import { ExternalLink } from "lucide-react";
 import { AdminHeader } from "@/components/admin/page-header";
 import { CourierSettingsCard } from "@/components/admin/courier-settings-card";
+import { DeliveryContentCard } from "@/components/admin/delivery-content-card";
 import { ShippingMethodsEditor } from "@/components/admin/shipping-methods-editor";
 import { parseCheckoutConfig } from "@/lib/checkout-config";
 import { parseCourierSettings } from "@/lib/courier-settings";
+import { parseSiteSettings } from "@/lib/site-settings";
 import { listShippingRates, listShippingZones } from "@/lib/medusa-admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminShippingPage() {
-  const [raw, rates, zones, courierRaw] = await Promise.all([
+  const [raw, rates, zones, courierRaw, siteRaw] = await Promise.all([
     getSiteSetting("checkout").catch(() => null),
     listShippingRates(),
     listShippingZones(),
     getSiteSetting("courier").catch(() => null),
+    getSiteSetting("site").catch(() => null),
   ]);
+  const site = parseSiteSettings(siteRaw);
   const steadfastKeysPresent = Boolean(
     process.env.STEADFAST_API_KEY && process.env.STEADFAST_SECRET_KEY,
   );
@@ -38,6 +42,7 @@ export default async function AdminShippingPage() {
       />
       <div className="p-8">
         <CourierSettingsCard initial={parseCourierSettings(courierRaw)} steadfastKeysPresent={steadfastKeysPresent} />
+        <DeliveryContentCard initial={{ deliveryLine: site.deliveryLine, shippingReturns: site.shippingReturns }} />
         <ShippingMethodsEditor zones={zones} rates={rates} config={parseCheckoutConfig(raw)} />
       </div>
     </>
