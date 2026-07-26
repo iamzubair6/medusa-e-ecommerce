@@ -53,6 +53,7 @@ export interface ProductInitial {
   material?: string;
   care?: string;
   sizeGuide?: string;
+  freeDelivery?: boolean;
   colors: {
     name: string;
     swatch: string;
@@ -116,6 +117,7 @@ export function ProductCreator({
   const [fabric, setFabric] = useState(initial?.fabric?.join(", ") ?? "");
   const [print, setPrint] = useState(initial?.print?.join(", ") ?? "");
   const [material, setMaterial] = useState(initial?.material ?? "");
+  const [freeDelivery, setFreeDelivery] = useState(initial?.freeDelivery ?? false);
   const [care, setCare] = useState(initial?.care ?? "");
   const [sizeGuide, setSizeGuide] = useState(initial?.sizeGuide ?? "");
   const [colors, setColors] = useState<FormColor[]>(
@@ -203,6 +205,7 @@ export function ProductCreator({
       material: material.trim() || undefined,
       care: care.trim() || undefined,
       sizeGuide: sizeGuide.trim() || undefined,
+      freeDelivery: freeDelivery || undefined,
       offer:
         offerType === "none"
           ? undefined
@@ -318,6 +321,11 @@ export function ProductCreator({
           <TextField label="Fabric (comma-separated)" value={fabric} onChange={(e) => setFabric(e.target.value)} placeholder="Cotton, Linen, Satin" />
           <TextField label="Print (comma-separated)" value={print} onChange={(e) => setPrint(e.target.value)} placeholder="Floral, Solid, Striped" />
         </div>
+        <CheckboxField
+          label="Free delivery badge (shown on the card + product page)"
+          checked={freeDelivery}
+          onChange={(e) => setFreeDelivery(e.target.checked)}
+        />
         <RichTextField label="Material / composition" value={material} onChange={setMaterial} />
         <RichTextField label="Care" value={care} onChange={setCare} />
         <RichTextField

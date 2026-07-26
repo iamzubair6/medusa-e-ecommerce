@@ -26,6 +26,9 @@ export const productSchema = z.object({
   material: z.string().max(300).optional(),
   care: z.string().max(300).optional(),
   sizeGuide: z.string().max(6000).optional(), // per-product size chart (HTML/text); falls back to the global one
+  /** "Free delivery" badge on the PDP/card. Informational — order-level free
+   *  shipping is enforced by the shipping rate's free-over threshold. */
+  freeDelivery: z.boolean().optional(),
 
   colors: z
     .array(
