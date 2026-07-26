@@ -1633,6 +1633,18 @@ export async function listAllCustomerPhones(): Promise<string[]> {
   return [...phones];
 }
 
+/** Every customer with a REAL email (synthetic phone-signup addresses are
+ *  already surfaced as null), with name for {name} personalisation. Deduped. */
+export async function listAllCustomerEmails(): Promise<{ email: string; name: string }[]> {
+  const byEmail = new Map<string, string>();
+  for await (const page of iterateCustomerPages()) {
+    for (const c of page) {
+      if (c.email && !byEmail.has(c.email)) byEmail.set(c.email, c.name);
+    }
+  }
+  return [...byEmail.entries()].map(([email, name]) => ({ email, name }));
+}
+
 /**
  * Resolve phone numbers for specific customer IDs server-side — the client is
  * never trusted with raw phone lists. Chunked to keep query strings sane.
