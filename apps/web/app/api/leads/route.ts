@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { captureGuestLead } from "@ecom/cms";
+import { sendTemplateEmail } from "@/lib/email";
+import { requestOrigin } from "@/lib/origin";
 
 const leadSchema = z.object({
   email: z.string().email().optional(),
@@ -28,5 +30,15 @@ export async function POST(request: Request) {
   }
 
   const lead = await captureGuestLead(parsed.data);
+
+  // First-time newsletter/popup signups get the welcome letter (best-effort,
+  // never blocks the capture; checkout-step leads go through cart recovery).
+  const source = parsed.data.source ?? "";
+  if (lead.created && parsed.data.email && source !== "checkout-step") {
+    await sendTemplateEmail("newsletter", parsed.data.email, {
+      email: parsed.data.email,
+      offersUrl: `${requestOrigin(request)}/offers`,
+    }).catch(() => false);
+  }
   return NextResponse.json({ id: lead.id }, { status: 201 });
 }

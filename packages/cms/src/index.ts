@@ -82,9 +82,10 @@ export async function captureGuestLead(input: {
     source: input.source ?? null,
   };
 
-  return existing
-    ? prisma.guestLead.update({ where: { id: existing.id }, data })
-    : prisma.guestLead.create({ data });
+  const lead = existing
+    ? await prisma.guestLead.update({ where: { id: existing.id }, data })
+    : await prisma.guestLead.create({ data });
+  return { ...lead, created: !existing };
 }
 
 /**

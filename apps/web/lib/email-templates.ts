@@ -20,6 +20,7 @@ export const EMAIL_TEMPLATE_TYPES = [
   "welcome",
   "restock",
   "abandonedCart",
+  "newsletter",
 ] as const;
 export type EmailTemplateType = (typeof EMAIL_TEMPLATE_TYPES)[number];
 
@@ -37,6 +38,7 @@ export const emailTemplatesSchema = z.object({
   welcome: emailTemplateSchema,
   restock: emailTemplateSchema,
   abandonedCart: emailTemplateSchema,
+  newsletter: emailTemplateSchema,
 });
 
 export type EmailTemplate = z.infer<typeof emailTemplateSchema>;
@@ -57,6 +59,7 @@ export const EMAIL_TEMPLATE_META: Record<EmailTemplateType, { label: string; pla
     label: "Abandoned cart recovery",
     placeholders: ["{items}", "{count}", "{total}", "{cartUrl}", "{incentive}"],
   },
+  newsletter: { label: "Newsletter signup (email popup)", placeholders: ["{email}", "{offersUrl}"] },
 };
 
 export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
@@ -120,6 +123,13 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 <p style="margin:0 0 14px;font-size:14px;font-weight:bold;color:#7a1f2b;">{incentive}</p>
 <p style="margin:0 0 18px;text-align:center;"><a href="{cartUrl}" style="display:inline-block;padding:13px 34px;background:#7a1f2b;color:#ffffff;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">Complete your order</a></p>
 <p style="margin:0;font-size:13px;color:#8a8272;">Checkout takes under a minute — Cash on Delivery available.</p>`,
+  },
+  newsletter: {
+    subject: "You're on the list",
+    heading: "Welcome to the inner circle.",
+    body: `<p style="margin:0 0 14px;font-size:15px;">Thank you for joining the Maison list. You'll be first to hear about new drops, private offers and the occasional letter worth reading.</p>
+<p style="margin:0 0 18px;text-align:center;"><a href="{offersUrl}" style="display:inline-block;padding:13px 34px;background:#7a1f2b;color:#ffffff;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">See current offers</a></p>
+<p style="margin:0;font-size:13px;color:#8a8272;">Too many letters? Just reply with "unsubscribe" and we'll quietly stop.</p>`,
   },
 };
 
