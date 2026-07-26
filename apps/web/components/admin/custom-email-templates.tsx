@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Send } from "lucide-react";
+import { Plus, Pencil, Trash2, Send, CopyPlus } from "lucide-react";
 import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
 import { HtmlBodyField } from "./html-body-field";
@@ -136,6 +136,18 @@ export function CustomEmailTemplates({ initial, adminEmail }: { initial: CustomE
               <p className="truncate text-xs text-muted-foreground">{t.subject}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                aria-label={`Duplicate template ${t.name}`}
+                title="Start a new template from this one"
+                onClick={() => {
+                  reset({ name: `${t.name} (copy)`, subject: t.subject, heading: t.heading, body: t.body });
+                  setEditingId("new");
+                }}
+                className="cursor-pointer p-2 text-muted-foreground hover:text-foreground"
+              >
+                <CopyPlus className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 aria-label={`Edit template ${t.name}`}
