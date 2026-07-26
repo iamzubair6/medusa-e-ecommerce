@@ -7,6 +7,24 @@ phases (0–5) live in `ROADMAP.md`; deferred production choices in
 
 Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold (needs a decision)
 
+## Current standing (updated 2026-07-27, shipped through `1de7aa3`)
+
+Everything on the board through **#152** is built and pushed (auto-deployed to
+Vercel/Render). **Pending, in priority order:**
+
+1. **Owner smoke check** — walk `docs/smoke-tests/` rounds in order:
+   `126-128-promotions.md` → `129-137-round6.md` → `138-143-round7.md` → `144-147-round8.md`.
+2. **Live one-offs after this deploy**: confirm `NEXT_PUBLIC_SITE_URL` in Vercel
+   (email footer links); paste `docs/email-templates/maison-master.html` into
+   live /admin/email-templates as a custom template; set "Free over ৳X" on live
+   shipping rates when wanted.
+3. **Next builds (owner to say go):**
+   - **POS phase 1** — plan in `docs/POS_PLAN.md` (also fixes: online orders
+     don't decrement sizeStock yet).
+   - **Dynamic email phases 1–3** — plan in `docs/EMAIL_TEMPLATES_PLAN.md`
+     (frames library → body-template library w/ {content} slot → unified campaigns).
+4. Older open item: #109 brand/theme audit follow-ups pending owner priority.
+
 ---
 
 ## Task board (the 15 tasks) — durable record
