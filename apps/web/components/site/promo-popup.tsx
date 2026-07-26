@@ -9,6 +9,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { Button, Input } from "@ecom/ui";
 import type { PopupConfig } from "@ecom/cms";
+import { CONSENT_EVENT, getConsent } from "./cookie-consent";
 
 type Trigger = "TIMER" | "SCROLL" | "EXIT_INTENT" | "IMMEDIATE";
 
@@ -48,13 +49,29 @@ export function PromoPopup({ id, trigger, config }: PromoPopupProps) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem("maison_phone_prompt") === "done") {
-      setReady(true);
-      return;
-    }
-    const on = () => setReady(true);
-    window.addEventListener("maison:phone-resolved", on, { once: true });
-    return () => window.removeEventListener("maison:phone-resolved", on);
+    // Marketing popup: needs cookie consent ("essential only" suppresses it),
+    // then waits for the first-visit phone popup to resolve.
+    const armAfterPhone = () => {
+      if (localStorage.getItem("maison_phone_prompt") === "done") {
+        setReady(true);
+        return undefined;
+      }
+      const on = () => setReady(true);
+      window.addEventListener("maison:phone-resolved", on, { once: true });
+      return () => window.removeEventListener("maison:phone-resolved", on);
+    };
+    const choice = getConsent();
+    if (choice === "all") return armAfterPhone();
+    if (choice === "essential") return;
+    let inner: (() => void) | undefined;
+    const onConsent = (e: Event) => {
+      if ((e as CustomEvent).detail === "all") inner = armAfterPhone();
+    };
+    window.addEventListener(CONSENT_EVENT, onConsent);
+    return () => {
+      window.removeEventListener(CONSENT_EVENT, onConsent);
+      inner?.();
+    };
   }, []);
 
   const togglePref = (p: string) =>

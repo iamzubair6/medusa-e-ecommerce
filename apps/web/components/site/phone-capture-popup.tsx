@@ -8,6 +8,7 @@ import { Button } from "@ecom/ui";
 import { PhoneInput } from "./phone-input";
 import { OtpInput } from "./otp-input";
 import { DEFAULT_PHONE_CAPTURE_SETTINGS, type PhoneCaptureSettings } from "@/lib/phone-capture-settings";
+import { CONSENT_EVENT, getConsent } from "./cookie-consent";
 
 const KEY = "maison_phone_prompt";
 export const PHONE_RESOLVED_EVENT = "maison:phone-resolved";
@@ -35,14 +36,31 @@ export function PhoneCapturePopup({ settings = DEFAULT_PHONE_CAPTURE_SETTINGS }:
   useEffect(() => {
     if (!settings.enabled || typeof window === "undefined" || localStorage.getItem(KEY) === "done") return;
     let cancelled = false;
-    fetch("/api/account/me")
-      .then((r) => r.json())
-      .then((d: { loggedIn?: boolean }) => {
-        if (cancelled) return;
-        if (d.loggedIn) localStorage.setItem(KEY, "done");
-        else setTimeout(() => !cancelled && setOpen(true), 2500);
-      })
-      .catch(() => !cancelled && setTimeout(() => setOpen(true), 2500));
+
+    // Marketing popups wait for cookie consent; "essential only" suppresses them.
+    const start = () => {
+      if (cancelled) return;
+      fetch("/api/account/me")
+        .then((r) => r.json())
+        .then((d: { loggedIn?: boolean }) => {
+          if (cancelled) return;
+          if (d.loggedIn) localStorage.setItem(KEY, "done");
+          else setTimeout(() => !cancelled && setOpen(true), 2500);
+        })
+        .catch(() => !cancelled && setTimeout(() => setOpen(true), 2500));
+    };
+    const consent = getConsent();
+    if (consent === "all") start();
+    else if (consent === null) {
+      const onConsent = (e: Event) => {
+        if ((e as CustomEvent).detail === "all") start();
+      };
+      window.addEventListener(CONSENT_EVENT, onConsent);
+      return () => {
+        cancelled = true;
+        window.removeEventListener(CONSENT_EVENT, onConsent);
+      };
+    }
     return () => {
       cancelled = true;
     };
