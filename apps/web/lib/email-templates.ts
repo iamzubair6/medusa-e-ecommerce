@@ -147,7 +147,21 @@ const escapeHtml = (s: string) =>
  * source (blocks customer-controlled names from injecting markup into emails).
  */
 export function fillPlaceholders(text: string, vars: Record<string, string>): string {
-  return text.replace(/\{(\w+)\}/g, (m, key: string) => (vars[key] !== undefined ? escapeHtml(vars[key]) : m));
+  // Both {name} and {{name}} (pasted templates from visual builders use the
+  // double-brace style) — unknown tokens stay visible so mistakes surface.
+  return text.replace(
+    /\{\{(\w+)\}\}|\{(\w+)\}/g,
+    (m, k2: string | undefined, k1: string | undefined) => {
+      const key = k2 ?? k1 ?? "";
+      return vars[key] !== undefined ? escapeHtml(vars[key]) : m;
+    },
+  );
+}
+
+/** Full HTML documents are sent exactly as authored — no brand shell (#142). */
+export function isFullHtmlDocument(html: string): boolean {
+  const head = html.trimStart().slice(0, 200).toLowerCase();
+  return head.startsWith("<!doctype") || head.startsWith("<html");
 }
 
 // --- Custom templates (owner-created, SiteSetting "customEmailTemplates") ----
@@ -160,7 +174,8 @@ export const customEmailTemplateSchema = z.object({
   name: z.string().min(1).max(80),
   subject: z.string().min(1).max(150),
   heading: z.string().min(1).max(120),
-  body: z.string().min(1).max(20000),
+  /** Fragment (brand shell) or a FULL html document (sent as-is, #142). */
+  body: z.string().min(1).max(200_000),
 });
 export type CustomEmailTemplate = z.infer<typeof customEmailTemplateSchema>;
 
