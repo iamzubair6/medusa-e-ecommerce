@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, TicketPercent, Send } from "lucide-react";
+import { Mail, TicketPercent, Send, Phone } from "lucide-react";
 import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
 import { useToast } from "./toast";
@@ -80,6 +80,28 @@ export function AbandonedCartsClient({ rows, discountPercent }: { rows: Abandone
     setBulkRunning(false);
     toast.success(`Recovery sent to ${ok} of ${unreminded.length} carts.`);
     router.refresh();
+  };
+
+  // Support-call flow (#141): fetch/create the cart's one-time code and copy it
+  // so an agent can read it to the customer on the phone.
+  const [fetchingCode, setFetchingCode] = useState<string | null>(null);
+  const getCode = async (id: string) => {
+    setFetchingCode(id);
+    try {
+      const res = await fetch("/api/admin/abandoned-carts/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { code?: string; percent?: number; error?: string };
+      if (!res.ok || !d.code) throw new Error(d.error ?? "Could not get the code");
+      await navigator.clipboard.writeText(d.code).catch(() => undefined);
+      toast.success(`${d.code} — ${d.percent}% off, one-time. Copied to clipboard.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setFetchingCode(null);
+    }
   };
 
   const savePercent = async () => {
@@ -168,6 +190,15 @@ export function AbandonedCartsClient({ rows, discountPercent }: { rows: Abandone
                     {r.reminded && " · reminded"}
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={fetchingCode === r.id}
+                  onClick={() => getCode(r.id)}
+                  title="Get this cart's one-time discount code (for a support call)"
+                >
+                  <Phone className="mr-1 h-4 w-4" /> Code
+                </Button>
                 <Button
                   variant="gold"
                   size="sm"

@@ -24,16 +24,26 @@ export async function getAbandonedRecovery(): Promise<AbandonedRecovery> {
 
 const SECRET = process.env.ADMIN_SESSION_SECRET || "dev-phone-secret";
 
-/** One-time AB-XXXXXX code for a cart; re-sends reuse the same code. Returns
- *  ready-to-embed sentence, or "" when the incentive is off / promo fails. */
+/** The cart's one-time AB-XXXXXX code at the configured percent, creating the
+ *  promo if needed. Null when the incentive is off. Used by the recovery email
+ *  AND by support staff reading the code out over the phone (#141). */
+export async function recoveryCodeForCart(
+  cartRecordId: string,
+): Promise<{ code: string; percent: number } | null> {
+  const { discountPercent } = await getAbandonedRecovery();
+  if (discountPercent <= 0) return null;
+  const digest = crypto.createHmac("sha256", SECRET).update(`recovery:${cartRecordId}`).digest("hex");
+  const code = `AB-${digest.slice(0, 6).toUpperCase()}`;
+  await ensurePersonalPromo(code, "percentage", discountPercent);
+  return { code, percent: discountPercent };
+}
+
+/** Ready-to-embed sentence for the recovery email, or "" when off/failed. */
 export async function recoveryIncentiveText(cartRecordId: string): Promise<string> {
   try {
-    const { discountPercent } = await getAbandonedRecovery();
-    if (discountPercent <= 0) return "";
-    const digest = crypto.createHmac("sha256", SECRET).update(`recovery:${cartRecordId}`).digest("hex");
-    const code = `AB-${digest.slice(0, 6).toUpperCase()}`;
-    await ensurePersonalPromo(code, "percentage", discountPercent);
-    return `Come back today and take ${discountPercent}% off — use code ${code} at checkout (one-time, just for you).`;
+    const reward = await recoveryCodeForCart(cartRecordId);
+    if (!reward) return "";
+    return `Come back today and take ${reward.percent}% off — use code ${reward.code} at checkout (one-time, just for you).`;
   } catch {
     return "";
   }
