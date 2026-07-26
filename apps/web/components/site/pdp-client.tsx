@@ -287,6 +287,11 @@ export function PdpClient({
 
         {/* delivery */}
         <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm text-muted-foreground">
+          {product.freeDelivery && (
+            <span className="flex w-fit items-center gap-1.5 rounded-full bg-gold/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-gold">
+              <Truck className="h-3.5 w-3.5" /> Free delivery on this item
+            </span>
+          )}
           <span className="flex items-center gap-2">
             <Truck className="h-4 w-4" /> {deliveryLine || "Standard delivery in 3–5 days · Free shipping over ৳2,000"}
           </span>

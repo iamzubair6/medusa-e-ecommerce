@@ -31,6 +31,9 @@ export interface StoreProduct {
   badge?: string;
   /** selectable colors for the card (swatch, image, quick-add sizes) */
   cardColors?: CardColor[];
+  /** "Free delivery" badge (admin flag; order-level free shipping is enforced
+   *  by the shipping rate's free-over threshold) */
+  freeDelivery?: boolean;
   // --- merchandising facets (from metadata / taxonomy) ---
   division?: string;
   categoryHandles?: string[];
@@ -162,6 +165,7 @@ interface ProductMeta {
   material?: string;
   care?: string;
   sizeGuide?: string;
+  freeDelivery?: boolean;
 }
 interface MedusaProduct {
   id: string;
@@ -291,6 +295,7 @@ function mapCard(p: MedusaProduct, i: number): StoreProduct {
     // Prefer an explicit offer label; otherwise auto "-X%" when on sale.
     badge: p.metadata?.offer?.label ?? (discountPercent ? `-${discountPercent}%` : undefined),
     cardColors,
+    freeDelivery: p.metadata?.freeDelivery === true,
     division: p.metadata?.division,
     categoryHandles: (p.categories ?? []).map((c) => c.handle),
     collectionHandle: p.collection?.handle,

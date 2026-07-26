@@ -99,6 +99,9 @@ export function ProductCard({ product }: { product: StoreProduct }) {
             {product.offer.label}
           </p>
         )}
+        {product.freeDelivery && (
+          <p className="mt-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-gold">Free delivery</p>
+        )}
 
         {/* selectable color swatches */}
         {colors.length > 1 && (
