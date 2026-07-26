@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { Button, Card } from "@ecom/ui";
 import { TextField } from "./fields";
-import { RichTextField } from "./rich-text-field";
+import { HtmlBodyField } from "./html-body-field";
 import { EmailPreview } from "./email-preview";
 import { useToast } from "./toast";
 import {
@@ -123,7 +123,7 @@ export function EmailTemplatesEditor({ initial, adminEmail }: { initial: EmailTe
                   control={control}
                   name={`${type}.body`}
                   render={({ field }) => (
-                    <RichTextField label="Body content" value={field.value} onChange={field.onChange} />
+                    <HtmlBodyField label="Body content" value={field.value} onChange={field.onChange} />
                   )}
                 />
                 <EmailPreview

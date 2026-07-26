@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Send } from "lucide-react";
 import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
-import { RichTextField } from "./rich-text-field";
+import { HtmlBodyField } from "./html-body-field";
 import { EmailPreview } from "./email-preview";
 import { useToast } from "./toast";
 import { customEmailTemplateSchema, type CustomEmailTemplate } from "@/lib/email-templates";
@@ -163,7 +163,7 @@ export function CustomEmailTemplates({ initial, adminEmail }: { initial: CustomE
             <TextField label="Subject" error={errors.subject?.message} {...register("subject")} placeholder="Something beautiful just arrived" />
           </div>
           <TextField label="Heading (top of the email)" error={errors.heading?.message} {...register("heading")} />
-          <RichTextField label="Body (HTML)" value={draft.body} onChange={(v) => setValue("body", v, { shouldDirty: true })} />
+          <HtmlBodyField label="Body" value={draft.body} onChange={(v) => setValue("body", v, { shouldDirty: true })} />
           {errors.body?.message && <p className="text-xs text-destructive">{errors.body.message}</p>}
 
           <EmailPreview subject={draft.subject} heading={draft.heading} body={draft.body} />
