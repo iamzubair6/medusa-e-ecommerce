@@ -42,6 +42,15 @@ const statusVariant: Record<AdminCampaign["status"], "gold" | "solid" | "muted" 
   ENDED: "muted",
 };
 
+/** Why a campaign is/isn't on the storefront right now (mirrors getActiveCampaign). */
+function liveState(c: AdminCampaign): { live: boolean; reason: string } {
+  const now = Date.now();
+  if (c.status !== "ACTIVE") return { live: false, reason: `not live — status is ${c.status.toLowerCase()}` };
+  if (new Date(c.startsAt).getTime() > now) return { live: false, reason: "not live yet — starts in the future" };
+  if (c.endsAt && new Date(c.endsAt).getTime() < now) return { live: false, reason: "not live — end date passed" };
+  return { live: true, reason: "LIVE — on the storefront announcement bar now" };
+}
+
 /** ISO → value for <input type="datetime-local"> in the local timezone. */
 const toLocalInput = (iso: string | null): string => {
   if (!iso) return "";
@@ -101,7 +110,7 @@ function CampaignForm({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
-          label="Storefront banner text (optional)"
+          label="Storefront banner text (empty = the campaign name is shown)"
           placeholder="MID-SEASON SALE — UP TO 40% OFF"
           error={errors.bannerText?.message}
           {...register("bannerText")}
@@ -223,14 +232,21 @@ export function CampaignManager({ campaigns }: { campaigns: AdminCampaign[] }) {
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{c.name}</span>
                   <Badge variant={statusVariant[c.status]}>{c.status.toLowerCase()}</Badge>
-                  {c.payload.bannerText && (
-                    <span className="text-[0.6rem] font-medium uppercase tracking-wide text-muted-foreground">banner</span>
+                  {liveState(c).live && (
+                    <span className="flex items-center gap-1 text-[0.6rem] font-bold uppercase tracking-wide text-gold">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold motion-reduce:animate-none" /> live
+                    </span>
                   )}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {new Date(c.startsAt).toLocaleString()}
                   {c.endsAt ? ` → ${new Date(c.endsAt).toLocaleString()}` : ""}
                   {c.payload.promoCode ? ` · code ${c.payload.promoCode}` : ""}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {liveState(c).live
+                    ? `Announcement bar shows: “${c.payload.bannerText?.trim() || c.name}${c.payload.promoCode ? ` — use code ${c.payload.promoCode}` : ""}”`
+                    : liveState(c).reason}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
