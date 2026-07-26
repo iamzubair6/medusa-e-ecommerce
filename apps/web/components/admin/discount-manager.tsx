@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Plus, ChevronRight } from "lucide-react";
 import { Badge, Button, Card, ConfirmDialog, cn } from "@ecom/ui";
-import { TextField, SelectField, CheckboxField } from "./fields";
+import { TextField, CheckboxField } from "./fields";
 import { DatePicker } from "./date-picker";
 import { Combobox, EnumCombobox } from "./combobox";
 import { PromoEditForm } from "./promo-edit-form";
@@ -82,6 +82,13 @@ export function DiscountManager({
   const needsTarget = appliesTo !== "order";
   const isBogo = method === "buyget";
   const targets = appliesTo === "category" ? categories : appliesTo === "collection" ? collections : [];
+
+  // "Entire order" is not a valid BOGO target (mirrors onMethodChange below).
+  const appliesToOptions: { value: AppliesTo; label: string }[] = [
+    ...(isBogo ? [] : [{ value: "order" as const, label: "Entire order" }]),
+    { value: "category", label: "A category" },
+    { value: "collection", label: "A collection" },
+  ];
 
   // BOGO must target a category/collection; free shipping defaults to whole order.
   const onMethodChange = (m: Method) => {
@@ -179,33 +186,36 @@ export function DiscountManager({
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder={automatic ? "SUMMER-SALE" : "WELCOME10"}
           />
-          <SelectField label="Type" value={method} onChange={(e) => onMethodChange(e.target.value as Method)}>
-            <option value="percentage">Percentage % off</option>
-            <option value="fixed">Fixed ৳ off</option>
-            <option value="free_shipping">Free shipping</option>
-            <option value="buyget">Buy X get Y (BOGO)</option>
-          </SelectField>
+          <EnumCombobox<Method>
+            label="Type"
+            value={method}
+            onChange={onMethodChange}
+            options={[
+              { value: "percentage", label: "Percentage % off" },
+              { value: "fixed", label: "Fixed ৳ off" },
+              { value: "free_shipping", label: "Free shipping" },
+              { value: "buyget", label: "Buy X get Y (BOGO)" },
+            ]}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField
+          <EnumCombobox<AppliesTo>
             label="Applies to"
             value={appliesTo}
-            onChange={(e) => {
-              setAppliesTo(e.target.value as AppliesTo);
+            onChange={(v) => {
+              setAppliesTo(v);
               setTargetId("");
             }}
-          >
-            {!isBogo && <option value="order">Entire order</option>}
-            <option value="category">A category</option>
-            <option value="collection">A collection</option>
-          </SelectField>
+            options={appliesToOptions}
+          />
           {needsTarget && (
             <Combobox
               label={appliesTo === "category" ? "Category" : "Collection"}
               value={targetId}
               onChange={setTargetId}
               options={targets.map((t) => ({ value: t.id, label: t.name }))}
+              clearable
             />
           )}
         </div>
