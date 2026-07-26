@@ -2,15 +2,9 @@
 
 import { useState } from "react";
 import { X, TicketPercent } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Button, cn } from "@ecom/ui";
 import { useCart } from "@/hooks/use-cart";
-
-interface PromoSuggestion {
-  code: string;
-  display: string;
-  fromCampaign: boolean;
-}
+import { useCartIncentives } from "@/hooks/use-cart-incentives";
 
 /** Promo-code input + applied-code chips. Used in cart + checkout summaries. */
 export function PromoCode() {
@@ -18,16 +12,7 @@ export function PromoCode() {
   const [code, setCode] = useState("");
 
   // Advertise live codes (cached server-side; fails silently — decorative).
-  const { data: suggestions = [] } = useQuery<PromoSuggestion[]>({
-    queryKey: ["promo-suggestions"],
-    queryFn: async () => {
-      const res = await fetch("/api/promos/active");
-      if (!res.ok) return [];
-      const d = (await res.json()) as { suggestions?: PromoSuggestion[] };
-      return d.suggestions ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { suggestions } = useCartIncentives();
   const applied = new Set((cart?.promoCodes ?? []).map((c) => c.toUpperCase()));
   const available = suggestions.filter((s) => !applied.has(s.code.toUpperCase()));
 

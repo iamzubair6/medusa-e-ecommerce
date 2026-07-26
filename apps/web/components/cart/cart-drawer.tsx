@@ -8,6 +8,7 @@ import { buttonVariants, cn } from "@ecom/ui";
 import { useCart } from "@/hooks/use-cart";
 import { useCartUI } from "@/lib/cart-context";
 import { PromoCode } from "./promo-code";
+import { FreeDeliveryNudge } from "./free-delivery-nudge";
 
 export function CartDrawer() {
   const { open, closeCart } = useCartUI();
@@ -108,6 +109,9 @@ export function CartDrawer() {
                 </div>
 
                 <footer className="border-t border-border px-5 py-4">
+                  <div className="mb-3">
+                    <FreeDeliveryNudge subtotal={cart.subtotal} />
+                  </div>
                   <div className="mb-3">
                     <PromoCode />
                   </div>
