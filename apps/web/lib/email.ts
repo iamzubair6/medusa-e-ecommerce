@@ -54,6 +54,7 @@ import {
 
 /** On-brand shell: ink logo band, claret accent rule, parchment card, footer. */
 import { emailShell } from "./email-shell";
+import { parseEmailFrame } from "./email-frame";
 export { emailShell };
 
 /** Escape user-supplied text before interpolating it into email HTML. */
@@ -76,13 +77,14 @@ export async function renderEmail(
   templates?: EmailTemplates,
 ): Promise<{ subject: string; html: string }> {
   const t = (templates ?? parseEmailTemplates(await getSiteSetting("emailTemplates").catch(() => null)))[type];
+  const frame = parseEmailFrame(await getSiteSetting("emailFrame").catch(() => null));
   return {
     subject: fillPlaceholders(t.subject, vars),
     // A full <!DOCTYPE html> body replaces the design entirely (#148) —
-    // fragments get the branded shell as before.
+    // fragments get the branded shell (its content is admin-editable, #150).
     html: isFullHtmlDocument(t.body)
       ? fillPlaceholders(t.body, vars)
-      : emailShell(fillPlaceholders(t.heading, vars), fillPlaceholders(t.body, vars)),
+      : emailShell(fillPlaceholders(t.heading, vars), fillPlaceholders(t.body, vars), frame),
   };
 }
 
