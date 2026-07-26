@@ -208,6 +208,10 @@ export function ShippingMethodsEditor({
   const [amounts, setAmounts] = useState<Record<string, string>>(
     Object.fromEntries(rates.map((r) => [r.id, String(r.amount)])),
   );
+  // Free-over-৳X thresholds ("" = no threshold).
+  const [freeOvers, setFreeOvers] = useState<Record<string, string>>(
+    Object.fromEntries(rates.map((r) => [r.id, r.freeOver != null ? String(r.freeOver) : ""])),
+  );
   // Override drafts (CMS side), seeded from existing config or defaults.
   const [overrides, setOverrides] = useState<Record<string, ShippingMethodOverride>>(
     Object.fromEntries(
@@ -233,6 +237,8 @@ export function ShippingMethodsEditor({
   const overrideFor = (id: string): ShippingMethodOverride =>
     overrides[id] ?? shippingOverrideFor(config, id) ?? { optionId: id, note: "", enabled: true };
   const amountFor = (r: AdminShippingRate): string => amounts[r.id] ?? String(r.amount);
+  const freeOverFor = (r: AdminShippingRate): string =>
+    freeOvers[r.id] ?? (r.freeOver != null ? String(r.freeOver) : "");
 
   const patchOverride = (id: string, p: Partial<ShippingMethodOverride>) =>
     setOverrides((o) => ({ ...o, [id]: { ...overrideFor(id), ...p } }));
@@ -244,10 +250,19 @@ export function ShippingMethodsEditor({
   const saveAmount = async (rate: AdminShippingRate) => {
     const amount = Number(amountFor(rate));
     if (!Number.isFinite(amount) || amount < 0) return toast.error("Enter a valid amount.");
+    const freeOverRaw = freeOverFor(rate).trim();
+    const freeOver = freeOverRaw === "" ? null : Number(freeOverRaw);
+    if (freeOver !== null && (!Number.isInteger(freeOver) || freeOver < 1)) {
+      return toast.error("Free-over must be a whole ৳ amount (or empty for none).");
+    }
     setBusyAmount(rate.id);
     try {
-      await api(`/api/admin/shipping-options/${rate.id}`, "PATCH", { amount });
-      toast.success(`${rate.name} amount updated to ৳${amount}.`);
+      await api(`/api/admin/shipping-options/${rate.id}`, "PATCH", { amount, freeOver });
+      toast.success(
+        freeOver !== null
+          ? `${rate.name}: ৳${amount}, free over ৳${freeOver}.`
+          : `${rate.name} amount updated to ৳${amount}.`,
+      );
       router.refresh();
     } catch (e) {
       toast.error((e as Error).message);
@@ -323,7 +338,7 @@ export function ShippingMethodsEditor({
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-end gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground">৳</span>
             <input
@@ -334,14 +349,30 @@ export function ShippingMethodsEditor({
               aria-label={`${rate.name} amount`}
             />
           </div>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+              Free over ৳ (optional)
+            </span>
+            <input
+              type="number"
+              value={freeOverFor(rate)}
+              placeholder="e.g. 2000"
+              onChange={(e) => setFreeOvers((f) => ({ ...f, [rate.id]: e.target.value }))}
+              className="h-10 w-32 rounded-sm border border-input bg-card px-2.5 text-sm"
+              aria-label={`${rate.name} free-delivery threshold`}
+            />
+          </label>
           <Button
             variant="outline"
             size="sm"
             loading={busyAmount === rate.id}
-            disabled={String(rate.amount) === amountFor(rate)}
+            disabled={
+              String(rate.amount) === amountFor(rate) &&
+              (rate.freeOver != null ? String(rate.freeOver) : "") === freeOverFor(rate).trim()
+            }
             onClick={() => saveAmount(rate)}
           >
-            Save amount
+            Save
           </Button>
         </div>
         <TextField
