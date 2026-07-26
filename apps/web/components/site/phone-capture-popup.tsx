@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Phone, ShieldCheck, X } from "lucide-react";
+import { Phone, ShieldCheck, TicketPercent, X } from "lucide-react";
 import { Button } from "@ecom/ui";
 import { PhoneInput } from "./phone-input";
 import { OtpInput } from "./otp-input";
@@ -24,10 +24,11 @@ export function PhoneCapturePopup({ settings = DEFAULT_PHONE_CAPTURE_SETTINGS }:
   const reduce = useReducedMotion();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"phone" | "code">("phone");
+  const [step, setStep] = useState<"phone" | "code" | "reward">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [reward, setReward] = useState<{ code: string; display: string; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,10 +85,20 @@ export function PhoneCapturePopup({ settings = DEFAULT_PHONE_CAPTURE_SETTINGS }:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: phone.trim(), code: code.trim() }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        reward?: { code: string; display: string; message: string } | null;
+      };
       if (!res.ok) throw new Error(data.error ?? "Invalid code");
-      resolve();
-      router.refresh(); // reflect the new logged-in session
+      router.refresh(); // reflect the new logged-in session (and the applied reward)
+      if (data.reward) {
+        // Show the personal code before closing; localStorage is set on close.
+        setReward(data.reward);
+        setStep("reward");
+      } else {
+        resolve();
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -113,10 +124,26 @@ export function PhoneCapturePopup({ settings = DEFAULT_PHONE_CAPTURE_SETTINGS }:
               <X className="h-4 w-4" />
             </button>
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              {step === "phone" ? <Phone className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+              {step === "phone" ? <Phone className="h-5 w-5" /> : step === "code" ? <ShieldCheck className="h-5 w-5" /> : <TicketPercent className="h-5 w-5 text-gold" />}
             </span>
 
-            {step === "phone" ? (
+            {step === "reward" && reward ? (
+              <>
+                <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-tight">
+                  {reward.display} — yours
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">{reward.message}</p>
+                <p className="mt-4 rounded-md border border-dashed border-gold/60 bg-gold/5 px-3 py-2.5 font-mono text-lg font-bold tracking-widest text-gold">
+                  {reward.code}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  One-time use, already applied to your cart — it&rsquo;s also yours to use later at checkout.
+                </p>
+                <Button variant="solid" onClick={resolve} className="mt-4 w-full rounded-full">
+                  Start shopping
+                </Button>
+              </>
+            ) : step === "phone" ? (
               <>
                 <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-tight">{settings.heading}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{settings.subtext}</p>
