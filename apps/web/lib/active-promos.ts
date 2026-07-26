@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSiteSetting } from "@ecom/cms";
-import { listPromotions } from "./medusa-admin";
+import { listPromotions, listShippingRates } from "./medusa-admin";
 import { getActiveCampaign } from "./active-campaign";
 import { shopTheLookSchema } from "./shop-the-look";
 import { personaSchema } from "./persona";
@@ -9,6 +9,12 @@ export interface PromoSuggestion {
   code: string;
   display: string; // "10% off" | "৳100 off" | "Free shipping" | "Buy 1 get 1 free"
   fromCampaign: boolean;
+}
+
+export interface CartIncentives {
+  suggestions: PromoSuggestion[];
+  /** Lowest configured free-delivery threshold (৳ item total), null when none. */
+  freeOver: number | null;
 }
 
 /** Codes that exist but shouldn't be advertised: personal phone rewards,
@@ -31,10 +37,15 @@ async function hiddenCodes(): Promise<Set<string>> {
 }
 
 const load = unstable_cache(
-  async (): Promise<PromoSuggestion[]> => {
+  async (): Promise<CartIncentives> => {
     try {
       const now = Date.now();
-      const [promos, campaign, hidden] = await Promise.all([listPromotions(), getActiveCampaign(), hiddenCodes()]);
+      const [promos, campaign, hidden, rates] = await Promise.all([
+        listPromotions(),
+        getActiveCampaign(),
+        hiddenCodes(),
+        listShippingRates().catch(() => []),
+      ]);
       const inWindow = (p: { startsAt: string | null; endsAt: string | null }) =>
         (!p.startsAt || new Date(p.startsAt).getTime() <= now) &&
         (!p.endsAt || new Date(p.endsAt).getTime() >= now);
@@ -52,17 +63,21 @@ const load = unstable_cache(
           display: p.display,
           fromCampaign: campaign?.promoCode?.toUpperCase() === p.code.toUpperCase(),
         }));
-      // The live campaign's code leads.
-      return suggestions.sort((a, b) => Number(b.fromCampaign) - Number(a.fromCampaign)).slice(0, 4);
+      const thresholds = rates.map((r) => r.freeOver).filter((n): n is number => n != null && n > 0);
+      return {
+        // The live campaign's code leads.
+        suggestions: suggestions.sort((a, b) => Number(b.fromCampaign) - Number(a.fromCampaign)).slice(0, 4),
+        freeOver: thresholds.length > 0 ? Math.min(...thresholds) : null,
+      };
     } catch {
-      return []; // never break the cart because promos are unreachable
+      return { suggestions: [], freeOver: null }; // never break the cart because promos are unreachable
     }
   },
   ["active-promo-suggestions"],
   { revalidate: 300, tags: ["promo-suggestions"] },
 );
 
-/** Publicly advertisable promo codes (active, coded, in date window). */
-export function getPromoSuggestions(): Promise<PromoSuggestion[]> {
+/** Publicly advertisable promo codes + the free-delivery threshold. */
+export function getCartIncentives(): Promise<CartIncentives> {
   return load();
 }
