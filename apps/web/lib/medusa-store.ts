@@ -46,7 +46,7 @@ interface RawLine {
   total?: number;
   thumbnail?: string | null;
   product_handle?: string | null;
-  product?: { handle?: string } | null;
+  product?: { handle?: string; metadata?: { freeDelivery?: unknown } | null } | null;
 }
 
 interface RawCart {
@@ -126,25 +126,63 @@ export async function getCart(id: string): Promise<CartView | null> {
   }
 }
 
+/** Hidden free-shipping code the storefront manages itself (#139) — applied
+ *  when EVERY cart item carries the per-product free-delivery flag. Coded (not
+ *  automatic) so it can't leak onto ordinary carts; excluded from public
+ *  promo surfaces. */
+export const FREE_DELIVERY_ITEMS_CODE = "FREESHIP-ITEMS";
+
+/** Enforce the per-product free-delivery flag on a cart (best-effort — the
+ *  base cart is still returned when the promo call fails). */
+async function syncFreeDelivery(raw: RawCart): Promise<RawCart> {
+  const items = raw.items ?? [];
+  const applied = (raw.promotions ?? []).some((p) => p.code?.toUpperCase() === FREE_DELIVERY_ITEMS_CODE);
+  const qualifies = items.length > 0 && items.every((it) => it.product?.metadata?.freeDelivery === true);
+  try {
+    if (qualifies && !applied) {
+      const { cart } = await api<{ cart: RawCart }>(`/store/carts/${raw.id}/promotions?${CART_FIELDS}`, {
+        method: "POST",
+        body: JSON.stringify({ promo_codes: [FREE_DELIVERY_ITEMS_CODE] }),
+      });
+      return cart;
+    }
+    if (!qualifies && applied) {
+      const { cart } = await api<{ cart: RawCart }>(`/store/carts/${raw.id}/promotions?${CART_FIELDS}`, {
+        method: "DELETE",
+        body: JSON.stringify({ promo_codes: [FREE_DELIVERY_ITEMS_CODE] }),
+      });
+      return cart;
+    }
+  } catch {
+    /* promo missing or backend hiccup — never block the cart operation */
+  }
+  return raw;
+}
+
 export async function addLineItem(id: string, variantId: string, quantity: number): Promise<CartView> {
-  const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}/line-items`, {
+  const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}/line-items?${CART_FIELDS}`, {
     method: "POST",
     body: JSON.stringify({ variant_id: variantId, quantity }),
   });
-  return mapCart(cart);
+  return mapCart(await syncFreeDelivery(cart));
 }
 
 export async function updateLineItem(id: string, lineId: string, quantity: number): Promise<CartView> {
-  const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}/line-items/${lineId}`, {
+  const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}/line-items/${lineId}?${CART_FIELDS}`, {
     method: "POST",
     body: JSON.stringify({ quantity }),
   });
-  return mapCart(cart);
+  return mapCart(await syncFreeDelivery(cart));
 }
 
 export async function removeLineItem(id: string, lineId: string): Promise<CartView | null> {
   await api(`/store/carts/${id}/line-items/${lineId}`, { method: "DELETE" });
-  return getCart(id);
+  try {
+    const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}?${CART_FIELDS}`);
+    return mapCart(await syncFreeDelivery(cart));
+  } catch {
+    return null; // cart expired / not found
+  }
 }
 
 export interface AddressInput {
@@ -197,11 +235,13 @@ export async function removePromotion(id: string, code: string): Promise<CartVie
 }
 
 export async function addShippingMethod(id: string, optionId: string): Promise<CartView> {
-  const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}/shipping-methods`, {
+  // Free-shipping promos only take effect once a shipping method exists, so
+  // the per-product free-delivery sync (#139) runs HERE — the decisive point.
+  const { cart } = await api<{ cart: RawCart }>(`/store/carts/${id}/shipping-methods?${CART_FIELDS}`, {
     method: "POST",
     body: JSON.stringify({ option_id: optionId }),
   });
-  return mapCart(cart);
+  return mapCart(await syncFreeDelivery(cart));
 }
 
 /** Tag the cart with the chosen payment method (carried onto the order). */

@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { getSiteSetting } from "@ecom/cms";
 import { listPromotions, listShippingRates } from "./medusa-admin";
+import { FREE_DELIVERY_ITEMS_CODE } from "./medusa-store";
 import { getActiveCampaign } from "./active-campaign";
 import { shopTheLookSchema } from "./shop-the-look";
 import { personaSchema } from "./persona";
@@ -56,6 +57,8 @@ const load = unstable_cache(
             !p.automatic && // automatic promos apply on their own — nothing to announce
             inWindow(p) &&
             !p.code.toUpperCase().startsWith("PH-") && // personal phone-reward codes
+            !p.code.toUpperCase().startsWith("AB-") && // per-cart recovery codes
+            p.code.toUpperCase() !== FREE_DELIVERY_ITEMS_CODE && // storefront-managed
             !hidden.has(p.code.toUpperCase()),
         )
         .map((p) => ({
