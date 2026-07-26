@@ -495,14 +495,31 @@ export async function getReviewSummary(productHandle: string) {
 }
 
 /** Paginated guest leads (newest first). */
-export async function listGuestLeads(opts: { skip?: number; take?: number } = {}) {
+export async function listGuestLeads(
+  opts: { skip?: number; take?: number; source?: string; has?: "email" | "phone" } = {},
+) {
   const take = Math.min(opts.take ?? 25, 100);
   const skip = opts.skip ?? 0;
+  const where = {
+    ...(opts.source ? { source: opts.source } : {}),
+    ...(opts.has === "email" ? { email: { not: null } } : {}),
+    ...(opts.has === "phone" ? { phone: { not: null } } : {}),
+  };
   const [items, total] = await Promise.all([
-    prisma.guestLead.findMany({ orderBy: { createdAt: "desc" }, skip, take }),
-    prisma.guestLead.count(),
+    prisma.guestLead.findMany({ where, orderBy: { createdAt: "desc" }, skip, take }),
+    prisma.guestLead.count({ where }),
   ]);
   return { items, total, skip, take };
+}
+
+/** Distinct lead sources (for the admin filter row). */
+export async function listGuestLeadSources(): Promise<string[]> {
+  const rows = await prisma.guestLead.findMany({
+    select: { source: true },
+    distinct: ["source"],
+    where: { source: { not: null } },
+  });
+  return rows.map((r) => r.source).filter((s): s is string => Boolean(s));
 }
 
 // ---------------------------------------------------------------------------
