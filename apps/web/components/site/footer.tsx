@@ -29,6 +29,7 @@ const groups = [
       ["New In", "/collections/new"],
       ["Sale", "/collections/sale"],
       ["Trending", "/collections/trending"],
+      ["Offers & Codes", "/offers"],
       ["Gift Cards", "/gift-cards"],
     ],
   },
