@@ -311,7 +311,7 @@ export function ProductCreator({
 
         {/* Merchandising attributes (drive storefront filters + PDP) */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Combobox label="Division" value={division} onChange={setDivision} options={DIVISION_OPTIONS} placeholder="— none —" />
+          <Combobox label="Division" clearable value={division} onChange={setDivision} options={DIVISION_OPTIONS} placeholder="— none —" />
           <TextField label="Occasion (comma-separated)" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder="Going Out, Everyday" />
           <TextField label="Style (comma-separated)" value={styleTags} onChange={(e) => setStyleTags(e.target.value)} placeholder="Bodycon, Sexy" />
           <TextField label="Trend (comma-separated)" value={trend} onChange={(e) => setTrend(e.target.value)} placeholder="Summer, Floral" />

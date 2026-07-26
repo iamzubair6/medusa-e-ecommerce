@@ -123,6 +123,7 @@ export function PriceListManager({
           {appliesTo !== "all" && (
             <Combobox
               label={appliesTo === "category" ? "Category" : "Collection"}
+              clearable
               value={targetId}
               onChange={setTargetId}
               options={targets.map((t) => ({ value: t.id, label: t.name }))}
