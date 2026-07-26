@@ -248,7 +248,7 @@ export function PdpClient({
         {/* Add to bag + wishlist — or the notify-me flow for a sold-out size */}
         <div className="flex items-center gap-3">
           {sizeObj && sizeObj.stock <= 0 && sizeObj.variantId ? (
-            <div className="flex-1">
+            <div className="min-w-0 flex-1 rounded-md border border-border bg-muted/30 p-3.5">
               <RestockNotify
                 productHandle={product.handle}
                 productTitle={product.title}
@@ -276,7 +276,7 @@ export function PdpClient({
             aria-pressed={wished}
             onClick={() => toggleWishlist({ handle: product.handle, title: product.title, thumbnail: product.thumbnail, price: color.price })}
             className={cn(
-              "flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center self-start rounded-full border transition-colors hover:border-foreground",
+              "flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors hover:border-foreground",
               wished ? "border-accent text-accent" : "border-border hover:text-accent",
             )}
           >
