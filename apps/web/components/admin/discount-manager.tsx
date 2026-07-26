@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus } from "lucide-react";
-import { Badge, Button, Card, ConfirmDialog } from "@ecom/ui";
+import { Trash2, Plus, ChevronRight } from "lucide-react";
+import { Badge, Button, Card, ConfirmDialog, cn } from "@ecom/ui";
 import { TextField, SelectField, CheckboxField } from "./fields";
 import { DatePicker } from "./date-picker";
 import { Combobox, EnumCombobox } from "./combobox";
@@ -16,6 +16,12 @@ interface Promotion {
   automatic: boolean;
   kind: string;
   display: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string | null;
+  usage: { kind: "total" | "per_customer"; limit: number; used: number | null } | null;
+  targetKind: "order" | "category" | "collection" | "shipping";
+  targetIds: string[];
 }
 interface Option {
   id: string;
@@ -50,6 +56,7 @@ export function DiscountManager({
   const [limitCount, setLimitCount] = useState("1");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<Promotion | null>(null);
 
   const needsValue = method === "percentage" || method === "fixed";
@@ -130,6 +137,32 @@ export function DiscountManager({
   const remove = async (p: Promotion) => {
     await act(p.id, { method: "DELETE" }, `${p.code} deleted.`);
     setConfirmingDelete(null);
+  };
+
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
+
+  const targetLabel = (p: Promotion) => {
+    if (p.targetKind === "shipping") return "Shipping cost";
+    if (p.targetKind === "order") return "Entire order";
+    const pool = p.targetKind === "category" ? categories : collections;
+    const names = p.targetIds.map((id) => pool.find((o) => o.id === id)?.name ?? `(deleted ${p.targetKind})`);
+    return names.join(", ");
+  };
+
+  const scheduleLabel = (p: Promotion) => {
+    const from = fmtDate(p.startsAt);
+    const until = fmtDate(p.endsAt);
+    if (from && until) return `${from} → ${until}`;
+    if (from) return `From ${from}`;
+    if (until) return `Until ${until}`;
+    return "Always on (no dates)";
+  };
+
+  const usageLabel = (p: Promotion) => {
+    if (!p.usage) return "Unlimited";
+    if (p.usage.kind === "total") return `${p.usage.used ?? 0} of ${p.usage.limit} total uses`;
+    return `${p.usage.limit} per customer${p.usage.limit === 1 ? " (one-time)" : ""}`;
   };
 
   return (
@@ -254,27 +287,80 @@ export function DiscountManager({
           </thead>
           <tbody>
             {promotions.map((p) => (
-              <tr key={p.id} className="border-b border-border last:border-0 [&>td]:px-4 [&>td]:py-3">
-                <td className="font-semibold tracking-wide">
-                  {p.code}
-                  {p.automatic && <span className="ml-2 text-[0.6rem] font-medium uppercase tracking-wide text-muted-foreground">auto</span>}
-                </td>
-                <td className="text-muted-foreground">{p.kind}</td>
-                <td>{p.display}</td>
-                <td>
-                  <Badge variant={p.status === "active" ? "gold" : "muted"} className="capitalize">{p.status}</Badge>
-                </td>
-                <td>
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" size="sm" loading={busyId === p.id} onClick={() => toggle(p)}>
-                      {p.status === "active" ? "Disable" : "Enable"}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setConfirmingDelete(p)} className="text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+              <Fragment key={p.id}>
+                <tr className="border-b border-border last:border-0 [&>td]:px-4 [&>td]:py-3">
+                  <td className="font-semibold tracking-wide">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                      aria-expanded={expandedId === p.id}
+                      aria-label={`${expandedId === p.id ? "Hide" : "Show"} details for ${p.code}`}
+                      className="flex cursor-pointer items-center gap-1.5 hover:text-gold"
+                    >
+                      <ChevronRight
+                        className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", expandedId === p.id && "rotate-90")}
+                      />
+                      {p.code}
+                      {p.automatic && (
+                        <span className="text-[0.6rem] font-medium uppercase tracking-wide text-muted-foreground">auto</span>
+                      )}
+                    </button>
+                  </td>
+                  <td className="text-muted-foreground">{p.kind}</td>
+                  <td>{p.display}</td>
+                  <td>
+                    <Badge variant={p.status === "active" ? "gold" : "muted"} className="capitalize">{p.status}</Badge>
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="outline" size="sm" loading={busyId === p.id} onClick={() => toggle(p)}>
+                        {p.status === "active" ? "Disable" : "Enable"}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setConfirmingDelete(p)} className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+                {expandedId === p.id && (
+                  <tr className="border-b border-border bg-muted/30 last:border-0">
+                    <td colSpan={5} className="px-4 py-4">
+                      <dl className="grid gap-x-8 gap-y-2 text-xs sm:grid-cols-2 lg:grid-cols-3 [&_dt]:font-semibold [&_dt]:uppercase [&_dt]:tracking-wide [&_dt]:text-muted-foreground [&_dd]:mt-0.5">
+                        <div>
+                          <dt>How it applies</dt>
+                          <dd>
+                            {p.automatic
+                              ? "Automatically — added to every eligible cart, no code needed"
+                              : "Customer enters the code at checkout"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Applies to</dt>
+                          <dd>{targetLabel(p)}</dd>
+                        </div>
+                        <div>
+                          <dt>Schedule</dt>
+                          <dd>{scheduleLabel(p)}</dd>
+                        </div>
+                        <div>
+                          <dt>Usage limit</dt>
+                          <dd>{usageLabel(p)}</dd>
+                        </div>
+                        <div>
+                          <dt>Created</dt>
+                          <dd>{fmtDate(p.createdAt) ?? "—"}</dd>
+                        </div>
+                      </dl>
+                      {p.automatic && p.status === "active" && (
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          This promo is <strong>active and automatic</strong> — shoppers get it without entering
+                          anything. Disable it if the discount shouldn't apply on its own.
+                        </p>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             {promotions.length === 0 && (
               <tr>

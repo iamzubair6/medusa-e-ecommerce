@@ -850,12 +850,24 @@ export async function countOrders(): Promise<number> {
 
 // --- Promotions / discounts -------------------------------------------------
 
+interface RawRuleValue {
+  value?: string | null;
+}
+
+interface RawTargetRule {
+  attribute?: string | null;
+  values?: (RawRuleValue | string)[] | null;
+}
+
 interface RawPromotion {
   id: string;
   code: string;
   status: string;
   type: string;
   is_automatic?: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  created_at?: string | null;
   application_method?: {
     type?: string; // "percentage" | "fixed"
     value?: number;
@@ -863,7 +875,21 @@ interface RawPromotion {
     target_type?: string; // "order" | "items" | "shipping_methods"
     max_quantity?: number | null;
     buy_rules_min_quantity?: number | null;
+    target_rules?: RawTargetRule[] | null;
   } | null;
+  campaign?: {
+    budget?: {
+      type?: string; // "usage" | "use_by_attribute" | "spend"
+      limit?: number | null;
+      used?: number | null;
+    } | null;
+  } | null;
+}
+
+export interface AdminPromotionUsage {
+  kind: "total" | "per_customer";
+  limit: number;
+  used: number | null; // redemptions so far (total caps only; null when unknown)
 }
 
 export interface AdminPromotionRow {
@@ -873,10 +899,27 @@ export interface AdminPromotionRow {
   automatic: boolean;
   kind: string; // human label: "Order", "Items", "Free shipping", "Buy X get Y"
   display: string; // "10%" | "৳100 off" | "Free shipping" | "Buy 1 get 1"
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string | null;
+  usage: AdminPromotionUsage | null;
+  /** What the discount applies to — category/collection ids from the target rules. */
+  targetKind: "order" | "category" | "collection" | "shipping";
+  targetIds: string[];
 }
 
+const ruleValues = (rules: RawTargetRule[] | null | undefined, attribute: string): string[] =>
+  (rules ?? [])
+    .filter((r) => r.attribute === attribute)
+    .flatMap((r) => r.values ?? [])
+    .map((v) => (typeof v === "string" ? v : (v.value ?? "")))
+    .filter(Boolean);
+
 export async function listPromotions(): Promise<AdminPromotionRow[]> {
-  const fields = "id,code,status,type,is_automatic,*application_method";
+  const fields =
+    "id,code,status,type,is_automatic,starts_at,ends_at,created_at," +
+    "*application_method,*application_method.target_rules,*application_method.target_rules.values," +
+    "*campaign,*campaign.budget";
   const data = await adminFetch<{ promotions?: RawPromotion[] }>(
     `/admin/promotions?fields=${encodeURIComponent(fields)}&limit=100`,
   );
@@ -897,7 +940,42 @@ export async function listPromotions(): Promise<AdminPromotionRow[]> {
           ? `${am?.value ?? 0}% off`
           : `${money(am?.value, am?.currency_code ?? "bdt")} off`;
     }
-    return { id: p.id, code: p.code, status: p.status, automatic: Boolean(p.is_automatic), kind, display };
+
+    const categoryIds = ruleValues(am?.target_rules, "items.product.categories.id");
+    const collectionIds = ruleValues(am?.target_rules, "items.product.collection_id");
+    const targetKind =
+      am?.target_type === "shipping_methods"
+        ? ("shipping" as const)
+        : categoryIds.length > 0
+          ? ("category" as const)
+          : collectionIds.length > 0
+            ? ("collection" as const)
+            : ("order" as const);
+
+    const budget = p.campaign?.budget;
+    const usage: AdminPromotionUsage | null =
+      budget?.limit != null && (budget.type === "usage" || budget.type === "use_by_attribute")
+        ? {
+            kind: budget.type === "usage" ? "total" : "per_customer",
+            limit: budget.limit,
+            used: budget.type === "usage" ? (budget.used ?? 0) : null,
+          }
+        : null;
+
+    return {
+      id: p.id,
+      code: p.code,
+      status: p.status,
+      automatic: Boolean(p.is_automatic),
+      kind,
+      display,
+      startsAt: p.starts_at ?? null,
+      endsAt: p.ends_at ?? null,
+      createdAt: p.created_at ?? null,
+      usage,
+      targetKind,
+      targetIds: targetKind === "category" ? categoryIds : collectionIds,
+    };
   });
 }
 
