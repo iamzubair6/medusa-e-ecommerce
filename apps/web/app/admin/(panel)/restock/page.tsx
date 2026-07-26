@@ -1,12 +1,17 @@
 import { restockDemandByVariant } from "@ecom/cms";
+import { getLowStock, type LowStockVariant } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
-import { RestockClient, type RestockRow } from "@/components/admin/restock-client";
+import { RestockCentre, type RestockRow } from "@/components/admin/restock-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function RestockPage() {
-  const grouped = await restockDemandByVariant().catch(() => []);
-  const rows: RestockRow[] = grouped
+  const [grouped, lowStock] = await Promise.all([
+    restockDemandByVariant().catch(() => []),
+    getLowStock(5, 30).catch((): LowStockVariant[] => []),
+  ]);
+
+  const waiting: RestockRow[] = grouped
     .map((g) => ({
       variantId: g.variantId,
       productHandle: g.productHandle,
@@ -19,11 +24,11 @@ export default async function RestockPage() {
   return (
     <>
       <AdminHeader
-        title="Back in stock"
-        description="Shoppers who asked to be emailed when a sold-out size returns. Restock the item, then notify them."
+        title="Restock centre"
+        description="Sold-out and low sizes across the catalogue, and the shoppers waiting to hear a size is back."
       />
       <div className="p-8">
-        <RestockClient rows={rows} />
+        <RestockCentre lowStock={lowStock} waiting={waiting} />
       </div>
     </>
   );
