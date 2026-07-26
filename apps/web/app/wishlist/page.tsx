@@ -3,7 +3,7 @@ import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { WishlistView } from "@/components/site/wishlist-view";
 
-export const metadata: Metadata = { title: "Wishlist" };
+export const metadata: Metadata = { title: "Saved pieces" };
 
 export const dynamic = "force-dynamic";
 
