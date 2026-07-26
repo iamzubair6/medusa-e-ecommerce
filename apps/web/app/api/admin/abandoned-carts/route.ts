@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAbandonedCart, markCartReminded } from "@ecom/cms";
-import { sendEmail, emailShell, emailMockMode, escapeHtml } from "@/lib/email";
+import { sendEmail, renderEmail, emailMockMode } from "@/lib/email";
 import { requestOrigin } from "@/lib/origin";
 
 const bodySchema = z.object({ id: z.string().min(1).max(120) });
@@ -16,23 +16,22 @@ export async function POST(request: Request) {
 
   const link = `${requestOrigin(request)}/cart`;
   const items = (Array.isArray(cart.items) ? cart.items : []) as { title?: unknown; quantity?: unknown }[];
+  // Plain-text summary — placeholder values are HTML-escaped by the template fill.
   const lines = items
     .slice(0, 8)
-    .map((i) => `<li>${Number(i.quantity) || 1}× ${escapeHtml(String(i.title ?? "Item"))}</li>`)
-    .join("");
+    .map((i) => `${Number(i.quantity) || 1}× ${String(i.title ?? "Item")}`)
+    .join(" · ");
 
   let sent = false;
   if (!emailMockMode()) {
-    sent = await sendEmail({
-      to: cart.email,
-      subject: "You left something behind 🛍️",
-      html: emailShell(
-        "Still thinking it over?",
-        `<p>Your bag is waiting — ${cart.itemCount} item${cart.itemCount === 1 ? "" : "s"}${cart.total ? `, ${cart.total}` : ""}.</p>
-         <ul>${lines}</ul>
-         <p><a href="${link}" style="display:inline-block;background:#1a1a1a;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none">Complete your order</a></p>`,
-      ),
+    // Admin-editable "abandonedCart" template.
+    const { subject, html } = await renderEmail("abandonedCart", {
+      items: lines,
+      count: String(cart.itemCount),
+      total: cart.total ?? "",
+      cartUrl: link,
     });
+    sent = await sendEmail({ to: cart.email, subject, html });
   }
   await markCartReminded(cart.id);
   return NextResponse.json({ sent });
