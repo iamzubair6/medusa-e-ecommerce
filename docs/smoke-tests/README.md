@@ -15,5 +15,6 @@ you go. Files that need a free account signup say so at the top.
 | #70–#75 SMS, bulk import, courier | [70-75-round5.md](./70-75-round5.md) | Steadfast keys (own account) |
 | FN-parity features (#103–#124: visual search, size guides, back-in-stock, media library, reviews, bundles…) | [SMOKE_TEST_FN.md](./SMOKE_TEST_FN.md) | No |
 | #126–#128 Discounts & promo editing + price lists, campaigns, leads, phone capture | [126-128-promotions.md](./126-128-promotions.md) | No |
+| #129–#137 Campaigns live, free delivery, promo chips, phone reward, email templates v2, recovery v2, consent | [129-137-round6.md](./129-137-round6.md) | Brevo for email tests |
 
 Older rounds: [../SMOKE_TEST_18-32.md](../SMOKE_TEST_18-32.md).
