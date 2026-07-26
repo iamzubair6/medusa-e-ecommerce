@@ -878,6 +878,9 @@ interface RawPromotion {
     target_rules?: RawTargetRule[] | null;
   } | null;
   campaign?: {
+    id?: string;
+    starts_at?: string | null;
+    ends_at?: string | null;
     budget?: {
       type?: string; // "usage" | "use_by_attribute" | "spend"
       limit?: number | null;
@@ -906,6 +909,11 @@ export interface AdminPromotionRow {
   /** What the discount applies to — category/collection ids from the target rules. */
   targetKind: "order" | "category" | "collection" | "shipping";
   targetIds: string[];
+  /** Editable discount value — null for free-shipping/BOGO where the value is fixed at 100%. */
+  valueType: "percentage" | "fixed" | null;
+  value: number | null;
+  buyQuantity: number | null; // buyget only
+  getQuantity: number | null; // buyget only
 }
 
 const ruleValues = (rules: RawTargetRule[] | null | undefined, attribute: string): string[] =>
@@ -916,8 +924,9 @@ const ruleValues = (rules: RawTargetRule[] | null | undefined, attribute: string
     .filter(Boolean);
 
 export async function listPromotions(): Promise<AdminPromotionRow[]> {
+  // NB: schedule dates + usage budgets live on the promotion's CAMPAIGN in Medusa 2.15.
   const fields =
-    "id,code,status,type,is_automatic,starts_at,ends_at,created_at," +
+    "id,code,status,type,is_automatic,created_at," +
     "*application_method,*application_method.target_rules,*application_method.target_rules.values," +
     "*campaign,*campaign.budget";
   const data = await adminFetch<{ promotions?: RawPromotion[] }>(
@@ -962,6 +971,8 @@ export async function listPromotions(): Promise<AdminPromotionRow[]> {
           }
         : null;
 
+    const isBuyget = p.type === "buyget";
+    const isShipping = am?.target_type === "shipping_methods";
     return {
       id: p.id,
       code: p.code,
@@ -969,12 +980,17 @@ export async function listPromotions(): Promise<AdminPromotionRow[]> {
       automatic: Boolean(p.is_automatic),
       kind,
       display,
-      startsAt: p.starts_at ?? null,
-      endsAt: p.ends_at ?? null,
+      startsAt: p.campaign?.starts_at ?? null,
+      endsAt: p.campaign?.ends_at ?? null,
       createdAt: p.created_at ?? null,
       usage,
       targetKind,
       targetIds: targetKind === "category" ? categoryIds : collectionIds,
+      valueType:
+        isBuyget || isShipping ? null : am?.type === "fixed" ? ("fixed" as const) : ("percentage" as const),
+      value: isBuyget || isShipping ? null : (am?.value ?? null),
+      buyQuantity: isBuyget ? (am?.buy_rules_min_quantity ?? 1) : null,
+      getQuantity: isBuyget ? (am?.max_quantity ?? 1) : null,
     };
   });
 }
@@ -998,30 +1014,40 @@ export interface NewPromotionInput {
 const targetAttr = (appliesTo: "category" | "collection") =>
   appliesTo === "category" ? "items.product.categories.id" : "items.product.collection_id";
 
+/** Campaign budget payload for a usage cap: "usage" caps total redemptions;
+ *  "use_by_attribute" + customer_id caps per customer. */
+const usageBudget = (kind: "total" | "per_customer", limit: number) =>
+  kind === "total"
+    ? { type: "usage", limit }
+    : { type: "use_by_attribute", attribute: "customer_id", limit };
+
+/** Schedule dates and usage budgets live on a CAMPAIGN in Medusa 2.15 (the
+ *  promotion itself rejects starts_at/ends_at) — one campaign per promotion. */
+const campaignPayload = (opts: {
+  code: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  usage?: { kind: "total" | "per_customer"; limit: number } | null;
+}) => ({
+  name: `${opts.code} schedule & cap`,
+  campaign_identifier: `${opts.code}-${Date.now().toString(36)}`,
+  starts_at: opts.startsAt ?? null,
+  ends_at: opts.endsAt ?? null,
+  ...(opts.usage ? { budget: usageBudget(opts.usage.kind, opts.usage.limit) } : {}),
+});
+
 /** Create a standard / free-shipping / BOGO promotion (enforced at checkout). */
 export async function createPromotion(input: NewPromotionInput): Promise<{ id: string }> {
-  // Usage caps live on a campaign budget in Medusa v2 (one budget per campaign):
-  // "usage" caps total redemptions; "use_by_attribute" + customer_id caps per customer.
-  const campaign =
-    input.usageLimitType && input.usageLimit
-      ? {
-          campaign: {
-            name: `${input.code} usage cap`,
-            campaign_identifier: input.code,
-            budget:
-              input.usageLimitType === "total"
-                ? { type: "usage", limit: input.usageLimit }
-                : { type: "use_by_attribute", attribute: "customer_id", limit: input.usageLimit },
-          },
-        }
-      : {};
+  const usage =
+    input.usageLimitType && input.usageLimit ? { kind: input.usageLimitType, limit: input.usageLimit } : null;
+  const needsCampaign = Boolean(input.startsAt || input.endsAt || usage);
   const base = {
     code: input.code,
     status: "active",
     is_automatic: Boolean(input.automatic),
-    ...(input.startsAt ? { starts_at: input.startsAt } : {}),
-    ...(input.endsAt ? { ends_at: input.endsAt } : {}),
-    ...campaign,
+    ...(needsCampaign
+      ? { campaign: campaignPayload({ code: input.code, startsAt: input.startsAt, endsAt: input.endsAt, usage }) }
+      : {}),
   };
   const rules =
     input.appliesTo !== "order" && input.targetId
@@ -1075,6 +1101,94 @@ export async function createPromotion(input: NewPromotionInput): Promise<{ id: s
 
 export async function setPromotionStatus(id: string, status: "active" | "inactive"): Promise<void> {
   await adminPost(`/admin/promotions/${id}`, { status });
+}
+
+export interface EditPromotionInput {
+  status?: "active" | "inactive";
+  code?: string;
+  automatic?: boolean;
+  value?: number;
+  buyQuantity?: number;
+  getQuantity?: number;
+  startsAt?: string | null; // null clears the date
+  endsAt?: string | null;
+  /** Usage cap — null removes it, undefined leaves it unchanged. */
+  usage?: { kind: "total" | "per_customer"; limit: number } | null;
+}
+
+/** Edit an existing promotion. Type and applies-to target are immutable (recreate instead). */
+export async function updatePromotion(id: string, input: EditPromotionInput): Promise<void> {
+  // Server-truth validation + campaign lookup off the current promotion.
+  const current = await adminFetch<{
+    promotion?: {
+      code: string;
+      application_method?: { type?: string } | null;
+      campaign?: {
+        id: string;
+        starts_at?: string | null;
+        ends_at?: string | null;
+        budget?: { type?: string; limit?: number | null } | null;
+      } | null;
+    };
+  }>(`/admin/promotions/${id}?fields=${encodeURIComponent("id,code,*application_method,*campaign,*campaign.budget")}`);
+  if (!current?.promotion) throw new Error("Promotion not found.");
+  if (
+    input.value !== undefined &&
+    current.promotion.application_method?.type === "percentage" &&
+    input.value > 100
+  ) {
+    throw new Error("Percentage cannot exceed 100.");
+  }
+
+  const body: Record<string, unknown> = {};
+  if (input.status !== undefined) body.status = input.status;
+  if (input.code !== undefined) body.code = input.code;
+  if (input.automatic !== undefined) body.is_automatic = input.automatic;
+
+  const am: Record<string, unknown> = {};
+  if (input.value !== undefined) am.value = input.value;
+  if (input.buyQuantity !== undefined) am.buy_rules_min_quantity = input.buyQuantity;
+  if (input.getQuantity !== undefined) {
+    am.max_quantity = input.getQuantity;
+    am.apply_to_quantity = input.getQuantity;
+  }
+  if (Object.keys(am).length > 0) body.application_method = am;
+
+  // Schedule + usage cap live on the promo's campaign (see campaignPayload).
+  if (input.startsAt !== undefined || input.endsAt !== undefined || input.usage !== undefined) {
+    const cur = current.promotion.campaign ?? null;
+    const curUsage: EditPromotionInput["usage"] =
+      cur?.budget?.limit != null && (cur.budget.type === "usage" || cur.budget.type === "use_by_attribute")
+        ? { kind: cur.budget.type === "usage" ? "total" : "per_customer", limit: cur.budget.limit }
+        : null;
+    // Desired state; anything not sent stays as it is today.
+    const startsAt = input.startsAt !== undefined ? input.startsAt : (cur?.starts_at ?? null);
+    const endsAt = input.endsAt !== undefined ? input.endsAt : (cur?.ends_at ?? null);
+    const usage = input.usage !== undefined ? input.usage : curUsage;
+    const wantType = usage ? (usage.kind === "total" ? "usage" : "use_by_attribute") : null;
+
+    if (!startsAt && !endsAt && !usage) {
+      if (cur) body.campaign_id = null; // nothing scheduled or capped anymore
+    } else if (cur && (usage ? cur.budget?.type === wantType : !cur.budget)) {
+      // Reusable in place: dates always updatable; budget limit updatable when the type matches.
+      await adminPost(`/admin/campaigns/${cur.id}`, {
+        starts_at: startsAt,
+        ends_at: endsAt,
+        ...(usage ? { budget: { limit: usage.limit } } : {}),
+      });
+    } else {
+      // No campaign yet, budget type changed, or budget removed (budgets can't be
+      // detached in place) — link a fresh campaign with the full desired state.
+      const code = input.code ?? current.promotion.code;
+      const { campaign: created } = await adminPost<{ campaign: { id: string } }>(
+        "/admin/campaigns",
+        campaignPayload({ code, startsAt, endsAt, usage }),
+      );
+      body.campaign_id = created.id;
+    }
+  }
+
+  if (Object.keys(body).length > 0) await adminPost(`/admin/promotions/${id}`, body);
 }
 
 export async function deletePromotion(id: string): Promise<void> {
