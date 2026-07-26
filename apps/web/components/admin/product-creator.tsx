@@ -322,7 +322,7 @@ export function ProductCreator({
           <TextField label="Print (comma-separated)" value={print} onChange={(e) => setPrint(e.target.value)} placeholder="Floral, Solid, Striped" />
         </div>
         <CheckboxField
-          label="Free delivery badge (shown on the card + product page)"
+          label="Free delivery — badge on card/PDP; shipping is free when every cart item has this"
           checked={freeDelivery}
           onChange={(e) => setFreeDelivery(e.target.checked)}
         />
