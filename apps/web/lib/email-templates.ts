@@ -18,6 +18,8 @@ export const EMAIL_TEMPLATE_TYPES = [
   "orderShipped",
   "orderDelivered",
   "welcome",
+  "restock",
+  "abandonedCart",
 ] as const;
 export type EmailTemplateType = (typeof EMAIL_TEMPLATE_TYPES)[number];
 
@@ -33,6 +35,8 @@ export const emailTemplatesSchema = z.object({
   orderShipped: emailTemplateSchema,
   orderDelivered: emailTemplateSchema,
   welcome: emailTemplateSchema,
+  restock: emailTemplateSchema,
+  abandonedCart: emailTemplateSchema,
 });
 
 export type EmailTemplate = z.infer<typeof emailTemplateSchema>;
@@ -48,6 +52,11 @@ export const EMAIL_TEMPLATE_META: Record<EmailTemplateType, { label: string; pla
   },
   orderDelivered: { label: "Order delivered", placeholders: ["{orderId}", "{trackUrl}", "{name}"] },
   welcome: { label: "Welcome (after registration)", placeholders: ["{name}"] },
+  restock: { label: "Back in stock", placeholders: ["{product}", "{size}", "{url}"] },
+  abandonedCart: {
+    label: "Abandoned cart recovery",
+    placeholders: ["{items}", "{count}", "{total}", "{cartUrl}"],
+  },
 };
 
 export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
@@ -96,6 +105,21 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 <p style="margin:0 0 18px;text-align:center;"><a href="{trackUrl}" style="display:inline-block;padding:13px 34px;background:#7a1f2b;color:#ffffff;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">Shop new in</a></p>
 <p style="margin:0;font-size:13px;color:#8a8272;">Editorial luxury, for every day — see you inside.</p>`,
   },
+  restock: {
+    subject: "Back in stock: {product} ({size})",
+    heading: "It's back.",
+    body: `<p style="margin:0 0 14px;font-size:15px;"><strong>{product}</strong> — size <strong>{size}</strong> — just returned to the rail.</p>
+<p style="margin:0 0 14px;font-size:14px;color:#5c564a;">Popular sizes rarely stay long. This email went to everyone on the waiting list.</p>
+<p style="margin:0 0 18px;text-align:center;"><a href="{url}" style="display:inline-block;padding:13px 34px;background:#7a1f2b;color:#ffffff;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">Shop it now</a></p>`,
+  },
+  abandonedCart: {
+    subject: "Your bag is waiting — {count} piece(s) on hold",
+    heading: "Still thinking it over?",
+    body: `<p style="margin:0 0 14px;font-size:15px;">Your bag is exactly as you left it — here's what's inside:</p>
+<p style="margin:0 0 14px;font-size:14px;color:#5c564a;">{items}</p>
+<p style="margin:0 0 18px;text-align:center;"><a href="{cartUrl}" style="display:inline-block;padding:13px 34px;background:#7a1f2b;color:#ffffff;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">Complete your order</a></p>
+<p style="margin:0;font-size:13px;color:#8a8272;">Checkout takes under a minute — Cash on Delivery available.</p>`,
+  },
 };
 
 /** Parse the raw CMS value; missing/invalid templates fall back per-key. */
@@ -123,4 +147,25 @@ const escapeHtml = (s: string) =>
  */
 export function fillPlaceholders(text: string, vars: Record<string, string>): string {
   return text.replace(/\{(\w+)\}/g, (m, key: string) => (vars[key] !== undefined ? escapeHtml(vars[key]) : m));
+}
+
+// --- Custom templates (owner-created, SiteSetting "customEmailTemplates") ----
+// Free-form campaign/announcement emails: the owner names a template, writes
+// subject + heading + HTML body once, then picks it when sending one-off or
+// bulk email from /admin/customers. Placeholders: {name} {email}.
+
+export const customEmailTemplateSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(80),
+  subject: z.string().min(1).max(150),
+  heading: z.string().min(1).max(120),
+  body: z.string().min(1).max(20000),
+});
+export type CustomEmailTemplate = z.infer<typeof customEmailTemplateSchema>;
+
+export const customEmailTemplatesSchema = z.array(customEmailTemplateSchema).max(50);
+
+export function parseCustomEmailTemplates(raw: unknown): CustomEmailTemplate[] {
+  const r = customEmailTemplatesSchema.safeParse(raw);
+  return r.success ? r.data : [];
 }
