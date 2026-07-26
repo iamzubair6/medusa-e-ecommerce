@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { cn } from "@ecom/ui";
 
 export interface ComboOption {
@@ -17,6 +17,8 @@ export function Combobox({
   options,
   required,
   placeholder = "Select…",
+  clearable,
+  className,
 }: {
   label?: string;
   value: string;
@@ -24,6 +26,9 @@ export function Combobox({
   options: ComboOption[];
   required?: boolean;
   placeholder?: string;
+  /** Show an X inside the trigger to reset the selection (calls onChange("")). */
+  clearable?: boolean;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -44,8 +49,10 @@ export function Combobox({
     return q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
   }, [query, options]);
 
+  const showClear = Boolean(clearable && selected);
+
   return (
-    <div className="flex flex-col gap-2" ref={ref}>
+    <div className={cn("flex flex-col gap-2", className)} ref={ref}>
       {label && (
         <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {label}
@@ -58,9 +65,23 @@ export function Combobox({
           onClick={() => setOpen((o) => !o)}
           className="flex h-12 w-full items-center justify-between rounded-sm border border-input bg-card/60 px-3.5 text-sm transition-colors hover:border-foreground/40 focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          <span className={cn("truncate", !selected && "text-muted-foreground/60")}>{selected ? selected.label : placeholder}</span>
+          <span className={cn("truncate", !selected && "text-muted-foreground/60", showClear && "pr-6")}>{selected ? selected.label : placeholder}</span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
         </button>
+        {/* Sibling (not nested) button so it stays valid HTML and independently focusable. */}
+        {showClear && (
+          <button
+            type="button"
+            aria-label="Clear selection"
+            onClick={() => {
+              onChange("");
+              setQuery("");
+            }}
+            className="absolute right-9 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
 
         {open && (
           <div className="absolute z-30 mt-1 w-full rounded-md border border-border bg-card shadow-xl">
@@ -112,6 +133,7 @@ export function EnumCombobox<T extends string>({
   options,
   required,
   placeholder,
+  className,
 }: {
   label?: string;
   value: T;
@@ -119,6 +141,7 @@ export function EnumCombobox<T extends string>({
   options: readonly { value: T; label: string }[];
   required?: boolean;
   placeholder?: string;
+  className?: string;
 }) {
   return (
     <Combobox
@@ -126,6 +149,7 @@ export function EnumCombobox<T extends string>({
       value={value}
       required={required}
       placeholder={placeholder}
+      className={className}
       options={options.map((o) => ({ value: o.value, label: o.label }))}
       onChange={(v) => {
         const match = options.find((o) => o.value === v);
