@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSiteSetting } from "@ecom/cms";
 import { adminConfigured, listAllCustomerEmails } from "@/lib/medusa-admin";
 import { sendEmail, emailMockMode, emailShell } from "@/lib/email";
-import { parseCustomEmailTemplates, fillPlaceholders } from "@/lib/email-templates";
+import { parseCustomEmailTemplates, fillPlaceholders, isFullHtmlDocument } from "@/lib/email-templates";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /** Spend guard — bulk email campaigns are human-paced. */
@@ -72,7 +72,10 @@ export async function POST(request: Request) {
     const ok = await sendEmail({
       to: r.email,
       subject: fillPlaceholders(template.subject, vars),
-      html: emailShell(fillPlaceholders(template.heading, vars), fillPlaceholders(template.body, vars)),
+      // Full HTML documents go out as-is; fragments get the brand shell (#142).
+      html: isFullHtmlDocument(template.body)
+        ? fillPlaceholders(template.body, vars)
+        : emailShell(fillPlaceholders(template.heading, vars), fillPlaceholders(template.body, vars)),
     });
     if (ok) sent += 1;
   }

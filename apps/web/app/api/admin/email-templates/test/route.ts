@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { emailMockMode, renderEmail, sendEmail, emailShell } from "@/lib/email";
-import { EMAIL_TEMPLATE_TYPES, emailTemplatesSchema, fillPlaceholders } from "@/lib/email-templates";
+import { EMAIL_TEMPLATE_TYPES, emailTemplatesSchema, fillPlaceholders, isFullHtmlDocument } from "@/lib/email-templates";
 
 const schema = z.union([
   z.object({
@@ -16,7 +16,7 @@ const schema = z.union([
     custom: z.object({
       subject: z.string().min(1).max(150),
       heading: z.string().min(1).max(120),
-      body: z.string().min(1).max(20000),
+      body: z.string().min(1).max(200_000),
     }),
   }),
 ]);
@@ -51,10 +51,13 @@ export async function POST(request: Request) {
     "custom" in parsed.data
       ? {
           subject: fillPlaceholders(parsed.data.custom.subject, SAMPLE_VARS),
-          html: emailShell(
-            fillPlaceholders(parsed.data.custom.heading, SAMPLE_VARS),
-            fillPlaceholders(parsed.data.custom.body, SAMPLE_VARS),
-          ),
+          // Full HTML documents are sent as-is; fragments get the brand shell (#142).
+          html: isFullHtmlDocument(parsed.data.custom.body)
+            ? fillPlaceholders(parsed.data.custom.body, SAMPLE_VARS)
+            : emailShell(
+                fillPlaceholders(parsed.data.custom.heading, SAMPLE_VARS),
+                fillPlaceholders(parsed.data.custom.body, SAMPLE_VARS),
+              ),
         }
       : await renderEmail(parsed.data.type, SAMPLE_VARS, parsed.data.templates);
   const sent = await sendEmail({ to: parsed.data.to, subject: `[TEST] ${subject}`, html });
