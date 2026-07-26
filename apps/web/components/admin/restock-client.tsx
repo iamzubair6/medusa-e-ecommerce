@@ -43,14 +43,29 @@ function Thumb({ src }: { src?: string }) {
  * admin sees stockouts before any customer subscribes, and (2) the back-in-stock
  * waiting list with one-click Notify (emails everyone on the variant).
  */
-export function RestockCentre({ lowStock, waiting }: { lowStock: LowStockRow[]; waiting: RestockRow[] }) {
+export function RestockCentre({
+  lowStock,
+  waiting,
+  allWaiting,
+  stockPager,
+  waitingPager,
+}: {
+  lowStock: LowStockRow[];
+  waiting: RestockRow[];
+  /** Full (unpaginated) waiting list — keeps the inline "N waiting" counts
+   *  accurate when `waiting` is a page slice. */
+  allWaiting?: RestockRow[];
+  stockPager?: React.ReactNode;
+  waitingPager?: React.ReactNode;
+}) {
   // Pending waiting-list demand rolled up per product title, to surface inline
   // on the stock rows (subscriptions carry handle/title, not product ids).
+  const demand = allWaiting ?? waiting;
   const waitingByProduct = useMemo(() => {
     const m = new Map<string, number>();
-    for (const w of waiting) m.set(norm(w.productTitle), (m.get(norm(w.productTitle)) ?? 0) + w.count);
+    for (const w of demand) m.set(norm(w.productTitle), (m.get(norm(w.productTitle)) ?? 0) + w.count);
     return m;
-  }, [waiting]);
+  }, [demand]);
 
   // Waiting-list rows have no thumbnail of their own — borrow the catalogue one.
   const thumbByProduct = useMemo(() => {
@@ -61,8 +76,14 @@ export function RestockCentre({ lowStock, waiting }: { lowStock: LowStockRow[]; 
 
   return (
     <div className="grid items-start gap-10 xl:grid-cols-2">
-      <LowStockSection rows={lowStock} waitingByProduct={waitingByProduct} />
-      <WaitingSection rows={waiting} thumbByProduct={thumbByProduct} />
+      <div>
+        <LowStockSection rows={lowStock} waitingByProduct={waitingByProduct} />
+        {stockPager}
+      </div>
+      <div>
+        <WaitingSection rows={waiting} thumbByProduct={thumbByProduct} />
+        {waitingPager}
+      </div>
     </div>
   );
 }
