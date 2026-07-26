@@ -46,6 +46,7 @@ export async function sendEmail({ to, toName, subject, html }: SendArgs): Promis
 import { getSiteSetting } from "@ecom/cms";
 import {
   fillPlaceholders,
+  isFullHtmlDocument,
   parseEmailTemplates,
   type EmailTemplates,
   type EmailTemplateType,
@@ -77,7 +78,11 @@ export async function renderEmail(
   const t = (templates ?? parseEmailTemplates(await getSiteSetting("emailTemplates").catch(() => null)))[type];
   return {
     subject: fillPlaceholders(t.subject, vars),
-    html: emailShell(fillPlaceholders(t.heading, vars), fillPlaceholders(t.body, vars)),
+    // A full <!DOCTYPE html> body replaces the design entirely (#148) —
+    // fragments get the branded shell as before.
+    html: isFullHtmlDocument(t.body)
+      ? fillPlaceholders(t.body, vars)
+      : emailShell(fillPlaceholders(t.heading, vars), fillPlaceholders(t.body, vars)),
   };
 }
 
