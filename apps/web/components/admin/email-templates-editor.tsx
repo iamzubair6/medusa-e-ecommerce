@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { Button, Card } from "@ecom/ui";
 import { TextField } from "./fields";
 import { RichTextField } from "./rich-text-field";
+import { EmailPreview } from "./email-preview";
 import { useToast } from "./toast";
 import {
   EMAIL_TEMPLATE_META,
@@ -35,6 +36,7 @@ export function EmailTemplatesEditor({ initial, adminEmail }: { initial: EmailTe
     control,
     handleSubmit,
     getValues,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<EmailTemplates>({ resolver: zodResolver(emailTemplatesSchema), defaultValues: initial });
 
@@ -123,6 +125,11 @@ export function EmailTemplatesEditor({ initial, adminEmail }: { initial: EmailTe
                   render={({ field }) => (
                     <RichTextField label="Body content" value={field.value} onChange={field.onChange} />
                   )}
+                />
+                <EmailPreview
+                  subject={watch(`${type}.subject`)}
+                  heading={watch(`${type}.heading`)}
+                  body={watch(`${type}.body`)}
                 />
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
