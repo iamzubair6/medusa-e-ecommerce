@@ -128,6 +128,23 @@ route, env var, or deploy step, **update docs in the same change**:
 Don't scatter status across docs (ROADMAP/PLAN are historical baselines). Treat doc
 updates as part of "done", not optional.
 
+## Docs & memory are UNPROMPTED (owner mandate — strict)
+**The owner must NEVER have to ask for docs or memory updates.** Do all of this
+automatically, in the same work block, before reporting "done":
+1. `docs/IMPLEMENTATION_STATUS.md` — board rows for every task AND the
+   **"Current standing" section at the top** (shipped-through commit, pending
+   list in priority order, next builds awaiting "go"). Keep both current.
+2. **Smoke tests** — every owner-testable feature gets checklist entries in
+   `docs/smoke-tests/` (+ README index row) as part of the round, unasked.
+3. **Plan docs** — big future work the owner approves gets its own
+   `docs/*_PLAN.md` (like POS_PLAN / EMAIL_TEMPLATES_PLAN) before building.
+4. **Assistant auto-memory** (`~/.claude/projects/.../memory/`) — keep the
+   `ecom-current-standing` note pointing at the canonical docs and refresh its
+   "pending" summary at the end of any session that changes project state.
+   Memory is a POINTER; the repo docs stay the source of truth (chat memory is
+   assumed wipeable anytime).
+Silently skipping any of these is a rule violation, not a shortcut.
+
 ## Turning feedback into tracked tasks (ALWAYS)
 Every time the user gives a **fix, update, or feedback**:
 1. **Break it into numbered tasks/phases** (use the TaskCreate task list).
