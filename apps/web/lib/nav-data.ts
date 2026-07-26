@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { getSiteSetting } from "@ecom/cms";
+import { getActiveCampaign } from "./active-campaign";
 import { fetchDivisionCategories, fetchListing, DIVISION_HANDLES } from "@/lib/commerce";
 import { parseSiteSettings } from "@/lib/site-settings";
 import { parseNavigation, type Navigation } from "@/lib/navigation";
@@ -48,11 +49,24 @@ export const getNavData = cache(async (): Promise<NavData> => {
     categoriesByDivision[h] = catLists[i]!.map((c) => ({ handle: c.handle, name: c.name }));
   });
 
-  const [{ facets }, site, navigation] = await Promise.all([
+  const [{ facets }, site, navigation, campaign] = await Promise.all([
     fetchListing({}, { limit: 1 }),
     getSiteSetting("site").then(parseSiteSettings).catch(() => parseSiteSettings(null)),
     getSiteSetting("navigation").then(parseNavigation).catch(() => parseNavigation(null)),
+    getActiveCampaign(),
   ]);
+
+  // A live campaign with banner copy takes over the announcement bar; its promo
+  // code rides along so shoppers see how to redeem it.
+  const announcement = campaign?.bannerText
+    ? {
+        active: true,
+        message: campaign.promoCode
+          ? `${campaign.bannerText} — use code ${campaign.promoCode}`
+          : campaign.bannerText,
+        href: campaign.bannerHref,
+      }
+    : site.announcement;
 
   // Admin-managed division labels/badges override the defaults when present.
   const divisions = DIVISIONS.map((d) => {
@@ -65,7 +79,7 @@ export const getNavData = cache(async (): Promise<NavData> => {
     categoriesByDivision,
     facets: { occasion: facets.occasion, style: facets.style, trend: facets.trend, colors: facets.colors },
     brandByDivision: { ...BRAND, ...site.brands },
-    announcement: site.announcement,
+    announcement,
     navigation,
   };
 });
