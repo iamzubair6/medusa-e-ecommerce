@@ -5,6 +5,7 @@ import { getCustomer, getCustomerOrders, listAddresses } from "@/lib/customer-au
 import { SiteNavbar } from "@/components/site/site-navbar";
 import { Footer } from "@/components/site/footer";
 import { AccountClient } from "@/components/site/account-client";
+import { AccountOffers } from "@/components/site/account-offers";
 import { AddressBook } from "@/components/site/address-book";
 
 export const metadata: Metadata = { title: "My Account" };
@@ -20,6 +21,7 @@ export default async function AccountPage() {
       <SiteNavbar />
       <Container className="py-12 lg:py-16">
         <AccountClient customer={customer} orders={orders} />
+        <AccountOffers phone={customer.phone ?? null} />
         <div className="mt-12">
           <AddressBook addresses={addresses} />
         </div>
