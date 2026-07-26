@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z, ZodError } from "zod";
 import { createCampaign, listCampaigns } from "@ecom/cms";
 
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
       payload: parsed.data.payload,
     });
+    revalidatePath("/", "layout"); // banner takeover shows immediately
     return NextResponse.json({ campaign }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: error.flatten() }, { status: 422 });

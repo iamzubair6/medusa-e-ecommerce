@@ -28,7 +28,9 @@ export const getActiveCampaign = cache(async (): Promise<ActiveCampaign | null> 
       id: live.id,
       name: live.name,
       promoCode: payload.promoCode?.trim() || null,
-      bannerText: payload.bannerText?.trim() || null,
+      // A live campaign always announces itself: explicit banner text wins,
+      // otherwise the campaign name is the banner (#138 — owner expectation).
+      bannerText: payload.bannerText?.trim() || live.name.trim() || null,
       bannerHref: payload.bannerHref?.trim() || "/products",
     };
   } catch {

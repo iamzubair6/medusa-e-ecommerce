@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z, ZodError } from "zod";
 import { deleteCampaign, updateCampaign } from "@ecom/cms";
 
@@ -28,6 +29,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       startsAt: startsAt ? new Date(startsAt) : undefined,
       endsAt: endsAt === undefined ? undefined : endsAt ? new Date(endsAt) : null,
     });
+    revalidatePath("/", "layout"); // banner takeover shows/updates immediately
     return NextResponse.json({ campaign });
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: error.flatten() }, { status: 422 });
@@ -39,6 +41,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   try {
     await deleteCampaign(id);
+    revalidatePath("/", "layout");
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
