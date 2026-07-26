@@ -1912,30 +1912,58 @@ export async function getTopProducts(limit = 5): Promise<TopProduct[]> {
 }
 
 export interface LowStockVariant {
+  productId: string;
   product: string;
-  variant: string;
+  variant: string; // "Black / M"
   thumbnail?: string;
-  quantity: number;
+  quantity: number; // 0 = out of stock
 }
 
 /**
- * Variants at or below a stock threshold (still in stock). Best-effort: Medusa
- * only exposes `inventory_quantity` when inventory is managed, so this returns
- * [] rather than erroring when the data isn't available.
+ * Sizes at or below a stock threshold, INCLUDING sold-out (0). This store keeps
+ * stock in product `metadata.sizeStock` ({color: {size: qty}}) with Medusa
+ * inventory unmanaged — reading `inventory_quantity` here showed nothing (#144).
+ * Falls back to `inventory_quantity` for any legacy managed variants.
  */
-export async function getLowStock(threshold = 5, limit = 10): Promise<LowStockVariant[]> {
-  const fields = "title,thumbnail,variants.title,variants.inventory_quantity";
+export async function getLowStock(threshold = 5, limit = 30): Promise<LowStockVariant[]> {
+  const fields = "id,title,thumbnail,status,metadata,variants.title,variants.inventory_quantity";
   const data = await adminFetch<{
-    products?: { title: string; thumbnail?: string | null; variants?: { title?: string; inventory_quantity?: number | null }[] }[];
-  }>(`/admin/products?fields=${encodeURIComponent(fields)}&limit=200`);
+    products?: {
+      id: string;
+      title: string;
+      status?: string;
+      thumbnail?: string | null;
+      metadata?: { sizeStock?: Record<string, Record<string, number>> } | null;
+      variants?: { title?: string; inventory_quantity?: number | null }[];
+    }[];
+  }>(`/admin/products?fields=${encodeURIComponent(fields)}&limit=200&status[]=published`);
   const low: LowStockVariant[] = [];
   for (const p of data?.products ?? []) {
-    for (const v of p.variants ?? []) {
-      const q = v.inventory_quantity;
-      if (typeof q === "number" && q > 0 && q <= threshold) {
-        low.push({ product: p.title, variant: v.title ?? "—", thumbnail: p.thumbnail ?? undefined, quantity: q });
+    const sizeStock = p.metadata?.sizeStock;
+    if (sizeStock && typeof sizeStock === "object") {
+      for (const [color, sizes] of Object.entries(sizeStock)) {
+        if (!sizes || typeof sizes !== "object") continue;
+        for (const [size, qty] of Object.entries(sizes)) {
+          if (typeof qty === "number" && qty <= threshold) {
+            low.push({
+              productId: p.id,
+              product: p.title,
+              variant: `${color} / ${size}`,
+              thumbnail: p.thumbnail ?? undefined,
+              quantity: qty,
+            });
+          }
+        }
+      }
+    } else {
+      for (const v of p.variants ?? []) {
+        const q = v.inventory_quantity;
+        if (typeof q === "number" && q <= threshold) {
+          low.push({ productId: p.id, product: p.title, variant: v.title ?? "—", thumbnail: p.thumbnail ?? undefined, quantity: q });
+        }
       }
     }
   }
+  // Sold-out first, then scarcest.
   return low.sort((a, b) => a.quantity - b.quantity).slice(0, limit);
 }

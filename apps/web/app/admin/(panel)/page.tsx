@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
     getContentStats(),
     getDashboardSeries(14),
     getTopProducts(5).catch(() => []),
-    getLowStock(5, 6).catch(() => []),
+    getLowStock(5, 12).catch(() => []),
     listOrders(6).then((r) => r.orders).catch(() => []),
     pendingRestockCount().catch(() => 0),
   ]);
@@ -151,15 +151,22 @@ export default async function AdminDashboard() {
           </div>
         </section>
 
-        {/* Low stock */}
+        {/* Stock alerts — sold-out first (#144: sourced from metadata sizeStock) */}
         {lowStock.length > 0 && (
           <section>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Low stock</h2>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Stock alerts
+              {lowStock.some((v) => v.quantity === 0) && (
+                <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-[0.65rem] font-bold text-destructive">
+                  {lowStock.filter((v) => v.quantity === 0).length} sold out
+                </span>
+              )}
+            </h2>
             <Card>
               <CardContent className="p-0">
                 <ul className="divide-y divide-border">
                   {lowStock.map((v, i) => (
-                    <li key={`${v.product}-${v.variant}-${i}`} className="flex items-center gap-3 p-3">
+                    <li key={`${v.productId}-${v.variant}-${i}`} className="flex items-center gap-3 p-3">
                       {v.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={v.thumbnail} alt="" className="h-10 w-8 shrink-0 rounded-sm object-cover" />
@@ -167,11 +174,20 @@ export default async function AdminDashboard() {
                         <span className="h-10 w-8 shrink-0 rounded-sm bg-muted" />
                       )}
                       <span className="min-w-0 flex-1 truncate text-sm">
-                        {v.product} <span className="text-muted-foreground">· {v.variant}</span>
+                        <Link href={`/admin/products/${v.productId}/edit`} className="hover:underline">
+                          {v.product}
+                        </Link>{" "}
+                        <span className="text-muted-foreground">· {v.variant}</span>
                       </span>
-                      <span className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
-                        {v.quantity} left
-                      </span>
+                      {v.quantity === 0 ? (
+                        <span className="shrink-0 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-bold text-destructive">
+                          Sold out
+                        </span>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+                          {v.quantity} left
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
