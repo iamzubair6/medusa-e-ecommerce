@@ -17,6 +17,7 @@ import {
   valuePropsConfigSchema,
   SECTION_TYPES,
 } from "@ecom/cms";
+import { Combobox } from "./combobox";
 import { HeroEditor } from "./editors/hero-editor";
 import { MarqueeEditor } from "./editors/marquee-editor";
 import { BannerEditor } from "./editors/banner-editor";
@@ -197,15 +198,12 @@ export function SectionManager({ sections: initial, pageLayoutId }: { sections: 
       {sections.length === 0 && <p className="text-sm text-muted-foreground">No sections yet — add one below.</p>}
 
       <div className="flex items-center gap-2 rounded-md border border-dashed border-border p-3">
-        <select
+        <Combobox
           value={newType}
-          onChange={(e) => setNewType(e.target.value)}
-          className="h-10 rounded-sm border border-input bg-card px-3 text-sm"
-        >
-          {SECTION_TYPES.map((t) => (
-            <option key={t} value={t}>{t.replace("_", " ")}</option>
-          ))}
-        </select>
+          onChange={setNewType}
+          options={SECTION_TYPES.map((t) => ({ value: t, label: t.replace("_", " ") }))}
+          className="w-64"
+        />
         <Button type="button" variant="outline" size="sm" loading={busy} onClick={addSection}>
           <Plus className="h-4 w-4" /> Add section
         </Button>

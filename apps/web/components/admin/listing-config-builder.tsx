@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button, Card, cn } from "@ecom/ui";
-import { TextField, SelectField, CheckboxField } from "./fields";
+import { TextField, CheckboxField } from "./fields";
+import { EnumCombobox } from "./combobox";
 import { useToast } from "./toast";
 import {
   FACET_KEYS,
@@ -13,6 +14,7 @@ import {
   type FacetKey,
   type ListingConfig,
   type ListingEntry,
+  type SpecialSource,
 } from "@/lib/listing-config";
 
 export interface ListingTarget {
@@ -121,16 +123,17 @@ export function ListingConfigBuilder({
         </p>
 
         {/* Category facet visibility */}
-        <SelectField
+        <EnumCombobox<ListingEntry["categoryFacet"]>
           label="Category filter"
           value={entry.categoryFacet}
-          onChange={(e) => setEntry({ ...entry, categoryFacet: e.target.value as ListingEntry["categoryFacet"] })}
+          onChange={(v) => setEntry({ ...entry, categoryFacet: v })}
+          options={[
+            { value: "auto", label: "Auto (show on broad multi-type listings)" },
+            { value: "show", label: "Always show" },
+            { value: "hide", label: "Always hide" },
+          ]}
           className="max-w-xs"
-        >
-          <option value="auto">Auto (show on broad multi-type listings)</option>
-          <option value="show">Always show</option>
-          <option value="hide">Always hide</option>
-        </SelectField>
+        />
 
         {/* Filter group order */}
         <div className="flex flex-col gap-3 border-t border-border pt-4">
@@ -188,17 +191,12 @@ export function ListingConfigBuilder({
                 className="sm:col-span-3"
                 placeholder="e.g. Shop by style"
               />
-              <SelectField
+              <EnumCombobox<SpecialSource>
                 label="Source"
                 value={entry.special.source}
-                onChange={(e) => setEntry({ ...entry, special: { ...entry.special, source: e.target.value as ListingEntry["special"]["source"] } })}
-              >
-                {SPECIAL_SOURCES.map((s) => (
-                  <option key={s} value={s}>
-                    {FACET_LABELS[s]}
-                  </option>
-                ))}
-              </SelectField>
+                onChange={(v) => setEntry({ ...entry, special: { ...entry.special, source: v } })}
+                options={SPECIAL_SOURCES.map((s) => ({ value: s, label: FACET_LABELS[s] }))}
+              />
               <TextField
                 label="Max tiles"
                 type="number"
