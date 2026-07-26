@@ -5,6 +5,8 @@ import { deleteCampaign, updateCampaign } from "@ecom/cms";
 const payloadSchema = z.object({
   promoCode: z.string().max(60).optional(),
   note: z.string().max(300).optional(),
+  bannerText: z.string().max(160).optional(),
+  bannerHref: z.string().max(200).optional(),
 });
 
 const updateSchema = z.object({
