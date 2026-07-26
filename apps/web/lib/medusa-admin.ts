@@ -1200,6 +1200,33 @@ export async function deletePromotion(id: string): Promise<void> {
   await adminDelete(`/admin/promotions/${id}`);
 }
 
+/** Idempotently create a personal one-time order-level promo (phone rewards).
+ *  `limit: 1` is Medusa 2.15's native total-usage cap. */
+export async function ensurePersonalPromo(
+  code: string,
+  kind: "percentage" | "fixed",
+  value: number,
+): Promise<void> {
+  const existing = await adminFetch<{ promotions?: { id: string }[] }>(
+    `/admin/promotions?code=${encodeURIComponent(code)}&fields=id`,
+  );
+  if (existing?.promotions?.length) return;
+  await adminPost("/admin/promotions", {
+    code,
+    status: "active",
+    is_automatic: false,
+    type: "standard",
+    limit: 1,
+    application_method: {
+      type: kind,
+      value,
+      target_type: "order",
+      allocation: "across",
+      ...(kind === "fixed" ? { currency_code: "bdt" } : {}),
+    },
+  });
+}
+
 // --- Price lists (sales / overrides) ----------------------------------------
 
 export interface AdminPriceListRow {
