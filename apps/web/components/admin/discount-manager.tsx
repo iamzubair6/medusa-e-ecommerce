@@ -23,10 +23,13 @@ export function DiscountManager({
   promotions,
   categories,
   collections,
+  publicCodes,
 }: {
   promotions: Promotion[];
   categories: Option[];
   collections: Option[];
+  /** Codes flagged publicly visible (offers page) — uppercase (#140). */
+  publicCodes: string[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -46,6 +49,34 @@ export function DiscountManager({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<Promotion | null>(null);
+  const [publicSet, setPublicSet] = useState<Set<string>>(new Set(publicCodes));
+  const [busyPublic, setBusyPublic] = useState<string | null>(null);
+
+  // #140: whether the code shows on /offers ("My offers" for members always
+  // includes public codes + their personal one).
+  const togglePublic = async (p: Promotion) => {
+    const makePublic = !publicSet.has(p.code.toUpperCase());
+    setBusyPublic(p.id);
+    try {
+      const res = await fetch("/api/admin/promotions/public", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: p.code, public: makePublic }),
+      });
+      if (!res.ok) throw new Error("Could not update visibility");
+      setPublicSet((s) => {
+        const n = new Set(s);
+        if (makePublic) n.add(p.code.toUpperCase());
+        else n.delete(p.code.toUpperCase());
+        return n;
+      });
+      toast.success(makePublic ? `${p.code} is now shown on the Offers page.` : `${p.code} is hidden from the public.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusyPublic(null);
+    }
+  };
 
   const needsValue = method === "percentage" || method === "fixed";
   const needsTarget = appliesTo !== "order";
@@ -252,6 +283,7 @@ export function DiscountManager({
               <th>Type</th>
               <th>Discount</th>
               <th>Status</th>
+              <th>Public</th>
               <th className="text-right">Actions</th>
             </tr>
           </thead>
@@ -282,6 +314,24 @@ export function DiscountManager({
                     <Badge variant={p.status === "active" ? "gold" : "muted"} className="capitalize">{p.status}</Badge>
                   </td>
                   <td>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={publicSet.has(p.code.toUpperCase())}
+                      aria-label={`Show ${p.code} on the public Offers page`}
+                      disabled={busyPublic === p.id}
+                      onClick={() => togglePublic(p)}
+                      className={cn(
+                        "cursor-pointer rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide transition-colors",
+                        publicSet.has(p.code.toUpperCase())
+                          ? "border-gold/60 bg-gold/10 text-gold"
+                          : "border-border text-muted-foreground hover:border-foreground",
+                      )}
+                    >
+                      {publicSet.has(p.code.toUpperCase()) ? "Public" : "Hidden"}
+                    </button>
+                  </td>
+                  <td>
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="outline" size="sm" loading={busyId === p.id} onClick={() => toggle(p)}>
                         {p.status === "active" ? "Disable" : "Enable"}
@@ -294,7 +344,7 @@ export function DiscountManager({
                 </tr>
                 {expandedId === p.id && (
                   <tr className="border-b border-border bg-muted/30 last:border-0">
-                    <td colSpan={5} className="px-4 py-4">
+                    <td colSpan={6} className="px-4 py-4">
                       <PromoEditForm
                         promo={p}
                         appliesTo={targetLabel(p)}
@@ -311,7 +361,7 @@ export function DiscountManager({
             ))}
             {promotions.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No promotions yet.</td>
+                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No promotions yet.</td>
               </tr>
             )}
           </tbody>
