@@ -61,8 +61,9 @@ task — a tiny fix skips planner; a feature runs the whole chain.
 - Update `docs/IMPLEMENTATION_STATUS.md` **in the same change** as the work it records.
 
 ## Working discipline (owner mandate)
-- **Session start:** read `docs/README.md` → `docs/IMPLEMENTATION_STATUS.md` (+ the
-  docs relevant to the task) BEFORE any work, to recover current state and goals.
+- **Session start:** read `docs/README.md` → `docs/IMPLEMENTATION_STATUS.md` →
+  `.claude/memory/PROJECT_MEMORY.md` (+ the docs relevant to the task) BEFORE any
+  work, to recover current state, goals and non-obvious project facts.
 - **Never edit code blind.** First read the file(s), understand the structure and what
   they serve; only then change what's needed. No random/speculative edits.
 - **Do proper R&D per task** — research the approach (web search / firecrawl skills /
@@ -138,11 +139,13 @@ automatically, in the same work block, before reporting "done":
    `docs/smoke-tests/` (+ README index row) as part of the round, unasked.
 3. **Plan docs** — big future work the owner approves gets its own
    `docs/*_PLAN.md` (like POS_PLAN / EMAIL_TEMPLATES_PLAN) before building.
-4. **Assistant auto-memory** (`~/.claude/projects/.../memory/`) — keep the
-   `ecom-current-standing` note pointing at the canonical docs and refresh its
-   "pending" summary at the end of any session that changes project state.
-   Memory is a POINTER; the repo docs stay the source of truth (chat memory is
-   assumed wipeable anytime).
+4. **Project memory in the repo: `.claude/memory/PROJECT_MEMORY.md`** — the
+   versioned, machine-independent memory. Refresh its "Standing snapshot"
+   (shipped-through commit + pending list) at the end of ANY session that
+   changes project state, and add non-obvious facts a fresh session would
+   need. Read it at session start together with IMPLEMENTATION_STATUS. It is
+   a POINTER + snapshot; the `docs/` files stay the source of truth (chat and
+   user-level memory are assumed wipeable anytime).
 Silently skipping any of these is a rule violation, not a shortcut.
 
 ## Turning feedback into tracked tasks (ALWAYS)
