@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { listGuestLeads } from "@ecom/cms";
-import { Card } from "@ecom/ui";
+import { Download } from "lucide-react";
+import { listGuestLeads, listGuestLeadSources } from "@ecom/cms";
+import { Card, cn } from "@ecom/ui";
 import { AdminHeader } from "@/components/admin/page-header";
 
 export const dynamic = "force-dynamic";
@@ -10,23 +11,70 @@ const PAGE_SIZE = 25;
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; has?: string; source?: string }>;
 }) {
-  const { page } = await searchParams;
+  const { page, has: hasRaw, source } = await searchParams;
   const current = Math.max(1, Number(page) || 1);
-  const { items, total, take } = await listGuestLeads({
-    skip: (current - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
-  });
+  const has = hasRaw === "email" || hasRaw === "phone" ? hasRaw : undefined;
+  const [{ items, total, take }, sources] = await Promise.all([
+    listGuestLeads({ skip: (current - 1) * PAGE_SIZE, take: PAGE_SIZE, has, source }),
+    listGuestLeadSources().catch(() => []),
+  ]);
   const pages = Math.max(1, Math.ceil(total / take));
+
+  // Filter-preserving query string (page resets when a filter changes).
+  const qs = (patch: { has?: string; source?: string; page?: number }) => {
+    const params = new URLSearchParams();
+    const nextHas = "has" in patch ? patch.has : has;
+    const nextSource = "source" in patch ? patch.source : source;
+    if (nextHas) params.set("has", nextHas);
+    if (nextSource) params.set("source", nextSource);
+    if (patch.page && patch.page > 1) params.set("page", String(patch.page));
+    const s = params.toString();
+    return s ? `?${s}` : "";
+  };
+  const chip = (active: boolean) =>
+    cn(
+      "rounded-full border px-3 py-1.5 text-xs transition-colors",
+      active ? "border-foreground bg-foreground text-background" : "border-border hover:border-foreground",
+    );
 
   return (
     <>
       <AdminHeader
         title="Guest Leads"
         description="Visitors who shared info but didn't complete checkout — for remarketing."
+        action={
+          <a
+            href={`/api/admin/leads/export${qs({})}`}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </a>
+        }
       />
       <div className="p-8">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Link href={`/admin/leads${qs({ has: undefined })}`} className={chip(!has)}>
+            All
+          </Link>
+          <Link href={`/admin/leads${qs({ has: "email" })}`} className={chip(has === "email")}>
+            Has email
+          </Link>
+          <Link href={`/admin/leads${qs({ has: "phone" })}`} className={chip(has === "phone")}>
+            Has phone
+          </Link>
+          {sources.length > 0 && <span className="mx-1 text-xs text-muted-foreground">·</span>}
+          {sources.map((s) => (
+            <Link
+              key={s}
+              href={`/admin/leads${qs({ source: source === s ? undefined : s })}`}
+              className={chip(source === s)}
+            >
+              {s}
+            </Link>
+          ))}
+        </div>
         <Card className="overflow-hidden">
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/50 text-left">
@@ -65,12 +113,12 @@ export default async function LeadsPage({
             </span>
             <div className="flex gap-2">
               {current > 1 && (
-                <Link href={`/admin/leads?page=${current - 1}`} className="rounded-md border border-border px-3 py-1.5 hover:bg-muted">
+                <Link href={`/admin/leads${qs({ page: current - 1 })}`} className="rounded-md border border-border px-3 py-1.5 hover:bg-muted">
                   Previous
                 </Link>
               )}
               {current < pages && (
-                <Link href={`/admin/leads?page=${current + 1}`} className="rounded-md border border-border px-3 py-1.5 hover:bg-muted">
+                <Link href={`/admin/leads${qs({ page: current + 1 })}`} className="rounded-md border border-border px-3 py-1.5 hover:bg-muted">
                   Next
                 </Link>
               )}
