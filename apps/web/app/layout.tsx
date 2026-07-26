@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import "@ecom/ui/styles.css";
 import { Providers } from "./providers";
+import { CookieConsent } from "@/components/site/cookie-consent";
 
 // Maison type: editorial display serif + refined grotesque body (owner-approved).
 const display = Fraunces({
@@ -31,7 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${archivo.variable} ${display.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieConsent />
+        </Providers>
       </body>
     </html>
   );
