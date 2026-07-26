@@ -3,7 +3,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { deleteShippingOption, updateShippingRate } from "@/lib/medusa-admin";
 
-const schema = z.object({ amount: z.number().int().min(0).max(100000) });
+const schema = z.object({
+  amount: z.number().int().min(0).max(100000),
+  /** Free-over-৳X threshold; null clears it, omitted leaves it unchanged. */
+  freeOver: z.number().int().min(1).max(10_000_000).nullable().optional(),
+});
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid amount" }, { status: 422 });
   }
   try {
-    await updateShippingRate(id, parsed.data.amount);
+    await updateShippingRate(id, parsed.data.amount, parsed.data.freeOver);
     revalidatePath("/");
     return NextResponse.json({ ok: true });
   } catch (error) {

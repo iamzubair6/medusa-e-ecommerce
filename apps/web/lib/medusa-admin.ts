@@ -181,6 +181,8 @@ export interface NewProductInput {
   material?: string;
   care?: string;
   sizeGuide?: string;
+  /** "Free delivery" badge on the PDP/card (informational). */
+  freeDelivery?: boolean;
   /** Optional collection to file the product under (e.g. resolved from a handle on bulk import). */
   collectionId?: string;
 }
@@ -330,6 +332,7 @@ function buildMetadata(input: NewProductInput) {
       input.colors.map((c) => [c.name, Object.fromEntries(c.sizes.map((s) => [s.size, s.stock]))]),
     ),
     ...(input.offer ? { offer: input.offer } : {}),
+    ...(input.freeDelivery ? { freeDelivery: true } : {}),
     ...(input.division ? { division: input.division } : {}),
     ...(input.occasion?.length ? { occasion: input.occasion } : {}),
     ...(input.style?.length ? { style: input.style } : {}),
@@ -477,6 +480,7 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     material?: string;
     care?: string;
     sizeGuide?: string;
+    freeDelivery?: boolean;
   };
   const titleByOptionId = new Map((p.options ?? []).map((o) => [o.id, o.title]));
 
@@ -540,6 +544,7 @@ export async function getProductForEdit(id: string): Promise<ProductFormData | n
     material: str(meta.material),
     care: str(meta.care),
     sizeGuide: str(meta.sizeGuide),
+    freeDelivery: meta.freeDelivery === true,
   };
 }
 
@@ -1274,11 +1279,32 @@ export interface AdminShippingRate {
   id: string;
   name: string;
   amount: number; // BDT
+  /** Cart item-total (৳) at which this option becomes free — null = never. */
+  freeOver: number | null;
   /** Service zone the option is scoped to (its delivery zone), best-effort. */
   zone?: string;
   /** Service zone id — used to group options under their zone card. */
   zoneId?: string;
 }
+
+interface RawShippingPrice {
+  id?: string;
+  amount: number;
+  currency_code: string;
+  price_rules?: { attribute?: string; operator?: string; value?: string | number }[] | null;
+}
+
+const isFreeOverPrice = (p: RawShippingPrice): boolean =>
+  p.amount === 0 && (p.price_rules ?? []).some((r) => r.attribute === "item_total" && r.operator === "gte");
+
+const freeOverValue = (p: RawShippingPrice): number | null => {
+  const rule = (p.price_rules ?? []).find((r) => r.attribute === "item_total" && r.operator === "gte");
+  const n = rule ? Number(rule.value) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+
+const SHIPPING_RATE_FIELDS =
+  "id,name,service_zone_id,*prices,*prices.price_rules,service_zone.name";
 
 export async function listShippingRates(): Promise<AdminShippingRate[]> {
   const data = await adminFetch<{
@@ -1286,17 +1312,22 @@ export async function listShippingRates(): Promise<AdminShippingRate[]> {
       id: string;
       name: string;
       service_zone_id?: string | null;
-      prices?: { amount: number; currency_code: string }[];
+      prices?: RawShippingPrice[];
       service_zone?: { name?: string } | null;
     }[];
-  }>("/admin/shipping-options?fields=id,name,service_zone_id,*prices,service_zone.name");
-  return (data?.shipping_options ?? []).map((o) => ({
-    id: o.id,
-    name: o.name,
-    amount: o.prices?.find((p) => p.currency_code === "bdt")?.amount ?? 0,
-    zone: o.service_zone?.name ?? undefined,
-    zoneId: o.service_zone_id ?? undefined,
-  }));
+  }>(`/admin/shipping-options?fields=${encodeURIComponent(SHIPPING_RATE_FIELDS)}`);
+  return (data?.shipping_options ?? []).map((o) => {
+    const bdt = (o.prices ?? []).filter((p) => p.currency_code === "bdt");
+    const conditional = bdt.find(isFreeOverPrice);
+    return {
+      id: o.id,
+      name: o.name,
+      amount: bdt.find((p) => !isFreeOverPrice(p))?.amount ?? 0,
+      freeOver: conditional ? freeOverValue(conditional) : null,
+      zone: o.service_zone?.name ?? undefined,
+      zoneId: o.service_zone_id ?? undefined,
+    };
+  });
 }
 
 // --- Shipping zones & option management ---------------------------------------
@@ -1469,16 +1500,34 @@ export async function listPaymentProviders(): Promise<AdminPaymentProvider[]> {
   return [...seen.entries()].map(([id, enabled]) => ({ id, enabled }));
 }
 
-/** Update a shipping option's BDT price (keeps region + currency rows in sync). */
-export async function updateShippingRate(id: string, amount: number): Promise<void> {
-  const data = await adminFetch<{ shipping_option?: { prices?: { id: string; currency_code: string }[] } }>(
-    `/admin/shipping-options/${id}?fields=id,prices.id,prices.currency_code`,
+/** Update a shipping option's BDT price and its optional free-over-৳X threshold.
+ *  The threshold is a second conditional price (amount 0, `item_total >= X`
+ *  rule) — Medusa picks the rule-matched price when the cart qualifies. */
+export async function updateShippingRate(id: string, amount: number, freeOver?: number | null): Promise<void> {
+  const data = await adminFetch<{ shipping_option?: { prices?: RawShippingPrice[] } }>(
+    `/admin/shipping-options/${id}?fields=id,*prices,*prices.price_rules`,
   );
-  const bdtPriceIds = (data?.shipping_option?.prices ?? []).filter((p) => p.currency_code === "bdt").map((p) => p.id);
+  const prices = data?.shipping_option?.prices ?? [];
+  const base = prices.filter((p) => p.currency_code === "bdt" && !isFreeOverPrice(p));
+  const keepFreeOver = freeOver === undefined ? listRateFreeOver(prices) : freeOver;
   await adminPost(`/admin/shipping-options/${id}`, {
-    prices: bdtPriceIds.map((pid) => ({ id: pid, amount, currency_code: "bdt" })),
+    prices: [
+      // Non-BDT rows pass through untouched so the update doesn't drop them.
+      ...prices.filter((p) => p.currency_code !== "bdt").map((p) => ({ id: p.id, currency_code: p.currency_code, amount: p.amount })),
+      ...(base.length > 0
+        ? base.map((p) => ({ id: p.id, amount, currency_code: "bdt" }))
+        : [{ amount, currency_code: "bdt" }]),
+      ...(keepFreeOver != null
+        ? [{ amount: 0, currency_code: "bdt", rules: [{ attribute: "item_total", operator: "gte", value: keepFreeOver }] }]
+        : []),
+    ],
   });
 }
+
+const listRateFreeOver = (prices: RawShippingPrice[]): number | null => {
+  const row = prices.find((p) => p.currency_code === "bdt" && isFreeOverPrice(p));
+  return row ? freeOverValue(row) : null;
+};
 
 // --- Customers --------------------------------------------------------------
 
