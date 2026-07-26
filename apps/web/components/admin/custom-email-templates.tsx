@@ -10,6 +10,7 @@ import { Button, Card, ConfirmDialog } from "@ecom/ui";
 import { TextField } from "./fields";
 import { HtmlBodyField } from "./html-body-field";
 import { EmailPreview } from "./email-preview";
+import type { EmailFrame } from "@/lib/email-frame";
 import { useToast } from "./toast";
 import { customEmailTemplateSchema, type CustomEmailTemplate } from "@/lib/email-templates";
 
@@ -23,7 +24,7 @@ const EMPTY: FormValues = { name: "", subject: "", heading: "", body: "" };
  * preview it live in the brand shell, then pick it when emailing customers
  * from /admin/customers. Placeholders: {name} {email}.
  */
-export function CustomEmailTemplates({ initial, adminEmail }: { initial: CustomEmailTemplate[]; adminEmail: string }) {
+export function CustomEmailTemplates({ initial, adminEmail, frame }: { initial: CustomEmailTemplate[]; adminEmail: string; frame?: EmailFrame }) {
   const router = useRouter();
   const toast = useToast();
   const [templates, setTemplates] = useState(initial);
@@ -178,7 +179,7 @@ export function CustomEmailTemplates({ initial, adminEmail }: { initial: CustomE
           <HtmlBodyField label="Body" value={draft.body} onChange={(v) => setValue("body", v, { shouldDirty: true })} />
           {errors.body?.message && <p className="text-xs text-destructive">{errors.body.message}</p>}
 
-          <EmailPreview subject={draft.subject} heading={draft.heading} body={draft.body} />
+          <EmailPreview subject={draft.subject} heading={draft.heading} body={draft.body} frame={frame} />
 
           <div className="flex flex-wrap items-end gap-3">
             <Button type="submit" variant="gold" size="sm" loading={saving}>

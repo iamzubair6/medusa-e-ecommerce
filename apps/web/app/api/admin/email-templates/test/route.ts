@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { emailMockMode, renderEmail, sendEmail, emailShell } from "@/lib/email";
 import { EMAIL_TEMPLATE_TYPES, emailTemplatesSchema, fillPlaceholders, isFullHtmlDocument } from "@/lib/email-templates";
+import { parseEmailFrame } from "@/lib/email-frame";
+import { getSiteSetting } from "@ecom/cms";
 
 const schema = z.union([
   z.object({
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
             : emailShell(
                 fillPlaceholders(parsed.data.custom.heading, SAMPLE_VARS),
                 fillPlaceholders(parsed.data.custom.body, SAMPLE_VARS),
+                parseEmailFrame(await getSiteSetting("emailFrame").catch(() => null)),
               ),
         }
       : await renderEmail(parsed.data.type, SAMPLE_VARS, parsed.data.templates);

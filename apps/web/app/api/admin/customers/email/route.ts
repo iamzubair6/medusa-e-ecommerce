@@ -4,6 +4,7 @@ import { getSiteSetting } from "@ecom/cms";
 import { adminConfigured, listAllCustomerEmails } from "@/lib/medusa-admin";
 import { sendEmail, emailMockMode, emailShell } from "@/lib/email";
 import { parseCustomEmailTemplates, fillPlaceholders, isFullHtmlDocument } from "@/lib/email-templates";
+import { parseEmailFrame } from "@/lib/email-frame";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /** Spend guard — bulk email campaigns are human-paced. */
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const frame = parseEmailFrame(await getSiteSetting("emailFrame").catch(() => null));
   let sent = 0;
   for (const r of recipients) {
     const vars = { name: r.name || "there", email: r.email };
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
       // Full HTML documents go out as-is; fragments get the brand shell (#142).
       html: isFullHtmlDocument(template.body)
         ? fillPlaceholders(template.body, vars)
-        : emailShell(fillPlaceholders(template.heading, vars), fillPlaceholders(template.body, vars)),
+        : emailShell(fillPlaceholders(template.heading, vars), fillPlaceholders(template.body, vars), frame),
     });
     if (ok) sent += 1;
   }

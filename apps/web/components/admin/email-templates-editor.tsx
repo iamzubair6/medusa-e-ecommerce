@@ -9,6 +9,7 @@ import { Button, Card } from "@ecom/ui";
 import { TextField } from "./fields";
 import { HtmlBodyField } from "./html-body-field";
 import { EmailPreview } from "./email-preview";
+import type { EmailFrame } from "@/lib/email-frame";
 import { useToast } from "./toast";
 import {
   EMAIL_TEMPLATE_META,
@@ -24,7 +25,7 @@ import {
  * at send time. "Send test" emails the current (unsaved) state so edits can be
  * previewed in a real inbox before saving.
  */
-export function EmailTemplatesEditor({ initial, adminEmail }: { initial: EmailTemplates; adminEmail: string }) {
+export function EmailTemplatesEditor({ initial, adminEmail, frame }: { initial: EmailTemplates; adminEmail: string; frame?: EmailFrame }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState<EmailTemplateType | null>(EMAIL_TEMPLATE_TYPES[0]);
@@ -130,6 +131,7 @@ export function EmailTemplatesEditor({ initial, adminEmail }: { initial: EmailTe
                   subject={watch(`${type}.subject`)}
                   heading={watch(`${type}.heading`)}
                   body={watch(`${type}.body`)}
+                  frame={frame}
                 />
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
