@@ -13,15 +13,15 @@
 - **Do-not-repeat log**: `docs/LESSONS.md`. Doc map: `docs/README.md`.
 
 ## Standing snapshot (update on every state-changing session)
-**2026-07-27 — shipped through `8a276a8`.** All board work through #152 is
-deployed (Vercel/Render auto-deploy on push). Pending, in order:
-1. Owner smoke checks: rounds `126-128` → `129-137` → `138-143` → `144-147`.
-2. Live one-offs: `NEXT_PUBLIC_SITE_URL` in Vercel; paste
-   `docs/email-templates/maison-master.html` into live /admin/email-templates;
-   set "Free over ৳X" on live shipping rates.
-3. Next builds on owner "go": **POS phase 1** (POS_PLAN.md — also closes the
-   gap that online orders don't decrement `sizeStock`), **dynamic email
-   phases 1–3** (EMAIL_TEMPLATES_PLAN.md).
+**2026-08-02 — POS (#153–#161) AND dynamic email (#162–#164) built, code-
+reviewed (P0/P1 findings fixed), typecheck + build green, pushed.** Pending:
+1. **Live one-offs at deploy**: cms `db push` on live (adds `STAFF` to
+   `AdminRole`) BEFORE creating a staff user in /admin/users; older items:
+   `NEXT_PUBLIC_SITE_URL` in Vercel, "Free over ৳X" live shipping rates.
+2. Owner smoke checks: NEW `153-161-pos.md` + `162-164-dynamic-email.md`,
+   then the backlog `126-128` → `129-137` → `138-143` → `144-147`.
+3. POS phase 3 later (subdomain rewrite, barcode printing, PWA) — POS_PLAN §7
+   decisions (receipt printer model, subdomain) still open with the owner.
 
 ## Non-obvious facts a fresh session needs
 - Stock lives in product `metadata.sizeStock` — Medusa inventory is UNMANAGED
@@ -32,7 +32,22 @@ deployed (Vercel/Render auto-deploy on push). Pending, in order:
 - Machine-made promo codes: `PH-` (phone rewards), `AB-` (cart recovery),
   batch prefixes (SiteSetting `promoBatchPrefixes`), `FREESHIP-ITEMS` — all
   folded out of the admin table and never advertised.
-- Email system: shared frame (SiteSetting `emailFrame`) wraps fragment bodies;
-  full `<!DOCTYPE html>` bodies are sent AS-IS; placeholders `{x}` and `{{x}}`.
+- Email system (rebuilt 2026-08-02): THREE SiteSettings — `emailFrames`
+  (library + default), `emailBodyTemplates` (`{content}` skeletons; "plain" +
+  "maison-master" seeded), `emailPurposes` (per-event frame/body/subject/
+  heading/content). Legacy `emailFrame`/`emailTemplates`/`customEmailTemplates`
+  are MIGRATION SOURCES read at parse time — never rewritten. ONE renderer
+  (`lib/email-render.ts`) serves sends + tests + bulk + client preview. Full
+  `<!DOCTYPE html>` results ship unframed; placeholders `{x}`/`{{x}}` escaped.
+- POS (built 2026-08-02): `/pos` fullscreen counter, SEPARATE `pos_session`
+  cookie (same HMAC secret); STAFF role is counter-only (middleware blocks it
+  from /admin). Sales = admin draft order → convert-to-order, tagged
+  `metadata.channel="pos"` + `pos_*` keys; refunds live in order metadata
+  `pos_refunds` (JSON log; amount recomputed server-side) + restock.
+- Stock: `apps/web/lib/stock.ts` is the ONE sizeStock adjust path (POS sales,
+  BOTH online completions, returns). Untracked color/size keys are skipped on
+  purpose; writes floor at 0 and end with `revalidateCommerce()`.
+- Synthetic customer emails: anything `*.maison.local` (phone signups +
+  `walkin@pos.maison.local`) — filtered from admin lists and campaigns.
 - Owner mandates: plain Conventional Commits (NO AI attribution), 2–3 files
   per commit, docs/memory updates unprompted, minimal replies.

@@ -170,6 +170,43 @@ Below it, manage delivery **zones and options** without leaving the admin:
 
 ---
 
+## 4.5 POS — selling at the counter (2026-08)
+
+- **Give each cashier their own login**: /admin/users → Add user → role
+  **Staff — POS counter only**. Staff sign in at **`/pos/login`** — they can
+  sell, look up stock and print receipts, but can never open /admin.
+- **Selling**: search by name or scan/type the SKU → tap colour + size (live
+  stock shown, sold-out disabled) → cart → Cash or bKash/Nagad (wallet sales
+  require the TXN id) → Charge → print the 80mm receipt. Promo codes from
+  /admin/discounts work at the counter; a **manual % discount** needs YOUR
+  (admin) POS login.
+- **Stock stays in sync both ways**: a counter sale reduces the same
+  `sizeStock` the storefront shows (instantly), and online orders now reduce
+  it too. Restocking stays where it was — the product editor.
+- **Customer attach**: type the customer's phone → Find → the sale lands in
+  their account history.
+- **Returns** (admin only): /pos → Orders → enter the receipt's MSN number →
+  set how many of each line come back → Refund & restock. Hand over the cash —
+  the system records the refund on the order and puts the stock back.
+- **End of day** (admin only): /pos → Day report — cash vs bKash vs Nagad
+  totals, refunds and per-cashier breakdown for the shop day. Print it and
+  count the drawer against it.
+
+## 4.6 Emails — frames, body templates & purposes (2026-08)
+
+/admin/email-templates now has four stacked sections:
+1. **Frames** — the wrapper (tagline, footer links, address). Keep several:
+   e.g. duplicate Default, delete the Offers link, name it "Transactional".
+2. **Body templates** — reusable designs with a `{content}` slot where the
+   message lands. "Plain" = no design (old behaviour); "Maison master" = the
+   full branded document. Duplicate and edit to make new looks — zero code.
+3. **Purposes** — the 8 automatic emails (OTP, order confirmation, shipped…).
+   Each picks a Frame + Body template from dropdowns and you just write the
+   content. The editor warns if you drop an important placeholder like
+   {trackUrl}. Live preview + "Send test" on every purpose.
+4. **Campaign presets** — saved subject+content combos for the Customers
+   composer; the composer also picks a body template + frame per send.
+
 ## 5. How it all fits together (plain English)
 
 - A customer browses the **storefront**. The **layout/marketing** they see (hero,

@@ -81,6 +81,39 @@ e-com/
 - Upload → embed query image (CLIP) → vector similarity over product image
   embeddings stored in `pgvector` → return ranked Medusa product ids → fetch.
 
+### POS (in-store counter, 2026-08)
+- `apps/web/app/pos/*` is a fullscreen counter surface with its OWN signed
+  session cookie (`pos_session`, same HMAC secret) — staff sign in at
+  `/pos/login`; the `STAFF` AdminRole is counter-only (middleware blocks it
+  from every /admin surface). `/api/pos/*` is middleware-gated the same way.
+- Sale flow: live product search via Medusa **Admin** API (no storefront
+  cache) → `/api/pos/checkout` → draft order → convert-to-order (same
+  `display_id`/MSN- sequence as online) tagged `metadata.channel="pos"` +
+  cashier + payment (`pos_cash`/`pos_bkash`/`pos_nagad` + TXN id).
+- **Stock truth = product `metadata.sizeStock`** (Medusa inventory unmanaged).
+  `apps/web/lib/stock.ts` is the ONE adjust path — Zod-parsed read-modify-write
+  (floor 0, per-product in-memory queue, untracked combos skipped) +
+  `revalidateCommerce()`. Consumed by POS checkout, BOTH online completion
+  routes (COD + SSLCommerz callback) and POS returns (increment). Oversell:
+  POS re-reads before completing and warns (409 + force), never blocks.
+- Returns are a metadata log (`pos_refunds` JSON on the order) + restock —
+  manual payments have no gateway refund to reverse. Z-report (`/pos/day`,
+  ADMIN) aggregates counter orders per Asia/Dhaka shop day; the admin
+  dashboard splits revenue Online vs POS on `metadata.channel`.
+
+### Email rendering (dynamic templates, 2026-08)
+- Three CMS SiteSettings: `emailFrames` (named wrapper library + default),
+  `emailBodyTemplates` (design skeletons with a `{content}` slot; "plain" and
+  "maison-master" seeded), `emailPurposes` (per-event frame/body/subject/
+  heading/content). Legacy `emailFrame`/`emailTemplates`/`customEmailTemplates`
+  migrate transparently at parse time — never rewritten in place.
+- ONE pure renderer `apps/web/lib/email-render.ts` (slot fill → full-document
+  or frame:"none" ships unwrapped, else branded shell) is shared by
+  transactional sends, the admin test route, the bulk campaign route AND the
+  client live preview, so previews can never drift from real sends.
+  Placeholder values are always HTML-escaped; purpose lists and their
+  placeholders stay fixed in code.
+
 ## CMS content model (Prisma `cms` schema — initial)
 - `PageLayout` (slug, published, sections[])
 - `Section` (type enum, position, config Json, pageLayoutId)
