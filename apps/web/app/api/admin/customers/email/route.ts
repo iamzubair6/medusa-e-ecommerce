@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSiteSetting } from "@ecom/cms";
 import { adminConfigured, listAllCustomerEmails } from "@/lib/medusa-admin";
-import { sendEmail, emailMockMode, emailShell } from "@/lib/email";
-import { parseCustomEmailTemplates, fillPlaceholders, isFullHtmlDocument } from "@/lib/email-templates";
-import { parseEmailFrame } from "@/lib/email-frame";
+import { sendEmail, emailMockMode } from "@/lib/email";
+import { fillPlaceholders } from "@/lib/email-templates";
+import { campaignSendSchema } from "@/lib/email-campaigns";
+import { renderEmailHtml } from "@/lib/email-render";
+import { resolveFrame } from "@/lib/email-frames";
+import { resolveBodyTemplate } from "@/lib/email-body-templates";
+import { getEmailConfig } from "@/lib/email-settings";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /** Spend guard — bulk email campaigns are human-paced. */
@@ -13,8 +16,7 @@ const WINDOW_MS = 10 * 60_000;
 /** Brevo free tier is 300/day — hard cap one campaign below that. */
 const MAX_RECIPIENTS = 300;
 
-const bodySchema = z.object({
-  templateId: z.string().min(1).max(40),
+const bodySchema = campaignSendSchema.extend({
   /** Must match the server-resolved audience so a stale client can't over-send. */
   expectedRecipients: z.number().int().positive(),
 });
@@ -28,7 +30,7 @@ export async function GET() {
   return NextResponse.json({ recipients: recipients.length });
 }
 
-/** Send a custom template to every customer with a real email (ADMIN-only by middleware). */
+/** Send one campaign (subject + content + body template + frame) to every customer with a real email. */
 export async function POST(request: Request) {
   if (!adminConfigured()) {
     return NextResponse.json({ error: "Medusa admin API is not configured." }, { status: 503 });
@@ -48,10 +50,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 422 });
   }
 
-  const templates = parseCustomEmailTemplates(await getSiteSetting("customEmailTemplates").catch(() => null));
-  const template = templates.find((t) => t.id === parsed.data.templateId);
-  if (!template) return NextResponse.json({ error: "Template not found — save it first." }, { status: 404 });
-
   const recipients = await listAllCustomerEmails();
   if (recipients.length === 0) return NextResponse.json({ error: "No customers with an email." }, { status: 409 });
   if (recipients.length !== parsed.data.expectedRecipients) {
@@ -67,17 +65,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const frame = parseEmailFrame(await getSiteSetting("emailFrame").catch(() => null));
+  // Frame + body template resolved once server-side from the shared libraries.
+  const config = await getEmailConfig();
+  const frame = resolveFrame(config.frames, parsed.data.frameId);
+  const bodyTemplateHtml = resolveBodyTemplate(config.bodyTemplates, parsed.data.bodyTemplateId).html;
+
   let sent = 0;
   for (const r of recipients) {
     const vars = { name: r.name || "there", email: r.email };
     const ok = await sendEmail({
       to: r.email,
-      subject: fillPlaceholders(template.subject, vars),
-      // Full HTML documents go out as-is; fragments get the brand shell (#142).
-      html: isFullHtmlDocument(template.body)
-        ? fillPlaceholders(template.body, vars)
-        : emailShell(fillPlaceholders(template.heading, vars), fillPlaceholders(template.body, vars), frame),
+      subject: fillPlaceholders(parsed.data.subject, vars),
+      html: renderEmailHtml({ frame, bodyTemplateHtml, heading: "", content: parsed.data.content, vars }),
     });
     if (ok) sent += 1;
   }
