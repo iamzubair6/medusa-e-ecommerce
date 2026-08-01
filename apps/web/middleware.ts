@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifySession } from "@/lib/session";
 
 const ADMIN_COOKIE = "admin_session";
+const POS_COOKIE = "pos_session";
 
 /** Paths that only an ADMIN-role user may reach: user management, plus every
  *  customer API surface (bulk SMS spends money, CSV export + delete touch PII). */
@@ -29,8 +30,25 @@ export async function middleware(request: NextRequest) {
   if (isLogin) return NextResponse.next();
 
   const secret = process.env.ADMIN_SESSION_SECRET ?? "";
-  const session = await verifySession(request.cookies.get(ADMIN_COOKIE)?.value, secret);
   const isApi = pathname.startsWith("/api/");
+
+  // POS surfaces are gated by their own cookie (any active back-office user;
+  // ADMIN-only actions are enforced inside the POS routes themselves).
+  if (isUnder(pathname, "/pos") || isUnder(pathname, "/api/pos")) {
+    const isPosLogin = pathname === "/pos/login" || pathname === "/api/pos/login";
+    if (isPosLogin) return NextResponse.next();
+    const posSession = await verifySession(request.cookies.get(POS_COOKIE)?.value, secret);
+    if (!posSession) {
+      if (isApi) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const url = request.nextUrl.clone();
+      url.pathname = "/pos/login";
+      url.searchParams.set("from", pathname);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  const session = await verifySession(request.cookies.get(ADMIN_COOKIE)?.value, secret);
 
   if (!session) {
     if (isApi) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,5 +69,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/pos/:path*", "/api/pos/:path*"],
 };

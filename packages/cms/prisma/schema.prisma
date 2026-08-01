@@ -333,6 +333,7 @@ model AdminUser {
 enum AdminRole {
   ADMIN // full access incl. user management
   EDITOR // content / catalog / orders, but not user management
+  STAFF // POS counter only: sell, look up stock, print receipts
 
   @@schema("cms")
 }
