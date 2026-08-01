@@ -588,6 +588,7 @@ export async function posDayReport(date: string): Promise<PosDayReport> {
       cash: sum("cash"),
       bkash: sum("bkash"),
       nagad: sum("nagad"),
+      card: sum("card"),
       refunded,
       net: gross - refunded,
       count: rows.length,

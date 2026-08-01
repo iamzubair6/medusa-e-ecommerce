@@ -48,7 +48,9 @@ export interface PosCustomerMatch {
   phone: string | null;
 }
 
-export type PosPaymentMethod = "cash" | "bkash" | "nagad";
+/** "card" = a bank card terminal beside the counter; we record its approval ref
+ *  and reconcile the Z-report's Card column against the terminal's settlement slip. */
+export type PosPaymentMethod = "cash" | "bkash" | "nagad" | "card";
 
 /** A receipt line with FINAL server-priced amounts (manual discount applied). */
 export interface PosReceiptLine {
@@ -144,6 +146,7 @@ export interface PosDayReport {
     cash: number;
     bkash: number;
     nagad: number;
+    card: number;
     refunded: number;
     net: number;
     count: number;

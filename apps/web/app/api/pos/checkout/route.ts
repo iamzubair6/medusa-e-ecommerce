@@ -15,7 +15,7 @@ const lineSchema = z.object({
 const schema = z.object({
   lines: z.array(lineSchema).min(1).max(50),
   payment: z.object({
-    method: z.enum(["cash", "bkash", "nagad"]),
+    method: z.enum(["cash", "bkash", "nagad", "card"]),
     txnId: z.string().max(64).optional(),
   }),
   promoCodes: z.array(z.string().min(1).max(64)).max(3).optional(),
@@ -45,9 +45,10 @@ export async function POST(request: Request) {
   if (parsed.data.manualDiscountPct && session.role !== "ADMIN") {
     return NextResponse.json({ error: "Manual discounts need an admin." }, { status: 403 });
   }
-  // bKash/Nagad settle against a wallet transaction — require its id.
+  // Wallets settle against a TXN id, cards against the terminal's approval
+  // ref — require the reference for anything that isn't cash.
   if (parsed.data.payment.method !== "cash" && !parsed.data.payment.txnId?.trim()) {
-    return NextResponse.json({ error: "Enter the wallet TXN id." }, { status: 422 });
+    return NextResponse.json({ error: "Enter the TXN id / card approval ref." }, { status: 422 });
   }
 
   const result = await posCheckout({
