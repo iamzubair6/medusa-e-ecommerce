@@ -1,32 +1,38 @@
 import { getSiteSetting } from "@ecom/cms";
 import { AdminHeader } from "@/components/admin/page-header";
-import { EmailTemplatesEditor } from "@/components/admin/email-templates-editor";
-import { CustomEmailTemplates } from "@/components/admin/custom-email-templates";
-import { parseEmailTemplates, parseCustomEmailTemplates } from "@/lib/email-templates";
-import { parseEmailFrame } from "@/lib/email-frame";
-import { EmailFrameCard } from "@/components/admin/email-frame-card";
+import { EmailFramesCard } from "@/components/admin/email-frames-card";
+import { EmailBodyTemplatesCard } from "@/components/admin/email-body-templates-card";
+import { EmailPurposesEditor } from "@/components/admin/email-purposes-editor";
+import { CampaignPresets } from "@/components/admin/campaign-presets";
+import { parseCampaignPresets } from "@/lib/email-campaigns";
+import { getEmailConfig } from "@/lib/email-settings";
 import { getAdminSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEmailTemplatesPage() {
-  const [raw, customRaw, frameRaw, session] = await Promise.all([
-    getSiteSetting("emailTemplates").catch(() => null),
+  const [config, presetsRaw, session] = await Promise.all([
+    getEmailConfig(),
     getSiteSetting("customEmailTemplates").catch(() => null),
-    getSiteSetting("emailFrame").catch(() => null),
     getAdminSession().catch(() => null),
   ]);
-  const frame = parseEmailFrame(frameRaw);
+  const adminEmail = session?.email ?? "";
   return (
     <>
       <AdminHeader
         title="Email templates"
-        description="Every email the store sends — live preview, edit the copy, send yourself a test. Create your own templates for announcements & bulk email."
+        description="Frames, body designs and the words for every email the store sends — live preview, edit, send yourself a test."
       />
       <div className="flex flex-col gap-6 p-8">
-        <EmailFrameCard initial={frame} />
-        <CustomEmailTemplates initial={parseCustomEmailTemplates(customRaw)} adminEmail={session?.email ?? ""} frame={frame} />
-        <EmailTemplatesEditor initial={parseEmailTemplates(raw)} adminEmail={session?.email ?? ""} frame={frame} />
+        <EmailFramesCard initial={config.frames} />
+        <EmailBodyTemplatesCard initial={config.bodyTemplates} frames={config.frames} />
+        <EmailPurposesEditor
+          initial={config.purposes}
+          adminEmail={adminEmail}
+          frames={config.frames}
+          bodyTemplates={config.bodyTemplates}
+        />
+        <CampaignPresets initial={parseCampaignPresets(presetsRaw)} adminEmail={adminEmail} frames={config.frames} />
       </div>
     </>
   );
