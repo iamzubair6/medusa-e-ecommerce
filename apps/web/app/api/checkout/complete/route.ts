@@ -9,6 +9,7 @@ import { parseCheckoutConfig, paymentMethodIds } from "@/lib/checkout-config";
 import { sendTemplateEmail } from "@/lib/email";
 import { formatOrderId } from "@/lib/order-id";
 import { requestOrigin } from "@/lib/origin";
+import { decrementStockForOrder } from "@/lib/stock";
 
 const schema = z.object({ method: z.string().min(1).max(24).optional() });
 
@@ -48,6 +49,9 @@ export async function POST(request: Request) {
     }
     await clearCartId();
     markCartRecovered(id).catch(() => {}); // this cart converted — drop it from recovery
+    // Online sales share the POS stock path: decrement tracked sizeStock now
+    // so counter + storefront availability stay in sync. Best-effort.
+    await decrementStockForOrder(result.order.id);
 
     // Confirmation email + SMS (both best-effort; false/ignored on failure).
     const orderId = formatOrderId(result.order.displayId);

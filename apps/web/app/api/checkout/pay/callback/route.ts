@@ -7,6 +7,7 @@ import { sendTemplateEmail } from "@/lib/email";
 import { formatOrderId } from "@/lib/order-id";
 import { requestOrigin } from "@/lib/origin";
 import { orderConfirmationSmsText, sendTransactionalSms } from "@/lib/otp-sms";
+import { decrementStockForOrder } from "@/lib/stock";
 
 /**
  * SSLCommerz posts the shopper's browser back here after the gateway page.
@@ -48,6 +49,9 @@ export async function POST(request: Request) {
     await initPayment(cartId);
     const result = await completeCart(cartId);
     if (!result.ok) return NextResponse.redirect(`${origin}/checkout?payment=failed`, 303);
+
+    // Same shared stock path as POS/COD — keep sizeStock in sync. Best-effort.
+    await decrementStockForOrder(result.order.id);
 
     const orderId = formatOrderId(result.order.displayId);
     if (result.order.email) {
