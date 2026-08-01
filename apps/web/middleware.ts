@@ -58,6 +58,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // STAFF is a counter-only role — it can never operate the admin panel.
+  if (session.role === "STAFF") {
+    if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const url = request.nextUrl.clone();
+    url.pathname = "/pos";
+    return NextResponse.redirect(url);
+  }
+
   if (session.role !== "ADMIN" && ADMIN_ONLY.some((base) => isUnder(pathname, base))) {
     if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const url = request.nextUrl.clone();
