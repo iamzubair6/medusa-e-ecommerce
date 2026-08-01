@@ -18,5 +18,7 @@ you go. Files that need a free account signup say so at the top.
 | #129–#137 Campaigns live, free delivery, promo chips, phone reward, email templates v2, recovery v2, consent | [129-137-round6.md](./129-137-round6.md) | Brevo for email tests |
 | #138–#143 Campaign LIVE fix, enforced free delivery, offers rework, support codes, HTML emails, admin selects | [138-143-round7.md](./138-143-round7.md) | Brevo for email tests |
 | #144–#147 Stock alerts, PDP alignment, restock centre, saved pieces, master email | [144-147-round8.md](./144-147-round8.md) | Brevo for email tests |
+| #153–#161 POS: sell, stock sync both channels, receipts, returns, Z-report | [153-161-pos.md](./153-161-pos.md) | No (STAFF user via /admin/users) |
+| #162–#164 Dynamic email: frames library, body templates, purposes, campaigns | [162-164-dynamic-email.md](./162-164-dynamic-email.md) | Brevo for real sends |
 
 Older rounds: [SMOKE_TEST_18-32.md](./SMOKE_TEST_18-32.md).
