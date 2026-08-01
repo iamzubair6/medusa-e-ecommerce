@@ -172,7 +172,12 @@ export function EmailBodyTemplatesCard({ initial, frames }: { initial: EmailBody
       {editingId !== null && (
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 border-t border-border pt-4">
           <TextField label="Template name (internal)" error={errors.name?.message} {...register("name")} placeholder="Campaign — hero + tiles" className="sm:w-80" />
-          <HtmlBodyField label="Design HTML" value={draft.html} onChange={(v) => setValue("html", v, { shouldDirty: true })} />
+          <HtmlBodyField
+            label="Design HTML"
+            value={draft.html}
+            onChange={(v) => setValue("html", v, { shouldDirty: true })}
+            sourceOnly
+          />
           {errors.html?.message && <p className="text-xs text-destructive">{errors.html.message}</p>}
           {draft.html.length > 0 && !hasContentSlot(draft.html) && (
             <p className="text-xs text-amber-600">
