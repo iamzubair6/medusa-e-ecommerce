@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateAdmin, markAdminLogin } from "@ecom/cms/admin-users";
 import { POS_COOKIE, POS_SESSION_TTL_SECONDS } from "@/lib/pos-auth";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { signSession } from "@/lib/session";
 
 const schema = z.object({
@@ -18,6 +19,10 @@ function sessionSecret(): string {
 /** Counter sign-in. Any active back-office user (STAFF/EDITOR/ADMIN) can sell;
  *  ADMIN-only counter actions are enforced per route via the session role. */
 export async function POST(request: Request) {
+  const limited = rateLimit(`pos-login:${clientKey(request)}`, 10, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Too many attempts — wait a minute." }, { status: 429 });
+  }
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Email and password required" }, { status: 422 });

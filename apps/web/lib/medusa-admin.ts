@@ -1560,8 +1560,10 @@ const listRateFreeOver = (prices: RawShippingPrice[]): number | null => {
 
 /** Domain of the synthetic account emails minted for phone-OTP signups (see lib/customer-auth). */
 export const PHONE_EMAIL_DOMAIN = "phone.maison.local";
+/** ALL synthetic addresses (phone signups + the POS walk-in placeholder) — never
+ *  a real inbox, so they're hidden in admin and excluded from every campaign. */
 export const isPhoneAccountEmail = (email: string | null | undefined): boolean =>
-  !!email && email.endsWith(`@${PHONE_EMAIL_DOMAIN}`);
+  !!email && email.toLowerCase().endsWith(".maison.local");
 
 interface RawCustomer {
   id: string;
