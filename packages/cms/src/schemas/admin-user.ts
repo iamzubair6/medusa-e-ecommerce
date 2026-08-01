@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-/** Back-office roles. ADMIN can manage users; EDITOR cannot. */
-export const adminRoleSchema = z.enum(["ADMIN", "EDITOR"]);
+/** Back-office roles. ADMIN can manage users; EDITOR cannot; STAFF is POS-counter only. */
+export const adminRoleSchema = z.enum(["ADMIN", "EDITOR", "STAFF"]);
 export type AdminRole = z.infer<typeof adminRoleSchema>;
 
 /** Payload to create a new admin user (password is plaintext here, hashed before write). */

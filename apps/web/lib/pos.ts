@@ -14,26 +14,21 @@ export const POS_WALK_IN_EMAIL = "walkin@pos.maison.local";
 
 // --- Counter search ---------------------------------------------------------
 
-export interface PosSize {
-  size: string;
-  /** null = untracked (admin never set stock for this combination) */
-  stock: number | null;
-  variantId: string;
-  sku?: string;
-}
-export interface PosColor {
-  name: string;
-  swatch?: string;
-  price: number;
-  sizes: PosSize[];
-}
-export interface PosProduct {
-  id: string;
-  title: string;
-  handle: string;
-  thumbnail?: string;
-  colors: PosColor[];
-}
+export type {
+  PosColor,
+  PosCustomerMatch,
+  PosProduct,
+  PosSaleLine,
+  PosSize,
+  OversellWarning,
+} from "./pos-types";
+import type {
+  PosColor,
+  PosCustomerMatch,
+  PosProduct,
+  PosSaleLine,
+  OversellWarning,
+} from "./pos-types";
 
 const sizeStockSchema = z.record(z.string(), z.record(z.string(), z.number()));
 const stringMapSchema = z.record(z.string(), z.string());
@@ -115,15 +110,6 @@ export async function posSearchProducts(q: string, limit = 24): Promise<PosProdu
 
 // --- Checkout ---------------------------------------------------------------
 
-export interface PosSaleLine {
-  productId: string;
-  variantId: string;
-  title: string;
-  color: string;
-  size: string;
-  quantity: number;
-}
-
 export interface PosCheckoutInput {
   lines: PosSaleLine[];
   payment: { method: "cash" | "bkash" | "nagad"; txnId?: string };
@@ -134,14 +120,6 @@ export interface PosCheckoutInput {
   cashier: { email: string; name: string };
   /** Complete even when the oversell check finds shortfalls (staff hold the item). */
   force?: boolean;
-}
-
-export interface OversellWarning {
-  title: string;
-  color: string;
-  size: string;
-  requested: number;
-  available: number;
 }
 
 export type PosCheckoutResult =
@@ -299,13 +277,6 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
 }
 
 // --- Customer attach --------------------------------------------------------
-
-export interface PosCustomerMatch {
-  customerId: string;
-  email: string | null;
-  name: string;
-  phone: string | null;
-}
 
 /** Look up an existing customer by phone so the sale lands in their history. */
 export async function posFindCustomerByPhone(phone: string): Promise<PosCustomerMatch | null> {
