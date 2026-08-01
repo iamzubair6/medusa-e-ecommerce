@@ -50,12 +50,27 @@ export interface PosCustomerMatch {
 
 export type PosPaymentMethod = "cash" | "bkash" | "nagad";
 
+/** A receipt line with FINAL server-priced amounts (manual discount applied). */
+export interface PosReceiptLine {
+  title: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
 export interface PosSaleSuccess {
   orderId: string;
   displayId: number;
+  /** Final order totals + per-line totals straight from the created order. */
   total: number;
+  subtotal: number;
   discountTotal: number;
   currency: string;
+  lines: PosReceiptLine[];
+  /** Echoed back only when at least one line actually got the override. */
+  manualDiscountPct?: number;
 }
 
 /** BDT money for counter surfaces (server totals are plain decimal amounts). */

@@ -33,6 +33,7 @@ import type {
   PosRefund,
   PosRefundLine,
   PosSaleLine,
+  PosSaleSuccess,
   OversellWarning,
 } from "./pos-types";
 
@@ -129,14 +130,7 @@ export interface PosCheckoutInput {
 }
 
 export type PosCheckoutResult =
-  | {
-      ok: true;
-      orderId: string;
-      displayId: number;
-      total: number;
-      discountTotal: number;
-      currency: string;
-    }
+  | ({ ok: true } & PosSaleSuccess)
   | { ok: false; status: number; error: string; warnings?: OversellWarning[] };
 
 let regionCache: { id: string; currency: string } | null = null;
@@ -208,18 +202,29 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
   }
 
   const pct = input.manualDiscountPct;
+  let discountApplied = 0;
   const items = input.lines.map((line) => {
     const base = pricing.get(line.productId)?.colorPrices[line.color];
     // Manual % discount = per-line unit_price override; otherwise Medusa
     // prices the variant itself (single source of truth).
     const discounted =
       pct && base !== undefined ? Math.round((base * (100 - pct)) / 100) : undefined;
+    if (discounted !== undefined) discountApplied += 1;
     return {
       variant_id: line.variantId,
       quantity: line.quantity,
       ...(discounted !== undefined ? { unit_price: discounted } : {}),
     };
   });
+  // A discount the pricing read couldn't apply to EVERY line would silently
+  // charge some items full price while the receipt claims a % off — refuse.
+  if (pct && discountApplied < input.lines.length) {
+    return {
+      ok: false,
+      status: 422,
+      error: "Manual discount unavailable for an item in this cart (missing colour price).",
+    };
+  }
 
   const sc = await adminFetch<{ sales_channels?: { id: string }[] }>("/admin/sales-channels?limit=1");
   const salesChannelId = sc?.sales_channels?.[0]?.id;
@@ -244,7 +249,7 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
         pos_cashier: input.cashier.email,
         pos_cashier_name: input.cashier.name,
         ...(input.customer?.phone ? { pos_customer_phone: input.customer.phone } : {}),
-        ...(pct ? { pos_manual_discount_pct: String(pct) } : {}),
+        ...(pct && discountApplied > 0 ? { pos_manual_discount_pct: String(pct) } : {}),
       },
     });
 
@@ -253,9 +258,28 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
       {},
     );
 
+    // Final numbers come from the created order itself (unit_price overrides
+    // and promo codes applied) so the receipt always reconciles line-by-line.
+    const detailFields =
+      "display_id,total,subtotal,discount_total,currency_code," +
+      "items.variant_title,items.product_title,items.title,items.quantity,items.unit_price,items.total";
     const detail = await adminFetch<{
-      order?: { display_id: number; total?: number; discount_total?: number; currency_code?: string };
-    }>(`/admin/orders/${converted.order.id}?fields=display_id,total,discount_total,currency_code`);
+      order?: {
+        display_id: number;
+        total?: number;
+        subtotal?: number;
+        discount_total?: number;
+        currency_code?: string;
+        items?: {
+          variant_title?: string | null;
+          product_title?: string | null;
+          title?: string | null;
+          quantity: number;
+          unit_price?: number;
+          total?: number;
+        }[];
+      };
+    }>(`/admin/orders/${converted.order.id}?fields=${encodeURIComponent(detailFields)}`);
 
     // The sale is final — decrement the shared stock (best-effort, never throws).
     await decrementSizeStock(
@@ -269,16 +293,31 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
       ),
     );
 
+    const finalLines = (detail?.order?.items ?? []).map((i) => {
+      const parts = splitVariantTitle(i.variant_title ?? "");
+      return {
+        title: i.product_title ?? i.title ?? "Item",
+        size: parts?.[0] ?? "",
+        color: parts?.[1] ?? "",
+        quantity: i.quantity,
+        unitPrice: i.unit_price ?? 0,
+        total: i.total ?? (i.unit_price ?? 0) * i.quantity,
+      };
+    });
+
     return {
       ok: true,
       orderId: converted.order.id,
       displayId: detail?.order?.display_id ?? 0,
       total: detail?.order?.total ?? 0,
+      subtotal: detail?.order?.subtotal ?? 0,
       discountTotal: detail?.order?.discount_total ?? 0,
       currency: detail?.order?.currency_code ?? region.currency,
+      lines: finalLines,
+      ...(pct && discountApplied > 0 ? { manualDiscountPct: pct } : {}),
     };
   } catch (error) {
-    return { ok: false, status: 502, error: (error as Error).message };
+    return { ok: false, status: 502, error: error instanceof Error ? error.message : "Checkout failed." };
   }
 }
 
@@ -397,27 +436,68 @@ export async function posFindOrderByNumber(displayId: number): Promise<PosOrderV
   return null;
 }
 
+const lineKey = (l: { productId: string | null; color: string; size: string }) =>
+  `${l.productId ?? ""}|${l.color}|${l.size}`;
+
 /**
  * Record a counter refund: append to the order's pos_refunds metadata log and
  * restock the returned lines through the shared stock path. Payment stays a
  * cash-drawer operation (manual methods have no gateway to reverse).
+ *
+ * Money path — the client is NOT trusted: quantities are validated against
+ * what the order actually contains minus what was already returned, and the
+ * amount is recomputed here from the order's own paid line totals.
  */
 export async function posRefund(input: {
   orderId: string;
-  amount: number;
   by: string;
   lines: PosRefundLine[];
-}): Promise<{ ok: true; refunds: PosRefund[] } | { ok: false; error: string }> {
-  const data = await adminFetch<{ order?: { metadata?: Record<string, unknown> | null } }>(
-    `/admin/orders/${input.orderId}?fields=metadata`,
+}): Promise<{ ok: true; amount: number; refunds: PosRefund[] } | { ok: false; error: string }> {
+  const data = await adminFetch<{ order?: RawPosOrderDetail & { metadata?: Record<string, unknown> | null } }>(
+    `/admin/orders/${input.orderId}?fields=${encodeURIComponent(POS_ORDER_FIELDS)}`,
   );
   if (!data?.order) return { ok: false, error: "Order not found." };
+  const order = toPosOrderView(data.order);
   const metadata = data.order.metadata ?? {};
   const existing = parseRefunds(metadata.pos_refunds);
+
+  // Purchased + unit-paid per (product, colour, size); already-returned per key.
+  const purchased = new Map<string, { quantity: number; totalPaid: number }>();
+  for (const item of order.items) {
+    const key = lineKey(item);
+    const prev = purchased.get(key) ?? { quantity: 0, totalPaid: 0 };
+    purchased.set(key, { quantity: prev.quantity + item.quantity, totalPaid: prev.totalPaid + item.total });
+  }
+  const returned = new Map<string, number>();
+  for (const refund of existing) {
+    for (const l of refund.lines) {
+      const key = lineKey(l);
+      returned.set(key, (returned.get(key) ?? 0) + l.quantity);
+    }
+  }
+
+  let amount = 0;
+  for (const line of input.lines) {
+    const key = lineKey(line);
+    const bought = purchased.get(key);
+    if (!bought) return { ok: false, error: `${line.title} (${line.color}/${line.size}) is not on this order.` };
+    const remaining = bought.quantity - (returned.get(key) ?? 0);
+    if (line.quantity > remaining) {
+      return {
+        ok: false,
+        error: `${line.title} (${line.color}/${line.size}): only ${remaining} left to return.`,
+      };
+    }
+    amount += Math.round((bought.totalPaid / bought.quantity) * line.quantity);
+  }
+  // Never refund past what the order took in.
+  amount = Math.min(amount, Math.max(0, order.total - order.refundedTotal));
+  if (amount <= 0) return { ok: false, error: "Nothing left to refund on this order." };
+
   const entry: PosRefund = {
     at: new Date().toISOString(),
     by: input.by,
-    amount: input.amount,
+    amount,
     lines: input.lines,
   };
   const refunds = [...existing, entry];
@@ -426,14 +506,14 @@ export async function posRefund(input: {
       metadata: { ...metadata, pos_refunds: JSON.stringify(refunds) },
     });
   } catch (error) {
-    return { ok: false, error: (error as Error).message };
+    return { ok: false, error: error instanceof Error ? error.message : "Refund failed." };
   }
   await incrementSizeStock(
     input.lines
       .filter((l): l is PosRefundLine & { productId: string } => l.productId !== null)
       .map((l) => ({ productId: l.productId, color: l.color, size: l.size, quantity: l.quantity })),
   );
-  return { ok: true, refunds };
+  return { ok: true, amount, refunds };
 }
 
 /** YYYY-MM-DD of an ISO timestamp in shop-local time (Asia/Dhaka). */
@@ -444,18 +524,31 @@ export function dhakaDate(iso: string): string {
 /** Z-report: every counter sale + refund on a shop-local day. */
 export async function posDayReport(date: string): Promise<PosDayReport> {
   const fields = "id,display_id,total,currency_code,created_at,metadata";
-  const data = await adminFetch<{
-    orders?: {
-      id: string;
-      display_id: number;
-      total?: number;
-      currency_code?: string;
-      created_at: string;
-      metadata?: RawPosOrderMeta | null;
-    }[];
-  }>(`/admin/orders?fields=${encodeURIComponent(fields)}&order=-created_at&limit=1000`);
+  type ReportOrder = {
+    id: string;
+    display_id: number;
+    total?: number;
+    currency_code?: string;
+    created_at: string;
+    metadata?: RawPosOrderMeta | null;
+  };
 
-  const posOrders = (data?.orders ?? []).filter((o) => o.metadata?.channel === "pos");
+  // Paginate newest-first until orders predate the refund horizon: a refund
+  // recorded TODAY can sit on a weeks-old sale, so a single fixed-size page
+  // would silently drop it from the drawer count (90 days covers any sane
+  // exchange window; page cap is a runaway guard).
+  const horizon = new Date(`${date}T00:00:00+06:00`);
+  horizon.setDate(horizon.getDate() - 90);
+  const posOrders: ReportOrder[] = [];
+  for (let offset = 0; offset < 5000; offset += 500) {
+    const page = await adminFetch<{ orders?: ReportOrder[] }>(
+      `/admin/orders?fields=${encodeURIComponent(fields)}&order=-created_at&limit=500&offset=${offset}`,
+    );
+    const orders = page?.orders ?? [];
+    posOrders.push(...orders.filter((o) => o.metadata?.channel === "pos"));
+    const oldest = orders[orders.length - 1];
+    if (orders.length < 500 || (oldest && new Date(oldest.created_at) < horizon)) break;
+  }
 
   const rows: PosDayRow[] = posOrders
     .filter((o) => dhakaDate(o.created_at) === date)
