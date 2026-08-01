@@ -5,7 +5,6 @@ import { posRefund } from "@/lib/pos";
 
 const schema = z.object({
   orderId: z.string().min(1),
-  amount: z.number().min(1),
   lines: z
     .array(
       z.object({
@@ -33,7 +32,9 @@ export async function POST(request: Request) {
       { status: 422 },
     );
   }
+  // Quantities are validated and the amount recomputed against the order
+  // server-side (lib/pos.ts posRefund) — the client only names the lines.
   const result = await posRefund({ ...parsed.data, by: session.name });
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 502 });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 422 });
   return NextResponse.json(result);
 }

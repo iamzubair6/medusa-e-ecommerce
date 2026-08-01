@@ -6,7 +6,12 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, RotateCcw, Search } from "lucide-react";
 import { Badge, Button, Card, CardContent, ConfirmDialog, buttonVariants, cn } from "@ecom/ui";
 import { useToast } from "@/components/admin/toast";
-import { posMoney, type PosOrderView, type PosRefundLine } from "@/lib/pos-types";
+import {
+  posMoney,
+  type PosOrderItem,
+  type PosOrderView,
+  type PosRefundLine,
+} from "@/lib/pos-types";
 
 /** Lookup by receipt number; ADMIN can select returned quantities and refund. */
 export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
@@ -32,6 +37,20 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // How many of each (product, colour, size) were already returned — caps the
+  // steppers so the same line can't be refunded twice.
+  const alreadyReturned = new Map<string, number>();
+  if (order) {
+    for (const r of order.refunds) {
+      for (const l of r.lines) {
+        const key = `${l.productId ?? ""}|${l.color}|${l.size}`;
+        alreadyReturned.set(key, (alreadyReturned.get(key) ?? 0) + l.quantity);
+      }
+    }
+  }
+  const returnableFor = (i: PosOrderItem) =>
+    Math.max(0, i.quantity - (alreadyReturned.get(`${i.productId ?? ""}|${i.color}|${i.size}`) ?? 0));
+
   const selectedLines: PosRefundLine[] = order
     ? order.items
         .filter((i) => (returnQty[i.itemId] ?? 0) > 0)
@@ -43,6 +62,7 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
           quantity: returnQty[i.itemId] ?? 0,
         }))
     : [];
+  // Display estimate only — the API recomputes the amount from the order.
   const refundAmount = order
     ? order.items.reduce((sum, i) => {
         const qty = returnQty[i.itemId] ?? 0;
@@ -51,18 +71,19 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
     : 0;
 
   const refund = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<number> => {
       if (!order) throw new Error("No order");
       const res = await fetch("/api/pos/returns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.orderId, amount: refundAmount, lines: selectedLines }),
+        body: JSON.stringify({ orderId: order.orderId, lines: selectedLines }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { amount?: number; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Refund failed");
+      return data.amount ?? 0;
     },
-    onSuccess: () => {
-      toast.success("Refund recorded — stock restored.");
+    onSuccess: (amount) => {
+      toast.success(`Refunded ${posMoney(amount)} — stock restored.`);
       setConfirming(false);
       setReturnQty({});
       if (number) lookup.mutate(number);
@@ -163,7 +184,7 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
-                          disabled={qty >= i.quantity}
+                          disabled={qty >= returnableFor(i)}
                           onClick={() =>
                             setReturnQty((prev) => ({ ...prev, [i.itemId]: qty + 1 }))
                           }
