@@ -21,7 +21,7 @@ export function adminConfigured(): boolean {
   return Boolean(BACKEND && SK);
 }
 
-async function adminFetch<T>(path: string): Promise<T | null> {
+export async function adminFetch<T>(path: string): Promise<T | null> {
   if (!adminConfigured()) return null;
   const basic = Buffer.from(`${SK}:`).toString("base64");
   try {
@@ -123,7 +123,7 @@ function basicAuth(): string {
   return Buffer.from(`${SK}:`).toString("base64");
 }
 
-async function adminPost<T>(path: string, body: unknown): Promise<T> {
+export async function adminPost<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BACKEND}${path}`, {
     method: "POST",
     headers: { Authorization: `Basic ${basicAuth()}`, "Content-Type": "application/json" },
