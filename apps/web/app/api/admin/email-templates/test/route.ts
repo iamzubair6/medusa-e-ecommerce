@@ -8,6 +8,7 @@ import { renderEmailHtml, SAMPLE_EMAIL_VARS } from "@/lib/email-render";
 import { resolveFrame } from "@/lib/email-frames";
 import { resolveBodyTemplate } from "@/lib/email-body-templates";
 import { getEmailConfig } from "@/lib/email-settings";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 const schema = z.union([
   // Purpose test — sends the current (unsaved) editor state.
@@ -25,6 +26,12 @@ const schema = z.union([
 
 /** Send a sample of one purpose/campaign to the given inbox (admin-gated). */
 export async function POST(request: Request) {
+  // Back-office only, but it emails arbitrary HTML to arbitrary inboxes —
+  // keep it un-abusable as a spam relay.
+  const limited = rateLimit(`email-test:${clientKey(request)}`, 15, 10 * 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Too many test sends — wait a few minutes." }, { status: 429 });
+  }
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 422 });

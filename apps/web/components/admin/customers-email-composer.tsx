@@ -195,7 +195,12 @@ export function CustomersEmailComposer({
         <Controller
           control={control}
           name="content"
-          render={({ field }) => <HtmlBodyField label="Content" value={field.value} onChange={field.onChange} />}
+          render={({ field }) => (
+            // Keyed by the applied preset: RichTextField seeds its
+            // contenteditable only on mount, so a preset change must remount
+            // the editor or it would keep showing (and then save) stale HTML.
+            <HtmlBodyField key={presetId || "blank"} label="Content" value={field.value} onChange={field.onChange} />
+          )}
         />
         {errors.content?.message && <p className="text-xs text-destructive">{errors.content.message}</p>}
 
