@@ -39,52 +39,44 @@ export async function sendEmail({ to, toName, subject, html }: SendArgs): Promis
 }
 
 /* ------------------------------------------------------------------------- */
-/* Rendering — the branded shell is fixed in code; subject/heading/body come  */
-/* from the admin-editable "emailTemplates" SiteSetting (/admin/email-templates). */
+/* Rendering — every send goes through the ONE shared renderer               */
+/* (lib/email-render.ts): purpose config → body template {content} slot →    */
+/* frame → placeholders. Config comes from the admin-editable SiteSettings   */
+/* (/admin/email-templates), read migration-aware in lib/email-settings.ts.  */
 /* ------------------------------------------------------------------------- */
 
-import { getSiteSetting } from "@ecom/cms";
-import {
-  fillPlaceholders,
-  isFullHtmlDocument,
-  parseEmailTemplates,
-  type EmailTemplates,
-  type EmailTemplateType,
-} from "./email-templates";
+import { fillPlaceholders, escapeHtml, type EmailTemplateType } from "./email-templates";
+import { renderEmailHtml } from "./email-render";
+import { resolveFrame } from "./email-frames";
+import { resolveBodyTemplate } from "./email-body-templates";
+import { getEmailConfig } from "./email-settings";
+import type { EmailPurposes } from "./email-purposes";
 
 /** On-brand shell: ink logo band, claret accent rule, parchment card, footer. */
 import { emailShell } from "./email-shell";
-import { parseEmailFrame } from "./email-frame";
-export { emailShell };
-
-/** Escape user-supplied text before interpolating it into email HTML. */
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+export { emailShell, escapeHtml };
 
 /**
- * Render a transactional email from the admin-managed templates.
- * `templates` may be passed in when the caller already fetched the setting.
+ * Render a transactional email from the admin-managed purpose configs.
+ * `purposes` may be passed in when the caller already has them (the admin
+ * test route sends the current unsaved editor state).
  */
 export async function renderEmail(
   type: EmailTemplateType,
   vars: Record<string, string>,
-  templates?: EmailTemplates,
+  purposes?: EmailPurposes,
 ): Promise<{ subject: string; html: string }> {
-  const t = (templates ?? parseEmailTemplates(await getSiteSetting("emailTemplates").catch(() => null)))[type];
-  const frame = parseEmailFrame(await getSiteSetting("emailFrame").catch(() => null));
+  const config = await getEmailConfig();
+  const p = (purposes ?? config.purposes)[type];
   return {
-    subject: fillPlaceholders(t.subject, vars),
-    // A full <!DOCTYPE html> body replaces the design entirely (#148) —
-    // fragments get the branded shell (its content is admin-editable, #150).
-    html: isFullHtmlDocument(t.body)
-      ? fillPlaceholders(t.body, vars)
-      : emailShell(fillPlaceholders(t.heading, vars), fillPlaceholders(t.body, vars), frame),
+    subject: fillPlaceholders(p.subject, vars),
+    html: renderEmailHtml({
+      frame: resolveFrame(config.frames, p.frameId),
+      bodyTemplateHtml: resolveBodyTemplate(config.bodyTemplates, p.bodyTemplateId).html,
+      heading: p.heading,
+      content: p.content,
+      vars,
+    }),
   };
 }
 
