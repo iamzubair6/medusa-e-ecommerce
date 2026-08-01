@@ -7,6 +7,7 @@ const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
   bkash: "bKash",
   nagad: "Nagad",
+  card: "Card",
 };
 
 /**

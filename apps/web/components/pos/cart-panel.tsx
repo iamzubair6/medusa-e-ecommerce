@@ -31,7 +31,14 @@ const METHODS: { id: PosPaymentMethod; label: string }[] = [
   { id: "cash", label: "Cash" },
   { id: "bkash", label: "bKash" },
   { id: "nagad", label: "Nagad" },
+  { id: "card", label: "Card" },
 ];
+
+const TXN_PLACEHOLDER: Record<Exclude<PosPaymentMethod, "cash">, string> = {
+  bkash: "bKash TXN id",
+  nagad: "Nagad TXN id",
+  card: "Card approval ref / last 4",
+};
 
 export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
   const toast = useToast();
@@ -291,7 +298,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
         )}
 
         {/* Payment method */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {METHODS.map((m) => (
             <button
               key={m.id}
@@ -310,7 +317,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
           <input
             value={txnId}
             onChange={(e) => setTxnId(e.target.value)}
-            placeholder={`${method === "bkash" ? "bKash" : "Nagad"} TXN id`}
+            placeholder={TXN_PLACEHOLDER[method]}
             className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         )}

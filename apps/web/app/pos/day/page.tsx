@@ -30,6 +30,7 @@ export default async function PosDayPage({
     { label: "Cash", value: posMoney(report.totals.cash) },
     { label: "bKash", value: posMoney(report.totals.bkash) },
     { label: "Nagad", value: posMoney(report.totals.nagad) },
+    { label: "Card", value: posMoney(report.totals.card) },
     { label: "Refunded", value: `−${posMoney(report.totals.refunded)}` },
     { label: "Net", value: posMoney(report.totals.net) },
   ];
