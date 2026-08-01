@@ -7,22 +7,25 @@ phases (0–5) live in `ROADMAP.md`; deferred production choices in
 
 Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold (needs a decision)
 
-## Current standing (updated 2026-07-27, shipped through `1de7aa3`)
+## Current standing (updated 2026-08-02)
 
-Everything on the board through **#152** is built and pushed (auto-deployed to
-Vercel/Render). **Pending, in priority order:**
+**POS (#153–#161) and Dynamic email (#162–#164) are BUILT** — both plans
+(`POS_PLAN.md` phases 1+2, `EMAIL_TEMPLATES_PLAN.md` phases 1–3) implemented,
+typecheck + production build green. **Pending, in priority order:**
 
-1. **Owner smoke check** — walk `docs/smoke-tests/` rounds in order:
+1. **At deploy (live one-offs):**
+   - **cms `db push` on the live DB** — adds the `STAFF` value to `AdminRole`
+     (same additive-enum routine as before). Do this BEFORE creating a staff user.
+   - Create the first STAFF user in /admin/users for the counter.
+   - Older items still open: confirm `NEXT_PUBLIC_SITE_URL` in Vercel; "Free
+     over ৳X" on live shipping rates when wanted. (The maison-master paste is
+     now obsolete — it ships as the seeded "Maison master" body template.)
+2. **Owner smoke check** — new rounds `153-161-pos.md` and
+   `162-164-dynamic-email.md`, plus the older queue:
    `126-128-promotions.md` → `129-137-round6.md` → `138-143-round7.md` → `144-147-round8.md`.
-2. **Live one-offs after this deploy**: confirm `NEXT_PUBLIC_SITE_URL` in Vercel
-   (email footer links); paste `docs/email-templates/maison-master.html` into
-   live /admin/email-templates as a custom template; set "Free over ৳X" on live
-   shipping rates when wanted.
-3. **Next builds (owner to say go):**
-   - **POS phase 1** — plan in `docs/POS_PLAN.md` (also fixes: online orders
-     don't decrement sizeStock yet).
-   - **Dynamic email phases 1–3** — plan in `docs/EMAIL_TEMPLATES_PLAN.md`
-     (frames library → body-template library w/ {content} slot → unified campaigns).
+3. **POS phase 3 (later, owner call):** `pos.<domain>` subdomain rewrite,
+   printed SKU barcodes, PWA/offline. Open POS decisions (receipt printer
+   model, subdomain name) in `POS_PLAN.md` §7.
 4. Older open item: #109 brand/theme audit follow-ups pending owner priority.
 
 ---
@@ -199,6 +202,18 @@ Vercel/Render). **Pending, in priority order:**
 | 150 | **Email frame is dynamic** (owner: "why all templates have Home/Offers/Track footer") — the shared frame's content (tagline, up to 4 footer links, address, reply note) now lives in the `emailFrame` SiteSetting with an **Email frame card** at the top of /admin/email-templates; every send path + live preview renders with the saved frame. Bodies stay per-template; frame edited once | fix+add | ✅ committed — typecheck green |
 | 151 | **POS build plan** (owner: staff sell in person, stock syncs both ways, own URL in prod — "is it possible?") — YES; complete plan written in `docs/POS_PLAN.md`: /pos route + pos.<domain> rewrite, STAFF role, draft-order cash/bKash checkout, shared `decrementSizeStock` used by POS AND online completion (closes the discovered gap: online orders don't decrement stock today), receipts, Z-reports, 3 phases + open decisions | plan | ✅ doc committed — build next per owner |
 | 152 | **Dynamic email system design note** (owner spec: body-template library + per-purpose dropdown + per-purpose frames, e.g. order-shipped footer without Offers; zero code changes ever) — full plan in `docs/EMAIL_TEMPLATES_PLAN.md`: 3 building blocks (purpose / frame / body template with {content} slot), render pipeline, storage (3 SiteSettings, clean migration from today's emailTemplates/emailFrame), reorganized admin UI, 3 build phases | plan | ✅ doc committed — build on owner go |
+| 153 | **POS phase 1 — auth**: `STAFF` role on `AdminRole` (Zod + Prisma, local `db push` done — **live db push needed at deploy**), `/pos/login` (separate `pos_session` cookie), middleware gates `/pos/*` + `/api/pos/*`, STAFF blocked from ALL /admin surfaces | add | ✅ `4bd3a7e`,`008171d`,`447833c` |
+| 154 | **POS phase 1 — counter UI**: `/pos` fullscreen shell — debounced title/SKU search grid (scanner types SKU+Enter), colour/size picker with LIVE `sizeStock` (sold-out disabled + struck), cart with steppers, header nav + logout | add | ✅ `4d44232`,`d458fbf` |
+| 155 | **POS phase 1 — checkout API**: `lib/pos.ts` + `/api/pos/checkout` — Medusa draft order → convert-to-order (same MSN- sequence), Cash / bKash / Nagad (wallet TXN id required), `metadata.channel="pos"` + cashier email/name | add | ✅ `4f3c1f0`,`2552420` |
+| 156 | **POS phase 1 — stock sync (core)**: `lib/stock.ts` — Zod-parsed `sizeStock` read-modify-write (floor 0, per-product in-memory queue, untracked keys skipped), `revalidateCommerce()` after writes; wired into POS checkout AND both online completions (COD + SSLCommerz) — **closes the gap: online orders never decremented stock**; POS oversell re-read → 409 warn → "Sell anyway" force | add | ✅ `913fc64`,`d9038fc` |
+| 157 | **POS phase 1 — receipt**: 80mm thermal print view (`@page 80mm` + visibility isolation), order no, sold-by, lines, discount, total, payment/TXN | add | ✅ `d458fbf` |
+| 158 | **POS phase 2 — discounts**: promo-code chips at the counter (native draft-order `promo_codes` — all existing codes work) + ADMIN-only manual % (server-enforced 403 for staff; per-line `unit_price` override) | add | ✅ `4f3c1f0`,`2552420` |
+| 159 | **POS phase 2 — returns**: `/pos/orders` receipt-number lookup (reprint info for staff); ADMIN sets per-line return steppers → refund recorded in order `metadata.pos_refunds` log + restock via `incrementSizeStock` (manual payments have no gateway to reverse — cash-drawer op by design) | add | ✅ `499670f`,`09de594`,`d01b3bd` |
+| 160 | **POS phase 2 — Z-report**: `/pos/day` (ADMIN) — per shop-day (Asia/Dhaka) tiles: sales/gross/cash/bKash/Nagad/refunded/net, per-sale rows w/ TXN, refunds, per-cashier totals, printable; admin dashboard Revenue card shows "Online ৳X · POS ৳Y" split via `metadata.channel` | add | ✅ `0a5e02a`,`9160fae` |
+| 161 | **POS phase 2 — customer attach**: phone lookup → existing customer attached to the draft order (`customer_id`) so the sale feeds their order history; unknown phone = walk-in placeholder email | add | ✅ `4f3c1f0`,`2552420` |
+| 162 | **Dynamic email phase 1 — frames library**: `emailFrames` SiteSetting (≤20 named frames + default marker + reserved "none"), legacy `emailFrame` auto-migrates to the sole "Default" entry, per-purpose Frame dropdown, admin Frames card (CRUD/duplicate/default, delete falls users back to default) | add | ✅ `8a497e1`,`965bd48`,`3349325` |
+| 163 | **Dynamic email phase 2 — body templates + purposes**: `emailBodyTemplates` (`{content}` slot enforced by Zod; seeds "Plain" = exact old behaviour + "Maison master" full-doc adaptation), `emailPurposes` per-purpose {frame, body, subject, heading, content} migrating from `emailTemplates`, ONE shared renderer (`lib/email-render.ts`) used by sends + test route + bulk + client preview (can never drift), placeholder chips + non-blocking missing-placeholder warning, live preview + send-test everywhere. **Verified: all 8 purposes render char-identical to the old pipeline when settings are unset** (executed parity script, 32 checks) | add | ✅ `c4ce05c`,`0980a77`,`5faf569`,`38ea4b7`,`9094ded`,`215bd3d`,`0ff5747`,`0d592a9`,`32e53db` |
+| 164 | **Dynamic email phase 3 — unified campaigns**: Customers composer = preset + body template + frame + one-off content w/ live preview; "Your templates" migrated to campaign content presets (full-doc bodies 1:1); bulk route renders via the shared renderer (300 cap + rate limit + typed SEND confirm untouched) | add | ✅ `09e7177`,`32e53db` |
 | 117 | **Code-review hardening (#113–#116)** — P1s fixed: shared `lib/safe-image-fetch` (SSRF-vetted, no-redirect, size-capped) now used by BOTH the public visual-search route and the admin auto-detect route (was a raw redirect-following fetch) + auto-detect rate-limited; "Add the whole look" no longer throws an unhandled rejection (adds what it can, reports the shortfall, prefers in-stock variants); uploading a new photo in Shop Similar now refreshes the grid (whole-image results path); Escape + focus on both new modals; object-URL revoke; PDP look join reuses `getCatalogCardsByHandle` (dropped a 200-product fetch); accent hex is Zod-validated | fix | ✅ `77b60ac`,`09e4b10`,`0d32b57`,`7727343` — typecheck + build green |
 | 116 | **Admin toaster sweep** (owner 2026-07-20: "insted of direct save text use toaster for all action"): the shared `useSaveSection` hook now fires success/error toasts; removed every inline "Saved" span + inline save-error span across the 11 section editors, and converted the 2 remaining string-state editors (visual-search mapping, size-guides). All admin saves confirm via the existing toast system | fix | ✅ `6077f6b`,`139f666` |
 | 113 | **FN Shop Similar PDP modal** (owner: "FN use individual modal not the global search redirect"): dedicated in-place modal — product photo with garment dots + Upload + size facets on the left, ranked similar-product grid + "Sort by Most similar/price" on the right; runs on the same CLIP engine, dots re-scope by category (top→tops), Upload swaps the query; new card helpers (`similarProductCards`/`similarCardsByVector`, `getCatalogCardsByHandle`) + APIs (`/api/products/similar`, `query/[id]/results`) | add | ✅ `3ddb720`,`16738c1`,`fc521d9`,`5f756be` — E2E: gym-shorts PDP → 24-item grid, Top dot → tops-only |
