@@ -98,7 +98,18 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
     onSuccess: (result) => {
       onComplete({
         result,
-        lines: cart,
+        // Prefer the order's own priced lines (manual discount/promos applied);
+        // fall back to the cart snapshot if the detail read came back empty.
+        lines: result.lines.length
+          ? result.lines
+          : cart.map((l) => ({
+              title: l.title,
+              color: l.color,
+              size: l.size,
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+              total: l.unitPrice * l.quantity,
+            })),
         payment: { method, ...(txnId.trim() ? { txnId: txnId.trim() } : {}) },
         customerName: customer?.name,
         soldAt: new Date().toLocaleString("en-GB", { hour12: true }),

@@ -43,17 +43,17 @@ export function Receipt({ sale, cashierName }: { sale: FinishedSale; cashierName
         {sale.customerName && <Row left="Customer" right={sale.customerName} />}
         <Hr />
 
-        {sale.lines.map((l) => (
-          <div key={l.variantId} className="mb-1">
+        {sale.lines.map((l, idx) => (
+          <div key={idx} className="mb-1">
             <p className="truncate">{l.title}</p>
-            <Row
-              left={`  ${l.color} / ${l.size} × ${l.quantity}`}
-              right={posMoney(l.unitPrice * l.quantity)}
-            />
+            <Row left={`  ${l.color} / ${l.size} × ${l.quantity}`} right={posMoney(l.total)} />
           </div>
         ))}
 
         <Hr />
+        {sale.result.manualDiscountPct !== undefined && (
+          <Row left={`Manual discount ${sale.result.manualDiscountPct}%`} right="applied" />
+        )}
         {sale.result.discountTotal > 0 && (
           <Row left="Discount" right={`−${posMoney(sale.result.discountTotal)}`} />
         )}

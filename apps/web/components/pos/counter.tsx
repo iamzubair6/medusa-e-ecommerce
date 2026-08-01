@@ -14,6 +14,7 @@ import {
   posMoney,
   type PosPaymentMethod,
   type PosProduct,
+  type PosReceiptLine,
   type PosSaleSuccess,
 } from "@/lib/pos-types";
 
@@ -22,10 +23,11 @@ interface Props {
   isAdmin: boolean;
 }
 
-/** A completed sale, frozen for the receipt (cart state resets underneath it). */
+/** A completed sale, frozen for the receipt (cart state resets underneath it).
+ *  Lines are the ORDER's final priced lines, not the client cart estimate. */
 export interface FinishedSale {
   result: PosSaleSuccess;
-  lines: PosCartLine[];
+  lines: PosReceiptLine[];
   payment: { method: PosPaymentMethod; txnId?: string };
   customerName?: string;
   soldAt: string;
@@ -271,7 +273,8 @@ function SizePicker({
               <h2 className="font-display text-lg font-medium">{product.title}</h2>
               {color && <p className="text-sm text-muted-foreground">{posMoney(color.price)}</p>}
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+            {/* autoFocus pulls keyboard users into the dialog (no trap primitive here). */}
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" autoFocus>
               <X className="h-4 w-4" />
             </Button>
           </div>
