@@ -29,6 +29,7 @@ import type {
   PosDayRow,
   PosOrderItem,
   PosOrderView,
+  PosPaymentMethod,
   PosProduct,
   PosRefund,
   PosRefundLine,
@@ -115,11 +116,20 @@ export async function posSearchProducts(q: string, limit = 24): Promise<PosProdu
   return (data?.products ?? []).filter((p) => p.status === "published").map(toPosProduct);
 }
 
+/** One product in the POS shape (SKUs + per-colour sizes) — barcode labels page. */
+export async function posProductById(id: string): Promise<PosProduct | null> {
+  const fields = "id,title,handle,status,thumbnail,metadata,*variants,*variants.prices";
+  const data = await adminFetch<{ product?: RawPosProduct }>(
+    `/admin/products/${id}?fields=${encodeURIComponent(fields)}`,
+  );
+  return data?.product ? toPosProduct(data.product) : null;
+}
+
 // --- Checkout ---------------------------------------------------------------
 
 export interface PosCheckoutInput {
   lines: PosSaleLine[];
-  payment: { method: "cash" | "bkash" | "nagad"; txnId?: string };
+  payment: { method: PosPaymentMethod; txnId?: string };
   promoCodes?: string[];
   /** ADMIN-only — the route enforces the role before passing it through. */
   manualDiscountPct?: number;
