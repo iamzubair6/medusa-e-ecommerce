@@ -1,4 +1,5 @@
 import { DEFAULT_EMAIL_FRAME, type EmailFrame } from "./email-frame";
+import { escapeHtml } from "./email-templates";
 
 /**
  * The branded email frame every fragment-based email is wrapped in — the
@@ -10,8 +11,7 @@ import { DEFAULT_EMAIL_FRAME, type EmailFrame } from "./email-frame";
  */
 export function emailShell(heading: string, bodyHtml: string, frame: EmailFrame = DEFAULT_EMAIL_FRAME): string {
   const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const esc = escapeHtml;
   const abs = (href: string) => (href.startsWith("http") ? href : `${site}${href.startsWith("/") ? "" : "/"}${href}`);
   const links = frame.links
     .map(
@@ -39,10 +39,14 @@ export function emailShell(heading: string, bodyHtml: string, frame: EmailFrame 
         <tr><td style="height:3px;line-height:3px;font-size:3px;background-color:#7a1f2b;">&nbsp;</td></tr>
         <tr>
           <td style="background-color:#fbf8f1;border:1px solid #d8cfbc;border-top:0;padding:40px 36px;font-family:Georgia,'Times New Roman',serif;color:#1c1a17;">
-            <h1 style="margin:0 0 6px;font-size:26px;line-height:1.25;font-weight:bold;font-family:Georgia,'Times New Roman',serif;color:#1c1a17;">${heading}</h1>
+            ${
+              heading.trim()
+                ? `<h1 style="margin:0 0 6px;font-size:26px;line-height:1.25;font-weight:bold;font-family:Georgia,'Times New Roman',serif;color:#1c1a17;">${heading}</h1>
             <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;">
               <tr><td style="width:56px;height:1px;line-height:1px;font-size:1px;background-color:#b08d57;">&nbsp;</td></tr>
-            </table>
+            </table>`
+                : ""
+            }
             ${bodyHtml}
           </td>
         </tr>

@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 /**
- * The shared email FRAME's editable content (#150) — what wraps every
- * fragment-based template: tagline under the logo, footer links, address and
- * reply note. Stored in the CMS SiteSetting "emailFrame", edited at
- * /admin/email-templates. Pure module (client-safe) — reading the setting
- * happens server-side (lib/email.ts / the admin page).
+ * One email FRAME's editable content (#150) — what wraps a fragment-based
+ * email: tagline under the logo, footer links, address and reply note. Base
+ * schema for the frames LIBRARY (lib/email-frames.ts); the single-frame
+ * "emailFrame" SiteSetting this used to represent is now LEGACY, read only to
+ * migrate into the library. Pure module (client-safe).
  */
 
 export const emailFrameSchema = z.object({

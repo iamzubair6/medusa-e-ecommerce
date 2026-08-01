@@ -1,10 +1,11 @@
 import { z } from "zod";
 
 /**
- * Admin-editable transactional email templates, stored in the CMS SiteSetting
- * "emailTemplates" (edited at /admin/email-templates). The admin edits the
- * subject / heading / body per template; the branded shell (logo band, claret
- * accent, footer) is fixed in code so every email stays on-brand.
+ * Purpose list, placeholder meta and the placeholder engine shared by the
+ * whole email system — plus the LEGACY "emailTemplates" SiteSetting schema,
+ * kept so lib/email-purposes.ts can migrate old saves (subject/heading/body →
+ * content + Plain body template + Default frame). New config lives in
+ * lib/email-purposes.ts / email-frames.ts / email-body-templates.ts.
  *
  * Placeholders (replaced at send time, unknown ones left intact):
  *   all:                {name}
@@ -148,7 +149,8 @@ export function parseEmailTemplates(raw: unknown): EmailTemplates {
   return merged;
 }
 
-const escapeHtml = (s: string) =>
+/** Escape user-supplied text before interpolating it into email HTML (single shared impl). */
+export const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 /**
@@ -174,10 +176,10 @@ export function isFullHtmlDocument(html: string): boolean {
   return head.startsWith("<!doctype") || head.startsWith("<html");
 }
 
-// --- Custom templates (owner-created, SiteSetting "customEmailTemplates") ----
-// Free-form campaign/announcement emails: the owner names a template, writes
-// subject + heading + HTML body once, then picks it when sending one-off or
-// bulk email from /admin/customers. Placeholders: {name} {email}.
+// --- LEGACY custom templates (old "customEmailTemplates" shape) --------------
+// Whole-email entries {subject, heading, body}. Superseded by the campaign
+// content presets in lib/email-campaigns.ts, whose parse migrates entries in
+// this shape — the schema stays only for that migration.
 
 export const customEmailTemplateSchema = z.object({
   id: z.string().min(1).max(40),
@@ -188,10 +190,3 @@ export const customEmailTemplateSchema = z.object({
   body: z.string().min(1).max(200_000),
 });
 export type CustomEmailTemplate = z.infer<typeof customEmailTemplateSchema>;
-
-export const customEmailTemplatesSchema = z.array(customEmailTemplateSchema).max(50);
-
-export function parseCustomEmailTemplates(raw: unknown): CustomEmailTemplate[] {
-  const r = customEmailTemplatesSchema.safeParse(raw);
-  return r.success ? r.data : [];
-}
