@@ -22,6 +22,7 @@ export interface AdminUserRow {
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin — full access" },
   { value: "EDITOR", label: "Editor — no user mgmt" },
+  { value: "STAFF", label: "Staff — POS counter only" },
 ] as const satisfies readonly { value: AdminRole; label: string }[];
 
 async function api(url: string, method: string, body?: unknown): Promise<{ error?: string } & Record<string, unknown>> {

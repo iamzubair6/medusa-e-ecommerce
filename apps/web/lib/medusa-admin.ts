@@ -1806,6 +1806,9 @@ export async function updateSalesChannel(id: string, patch: { name?: string; isD
 
 export interface AdminDashboardStats {
   revenue: string;
+  /** Store-currency revenue split by sales channel (POS = metadata.channel "pos"). */
+  onlineRevenue: string;
+  posRevenue: string;
   orders: number;
   products: number;
   customers: number;
@@ -1861,14 +1864,22 @@ export async function getDashboardSeries(days = 14): Promise<DailyPoint[]> {
 
 export async function getDashboardStats(): Promise<AdminDashboardStats> {
   const ordersData = await adminFetch<{
-    orders?: { total: number; currency_code: string; fulfillment_status: string }[];
+    orders?: {
+      total: number;
+      currency_code: string;
+      fulfillment_status: string;
+      metadata?: { channel?: string } | null;
+    }[];
     count?: number;
-  }>("/admin/orders?fields=total,currency_code,fulfillment_status&limit=1000&order=-created_at");
+  }>("/admin/orders?fields=total,currency_code,fulfillment_status,metadata&limit=1000&order=-created_at");
   const orders = ordersData?.orders ?? [];
   // Revenue is reported in the store currency (BDT); foreign demo orders in other
   // currencies are excluded so totals are never mixed across currencies.
-  const revenue = orders
-    .filter((o) => o.currency_code === STORE_CURRENCY)
+  const store = orders.filter((o) => o.currency_code === STORE_CURRENCY);
+  const revenue = store.reduce((sum, o) => sum + (o.total ?? 0), 0);
+  // Counter sales are tagged metadata.channel="pos" at draft-order creation.
+  const posRevenue = store
+    .filter((o) => o.metadata?.channel === "pos")
     .reduce((sum, o) => sum + (o.total ?? 0), 0);
   const pendingFulfilment = orders.filter((o) => o.fulfillment_status === "not_fulfilled").length;
 
@@ -1879,6 +1890,8 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
 
   return {
     revenue: money(revenue, STORE_CURRENCY),
+    onlineRevenue: money(revenue - posRevenue, STORE_CURRENCY),
+    posRevenue: money(posRevenue, STORE_CURRENCY),
     orders: ordersData?.count ?? orders.length,
     products,
     customers,

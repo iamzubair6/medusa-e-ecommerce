@@ -40,7 +40,13 @@ export default async function AdminDashboard() {
   const ordersTotal = series.reduce((s, p) => s + p.orders, 0);
 
   const commerceCards = [
-    { label: "Revenue", value: commerce.revenue, href: "/admin/orders", icon: Banknote },
+    {
+      label: "Revenue",
+      value: commerce.revenue,
+      sub: `Online ${commerce.onlineRevenue} · POS ${commerce.posRevenue}`,
+      href: "/admin/orders",
+      icon: Banknote,
+    },
     { label: "Orders", value: commerce.orders, href: "/admin/orders", icon: Receipt },
     { label: "To fulfil", value: commerce.pendingFulfilment, href: "/admin/orders", icon: Truck },
     { label: "Products", value: commerce.products, href: "/admin/products", icon: ShoppingBag },
@@ -71,6 +77,9 @@ export default async function AdminDashboard() {
                         <Icon className="h-3.5 w-3.5" /> {c.label}
                       </span>
                       <span className="font-display text-3xl font-bold">{c.value}</span>
+                      {"sub" in c && c.sub && (
+                        <span className="text-[11px] text-muted-foreground">{c.sub}</span>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
