@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { adminFetch, adminPost } from "./medusa-admin";
-import { decrementSizeStock, type StockLine } from "./stock";
+import { decrementSizeStock, incrementSizeStock, type StockLine } from "./stock";
 
 /**
  * POS domain layer: counter search, oversell check and the draft-order
@@ -25,7 +25,13 @@ export type {
 import type {
   PosColor,
   PosCustomerMatch,
+  PosDayReport,
+  PosDayRow,
+  PosOrderItem,
+  PosOrderView,
   PosProduct,
+  PosRefund,
+  PosRefundLine,
   PosSaleLine,
   OversellWarning,
 } from "./pos-types";
@@ -274,6 +280,227 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
   } catch (error) {
     return { ok: false, status: 502, error: (error as Error).message };
   }
+}
+
+// --- Order lookup, returns & day report -------------------------------------
+
+const refundSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  amount: z.number(),
+  lines: z.array(
+    z.object({
+      productId: z.string().nullable(),
+      title: z.string(),
+      color: z.string(),
+      size: z.string(),
+      quantity: z.number(),
+    }),
+  ),
+});
+const refundsSchema = z.array(refundSchema);
+
+function parseRefunds(raw: unknown): PosRefund[] {
+  if (typeof raw !== "string" || !raw) return [];
+  try {
+    const parsed = refundsSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : [];
+  } catch {
+    return [];
+  }
+}
+
+interface RawPosOrderMeta {
+  channel?: string;
+  payment_method?: string;
+  pos_txn_id?: string;
+  pos_cashier_name?: string;
+  pos_refunds?: string;
+}
+
+interface RawPosOrderDetail {
+  id: string;
+  display_id: number;
+  created_at: string;
+  total?: number;
+  discount_total?: number;
+  email?: string | null;
+  metadata?: RawPosOrderMeta | null;
+  items?: {
+    id: string;
+    product_id?: string | null;
+    variant_title?: string | null;
+    product_title?: string | null;
+    title?: string | null;
+    quantity: number;
+    unit_price?: number;
+    total?: number;
+  }[];
+}
+
+const POS_ORDER_FIELDS =
+  "id,display_id,created_at,total,discount_total,email,metadata," +
+  "items.id,items.product_id,items.variant_title,items.product_title,items.title,items.quantity,items.unit_price,items.total";
+
+function toPosOrderView(o: RawPosOrderDetail): PosOrderView {
+  const meta = o.metadata ?? {};
+  const refunds = parseRefunds(meta.pos_refunds);
+  const items: PosOrderItem[] = (o.items ?? []).map((i) => {
+    const parts = splitVariantTitle(i.variant_title ?? "");
+    return {
+      itemId: i.id,
+      productId: i.product_id ?? null,
+      title: i.product_title ?? i.title ?? "Item",
+      size: parts?.[0] ?? "",
+      color: parts?.[1] ?? "",
+      quantity: i.quantity,
+      unitPrice: i.unit_price ?? 0,
+      total: i.total ?? (i.unit_price ?? 0) * i.quantity,
+    };
+  });
+  return {
+    orderId: o.id,
+    displayId: o.display_id,
+    createdAt: o.created_at,
+    total: o.total ?? 0,
+    discountTotal: o.discount_total ?? 0,
+    email: o.email ?? "",
+    channel: meta.channel ?? "online",
+    paymentMethod: meta.payment_method,
+    txnId: meta.pos_txn_id,
+    cashierName: meta.pos_cashier_name,
+    items,
+    refunds,
+    refundedTotal: refunds.reduce((sum, r) => sum + r.amount, 0),
+  };
+}
+
+/**
+ * Find an order by its receipt number (MSN- display id). Medusa can't filter
+ * on display_id, so scan recent pages (returns are near-always recent).
+ */
+export async function posFindOrderByNumber(displayId: number): Promise<PosOrderView | null> {
+  for (let offset = 0; offset < 1000; offset += 200) {
+    const page = await adminFetch<{ orders?: { id: string; display_id: number }[]; count?: number }>(
+      `/admin/orders?fields=id,display_id&order=-created_at&limit=200&offset=${offset}`,
+    );
+    const orders = page?.orders ?? [];
+    const hit = orders.find((o) => o.display_id === displayId);
+    if (hit) {
+      const detail = await adminFetch<{ order?: RawPosOrderDetail }>(
+        `/admin/orders/${hit.id}?fields=${encodeURIComponent(POS_ORDER_FIELDS)}`,
+      );
+      return detail?.order ? toPosOrderView(detail.order) : null;
+    }
+    if (orders.length < 200) break;
+  }
+  return null;
+}
+
+/**
+ * Record a counter refund: append to the order's pos_refunds metadata log and
+ * restock the returned lines through the shared stock path. Payment stays a
+ * cash-drawer operation (manual methods have no gateway to reverse).
+ */
+export async function posRefund(input: {
+  orderId: string;
+  amount: number;
+  by: string;
+  lines: PosRefundLine[];
+}): Promise<{ ok: true; refunds: PosRefund[] } | { ok: false; error: string }> {
+  const data = await adminFetch<{ order?: { metadata?: Record<string, unknown> | null } }>(
+    `/admin/orders/${input.orderId}?fields=metadata`,
+  );
+  if (!data?.order) return { ok: false, error: "Order not found." };
+  const metadata = data.order.metadata ?? {};
+  const existing = parseRefunds(metadata.pos_refunds);
+  const entry: PosRefund = {
+    at: new Date().toISOString(),
+    by: input.by,
+    amount: input.amount,
+    lines: input.lines,
+  };
+  const refunds = [...existing, entry];
+  try {
+    await adminPost(`/admin/orders/${input.orderId}`, {
+      metadata: { ...metadata, pos_refunds: JSON.stringify(refunds) },
+    });
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+  await incrementSizeStock(
+    input.lines
+      .filter((l): l is PosRefundLine & { productId: string } => l.productId !== null)
+      .map((l) => ({ productId: l.productId, color: l.color, size: l.size, quantity: l.quantity })),
+  );
+  return { ok: true, refunds };
+}
+
+/** YYYY-MM-DD of an ISO timestamp in shop-local time (Asia/Dhaka). */
+export function dhakaDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
+}
+
+/** Z-report: every counter sale + refund on a shop-local day. */
+export async function posDayReport(date: string): Promise<PosDayReport> {
+  const fields = "id,display_id,total,currency_code,created_at,metadata";
+  const data = await adminFetch<{
+    orders?: {
+      id: string;
+      display_id: number;
+      total?: number;
+      currency_code?: string;
+      created_at: string;
+      metadata?: RawPosOrderMeta | null;
+    }[];
+  }>(`/admin/orders?fields=${encodeURIComponent(fields)}&order=-created_at&limit=1000`);
+
+  const posOrders = (data?.orders ?? []).filter((o) => o.metadata?.channel === "pos");
+
+  const rows: PosDayRow[] = posOrders
+    .filter((o) => dhakaDate(o.created_at) === date)
+    .map((o) => ({
+      displayId: o.display_id,
+      createdAt: o.created_at,
+      total: o.total ?? 0,
+      method: (o.metadata?.payment_method ?? "pos_cash").replace(/^pos_/, ""),
+      txnId: o.metadata?.pos_txn_id,
+      cashier: o.metadata?.pos_cashier_name ?? "—",
+    }));
+
+  // Refunds count on the day they were processed, whatever day the sale was.
+  const refunds = posOrders.flatMap((o) =>
+    parseRefunds(o.metadata?.pos_refunds)
+      .filter((r) => dhakaDate(r.at) === date)
+      .map((r) => ({ ...r, displayId: o.display_id })),
+  );
+
+  const sum = (method?: string) =>
+    rows.filter((r) => !method || r.method === method).reduce((s, r) => s + r.total, 0);
+  const refunded = refunds.reduce((s, r) => s + r.amount, 0);
+  const gross = sum();
+
+  const byCashier = [...new Set(rows.map((r) => r.cashier))].map((name) => ({
+    name,
+    count: rows.filter((r) => r.cashier === name).length,
+    total: rows.filter((r) => r.cashier === name).reduce((s, r) => s + r.total, 0),
+  }));
+
+  return {
+    date,
+    rows,
+    refunds,
+    totals: {
+      gross,
+      cash: sum("cash"),
+      bkash: sum("bkash"),
+      nagad: sum("nagad"),
+      refunded,
+      net: gross - refunded,
+      count: rows.length,
+    },
+    byCashier,
+  };
 }
 
 // --- Customer attach --------------------------------------------------------
