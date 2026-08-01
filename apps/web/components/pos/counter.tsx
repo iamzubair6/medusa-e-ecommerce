@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut, ScanLine, Search, X } from "lucide-react";
@@ -107,13 +108,17 @@ export function PosCounter({ cashier, isAdmin }: Props) {
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Point of sale</span>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/pos/orders" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            Orders
+          </Link>
+          {isAdmin && (
+            <Link href="/pos/day" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+              Day report
+            </Link>
+          )}
           <span className="text-sm text-muted-foreground">
             {cashier.name}
-            {isAdmin && (
-              <Badge className="ml-2" variant="outline">
-                Admin
-              </Badge>
-            )}
+            {isAdmin && <Badge className="ml-2">Admin</Badge>}
           </span>
           <Button variant="ghost" size="sm" onClick={logout} aria-label="Log out">
             <LogOut className="h-4 w-4" />
