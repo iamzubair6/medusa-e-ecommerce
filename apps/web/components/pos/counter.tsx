@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, ScanLine, Search, X } from "lucide-react";
+import { LogOut, Search, X } from "lucide-react";
 import { Badge, Button, Card, CardContent, Skeleton, cn } from "@ecom/ui";
+import { useToast } from "@/components/admin/toast";
 import type { PosCartLine } from "./cart-panel";
 import { CartPanel } from "./cart-panel";
 import { Receipt } from "./receipt";
+import { ScanButton } from "./scan-button";
 import {
   posMoney,
   type PosPaymentMethod,
@@ -33,22 +35,22 @@ export interface FinishedSale {
   soldAt: string;
 }
 
-function useDebounced(value: string, ms: number): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return debounced;
-}
-
 export function PosCounter({ cashier, isAdmin }: Props) {
   const router = useRouter();
+  const toast = useToast();
   const [term, setTerm] = useState("");
-  const q = useDebounced(term.trim(), 250);
+  const [q, setQ] = useState("");
   const [picking, setPicking] = useState<PosProduct | null>(null);
   const [cart, setCart] = useState<PosCartLine[]>([]);
   const [sale, setSale] = useState<FinishedSale | null>(null);
+
+  // Debounced search — flush() fires it immediately (Enter from a hardware
+  // scanner, or a camera scan result).
+  useEffect(() => {
+    const t = setTimeout(() => setQ(term.trim()), 250);
+    return () => clearTimeout(t);
+  }, [term]);
+  const flush = (value?: string) => setQ((value ?? term).trim());
 
   const search = useQuery({
     queryKey: ["pos-search", q],
@@ -61,7 +63,7 @@ export function PosCounter({ cashier, isAdmin }: Props) {
     },
   });
 
-  const addLine = (product: PosProduct, color: string, size: string, unitPrice: number, variantId: string) => {
+  const addLine = useCallback((product: PosProduct, color: string, size: string, unitPrice: number, variantId: string) => {
     setCart((prev) => {
       const existing = prev.find((l) => l.variantId === variantId);
       if (existing) {
@@ -84,7 +86,29 @@ export function PosCounter({ cashier, isAdmin }: Props) {
       ];
     });
     setPicking(null);
-  };
+  }, []);
+
+  // Scan-to-cart: when the query is exactly one variant's SKU (hardware
+  // scanner types SKU+Enter; the camera scanner injects it), skip the picker
+  // and drop that line straight into the cart.
+  const autoAdded = useRef("");
+  useEffect(() => {
+    const code = q.toUpperCase();
+    if (!code || !search.data || autoAdded.current === code) return;
+    for (const p of search.data) {
+      for (const c of p.colors) {
+        const s = c.sizes.find((sz) => sz.sku?.toUpperCase() === code);
+        if (s) {
+          autoAdded.current = code;
+          addLine(p, c.name, s.size, c.price, s.variantId);
+          toast.success(`Added ${p.title} — ${c.name} / ${s.size}`);
+          setTerm("");
+          setQ("");
+          return;
+        }
+      }
+    }
+  }, [search.data, q, addLine, toast]);
 
   const logout = async () => {
     await fetch("/api/pos/login", { method: "DELETE" });
@@ -131,16 +155,25 @@ export function PosCounter({ cashier, isAdmin }: Props) {
       <div className="flex min-h-0 flex-1">
         {/* Left: search + results + picker */}
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              placeholder="Search products by name or scan / type a SKU…"
-              autoFocus
-              className="h-12 w-full rounded-lg border bg-background pl-10 pr-10 text-base outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && flush()}
+                placeholder="Search products by name or scan / type a SKU…"
+                autoFocus
+                className="h-12 w-full rounded-lg border bg-background pl-10 pr-3 text-base outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            {/* Camera scanning — a phone/tablet running /pos IS the scanner. */}
+            <ScanButton
+              onCode={(code) => {
+                setTerm(code);
+                flush(code);
+              }}
             />
-            <ScanLine className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
