@@ -7,11 +7,15 @@ phases (0–5) live in `ROADMAP.md`; deferred production choices in
 
 Legend: ✅ done & deployed · 🟡 in progress · ⬜ planned · ⏸️ on hold (needs a decision)
 
-## Current standing (updated 2026-08-02)
+## Current standing (updated 2026-08-02, round 2)
 
-**POS (#153–#161) and Dynamic email (#162–#164) are BUILT** — both plans
-(`POS_PLAN.md` phases 1+2, `EMAIL_TEMPLATES_PLAN.md` phases 1–3) implemented,
-typecheck + production build green. **Pending, in priority order:**
+**POS (#153–#161 + #165–#167) and Dynamic email (#162–#164) are BUILT and
+MACHINE-TESTED** — plans implemented incl. Card payments, scan-to-cart with
+iPhone-camera scanning, and printable Code128 labels; a real-browser E2E round
+against local Medusa verified sell/stock/refund/Z-report/labels end to end
+(and caught + fixed one Medusa field-selection bug). Owner's directive:
+complete everything with proper testing BEFORE real in-store use.
+**Pending, in priority order:**
 
 1. **At deploy (live one-offs):**
    - **cms `db push` on the live DB** — adds the `STAFF` value to `AdminRole`
@@ -20,8 +24,10 @@ typecheck + production build green. **Pending, in priority order:**
    - Older items still open: confirm `NEXT_PUBLIC_SITE_URL` in Vercel; "Free
      over ৳X" on live shipping rates when wanted. (The maison-master paste is
      now obsolete — it ships as the seeded "Maison master" body template.)
-2. **Owner smoke check** — new rounds `153-161-pos.md` and
-   `162-164-dynamic-email.md`, plus the older queue:
+2. **Owner smoke check** — new rounds `153-161-pos.md` (now covers #153–#167;
+   [E2E ✓] items are machine-verified, re-tick on live; §12 iPhone camera and
+   §14 live-check steps are the owner-only parts) and `162-164-dynamic-email.md`,
+   plus the older queue:
    `126-128-promotions.md` → `129-137-round6.md` → `138-143-round7.md` → `144-147-round8.md`.
 3. **POS phase 3 (later, owner call):** `pos.<domain>` subdomain rewrite,
    printed SKU barcodes, PWA/offline. Open POS decisions (receipt printer
@@ -214,6 +220,10 @@ typecheck + production build green. **Pending, in priority order:**
 | 162 | **Dynamic email phase 1 — frames library**: `emailFrames` SiteSetting (≤20 named frames + default marker + reserved "none"), legacy `emailFrame` auto-migrates to the sole "Default" entry, per-purpose Frame dropdown, admin Frames card (CRUD/duplicate/default, delete falls users back to default) | add | ✅ `8a497e1`,`965bd48`,`3349325` |
 | 163 | **Dynamic email phase 2 — body templates + purposes**: `emailBodyTemplates` (`{content}` slot enforced by Zod; seeds "Plain" = exact old behaviour + "Maison master" full-doc adaptation), `emailPurposes` per-purpose {frame, body, subject, heading, content} migrating from `emailTemplates`, ONE shared renderer (`lib/email-render.ts`) used by sends + test route + bulk + client preview (can never drift), placeholder chips + non-blocking missing-placeholder warning, live preview + send-test everywhere. **Verified: all 8 purposes render char-identical to the old pipeline when settings are unset** (executed parity script, 32 checks) | add | ✅ `c4ce05c`,`0980a77`,`5faf569`,`38ea4b7`,`9094ded`,`215bd3d`,`0ff5747`,`0d592a9`,`32e53db` |
 | 164 | **Dynamic email phase 3 — unified campaigns**: Customers composer = preset + body template + frame + one-off content w/ live preview; "Your templates" migrated to campaign content presets (full-doc bodies 1:1); bulk route renders via the shared renderer (300 cap + rate limit + typed SEND confirm untouched) | add | ✅ `09e7177`,`32e53db` |
+| 165 | **POS — Card payments** (owner: "if any one payed with cards then??"): 4th method button + required terminal approval-ref field, `pos_card` metadata, receipt "Paid by Card (REF)", Z-report Card tile/rows — reconcile against the bank terminal's settlement slip at day end | add | ✅ `aa26bfb`,`c254d5b` — E2E-verified |
+| 166 | **POS — scan-to-cart + iPhone camera scanner** (owner: no scan hardware, has iPhone): exact-SKU match auto-adds the variant (Enter flushes the debounce = hardware scanners work as keyboards); **Scan** button opens a camera decoder (`@zxing/browser`, lazy-loaded — iOS Safari has no native barcode API) so a phone running /pos IS the scanner | add | ✅ `1ae53ca`,`1ee1e24` — SKU path E2E-verified; camera needs a real device (smoke §12) |
+| 167 | **POS — printable barcode labels**: product editor → "Barcode labels" → Code128 SVG sheet (`jsbarcode`), one label per colour/size w/ price + SKU, per-variant copies defaulting to current stock, print-isolated ~48×28mm | add | ✅ `eeed65e`,`b36aebb` — E2E-verified render |
+| — | **E2E test round (2026-08-02, local, real browser + real Medusa)**: auth boundaries (staff↔admin), cash sale MSN-00007 (stock 11→10 in DB), SKU scan-to-cart, Card sale MSN-00008 w/ ref, server-side refund (stock 17→18, "Already refunded" cap), Z-report fully reconciled (gross/cash/card/refund/net/per-cashier), dashboard Online/POS split, labels sheet, email admin page + migration render. **Found + fixed a real P0: partial `items.*` field selection makes Medusa return `quantity: undefined`/totals 0** — all order reads now use `*items` (also protected the online stock decrement from NaN corruption) | test | ✅ fix `c779cc7` |
 | 117 | **Code-review hardening (#113–#116)** — P1s fixed: shared `lib/safe-image-fetch` (SSRF-vetted, no-redirect, size-capped) now used by BOTH the public visual-search route and the admin auto-detect route (was a raw redirect-following fetch) + auto-detect rate-limited; "Add the whole look" no longer throws an unhandled rejection (adds what it can, reports the shortfall, prefers in-stock variants); uploading a new photo in Shop Similar now refreshes the grid (whole-image results path); Escape + focus on both new modals; object-URL revoke; PDP look join reuses `getCatalogCardsByHandle` (dropped a 200-product fetch); accent hex is Zod-validated | fix | ✅ `77b60ac`,`09e4b10`,`0d32b57`,`7727343` — typecheck + build green |
 | 116 | **Admin toaster sweep** (owner 2026-07-20: "insted of direct save text use toaster for all action"): the shared `useSaveSection` hook now fires success/error toasts; removed every inline "Saved" span + inline save-error span across the 11 section editors, and converted the 2 remaining string-state editors (visual-search mapping, size-guides). All admin saves confirm via the existing toast system | fix | ✅ `6077f6b`,`139f666` |
 | 113 | **FN Shop Similar PDP modal** (owner: "FN use individual modal not the global search redirect"): dedicated in-place modal — product photo with garment dots + Upload + size facets on the left, ranked similar-product grid + "Sort by Most similar/price" on the right; runs on the same CLIP engine, dots re-scope by category (top→tops), Upload swaps the query; new card helpers (`similarProductCards`/`similarCardsByVector`, `getCatalogCardsByHandle`) + APIs (`/api/products/similar`, `query/[id]/results`) | add | ✅ `3ddb720`,`16738c1`,`fc521d9`,`5f756be` — E2E: gym-shorts PDP → 24-item grid, Top dot → tops-only |

@@ -13,8 +13,12 @@
 - **Do-not-repeat log**: `docs/LESSONS.md`. Doc map: `docs/README.md`.
 
 ## Standing snapshot (update on every state-changing session)
-**2026-08-02 — POS (#153–#161) AND dynamic email (#162–#164) built, code-
-reviewed (P0/P1 findings fixed), typecheck + build green, pushed.** Pending:
+**2026-08-02 — POS (#153–#161 + #165 Card / #166 scan-to-cart+camera / #167
+barcode labels) AND dynamic email (#162–#164) built, code-reviewed AND
+machine-E2E-tested (real browser vs local Medusa: sales, stock, refunds,
+Z-report all verified; found+fixed: Medusa order reads MUST use `*items` —
+partial items.* selection returns quantity undefined/totals 0). Owner rule:
+complete + fully test everything BEFORE real in-store use.** Pending:
 1. **Live one-offs at deploy**: cms `db push` on live (adds `STAFF` to
    `AdminRole`) BEFORE creating a staff user in /admin/users; older items:
    `NEXT_PUBLIC_SITE_URL` in Vercel, "Free over ৳X" live shipping rates.
