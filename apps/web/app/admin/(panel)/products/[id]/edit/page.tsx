@@ -23,6 +23,12 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-4">
             <Badge variant={product.status === "published" ? "gold" : "muted"}>{product.status}</Badge>
             <ProductActions id={product.id} status={product.status} />
+            <Link
+              href={`/admin/products/${product.id}/labels`}
+              className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Barcode labels
+            </Link>
             <Link href="/admin/products" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" /> All
             </Link>
