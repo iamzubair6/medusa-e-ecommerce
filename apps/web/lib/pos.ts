@@ -270,9 +270,8 @@ export async function posCheckout(input: PosCheckoutInput): Promise<PosCheckoutR
 
     // Final numbers come from the created order itself (unit_price overrides
     // and promo codes applied) so the receipt always reconciles line-by-line.
-    const detailFields =
-      "display_id,total,subtotal,discount_total,currency_code," +
-      "items.variant_title,items.product_title,items.title,items.quantity,items.unit_price,items.total";
+    // *items, not item subfields — see POS_ORDER_FIELDS note.
+    const detailFields = "display_id,total,subtotal,discount_total,currency_code,*items";
     const detail = await adminFetch<{
       order?: {
         display_id: number;
@@ -387,9 +386,11 @@ interface RawPosOrderDetail {
   }[];
 }
 
-const POS_ORDER_FIELDS =
-  "id,display_id,created_at,total,discount_total,email,metadata," +
-  "items.id,items.product_id,items.variant_title,items.product_title,items.title,items.quantity,items.unit_price,items.total";
+// NOTE: order items must be selected with *items (wildcard) — requesting item
+// subfields (items.quantity, items.total…) makes Medusa skip the BigNumber
+// totals computation and return quantity: undefined / total: 0 (verified
+// empirically against 2.15 during the POS E2E run).
+const POS_ORDER_FIELDS = "id,display_id,created_at,total,discount_total,email,metadata,*items";
 
 function toPosOrderView(o: RawPosOrderDetail): PosOrderView {
   const meta = o.metadata ?? {};

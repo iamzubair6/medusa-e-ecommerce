@@ -126,14 +126,16 @@ interface RawStockItem {
  * first separator splits reliably.
  */
 export async function orderStockLines(orderId: string): Promise<StockLine[]> {
+  // *items (wildcard), NOT item subfields — a partial item selection makes
+  // Medusa return quantity: undefined, which would poison sizeStock with NaN.
   const data = await adminFetch<{ order?: { items?: RawStockItem[] } }>(
-    `/admin/orders/${orderId}?fields=items.product_id,items.variant_title,items.quantity`,
+    `/admin/orders/${orderId}?fields=id,*items`,
   );
   const lines: StockLine[] = [];
   for (const item of data?.order?.items ?? []) {
     const title = item.variant_title ?? "";
     const sep = title.indexOf(" / ");
-    if (!item.product_id || sep === -1) continue;
+    if (!item.product_id || sep === -1 || !Number.isFinite(item.quantity)) continue;
     lines.push({
       productId: item.product_id,
       size: title.slice(0, sep),
