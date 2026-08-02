@@ -224,7 +224,7 @@ export function SearchByImagePopover({
           onKeyDown={(e) => {
             if (e.key === "Escape") onClose();
           }}
-          className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,446px)] origin-top rounded-2xl border border-border bg-card shadow-2xl focus-visible:outline-none"
+          className="absolute right-0 top-full z-50 mt-2 max-h-[75vh] w-[min(92vw,446px)] origin-top overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card shadow-2xl focus-visible:outline-none"
         >
           {/* header — identical in every state, so the panel never "changes widget" */}
           <div className="relative flex items-center justify-center border-b border-border px-4 py-3.5">

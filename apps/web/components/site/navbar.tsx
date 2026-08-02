@@ -31,6 +31,7 @@ export function Navbar({ navData }: NavbarProps) {
   const { count: wishlistCount } = useWishlist();
   const [openMega, setOpenMega] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -129,8 +130,14 @@ export function Navbar({ navData }: NavbarProps) {
                 divisions={divisions.map((d) => ({ handle: d.handle, label: d.label }))}
                 reduce={!!reduce}
               />
-              <button type="button" aria-label="Search" className="cursor-pointer p-2 md:hidden">
-                <Search className="h-5 w-5" />
+              <button
+                type="button"
+                aria-label="Search"
+                aria-expanded={mobileSearchOpen}
+                onClick={() => setMobileSearchOpen((v) => !v)}
+                className="cursor-pointer p-2 md:hidden"
+              >
+                {mobileSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
               </button>
               <Link href="/account" aria-label={loggedIn ? "My account" : "Sign in"} className="relative p-2 transition-colors hover:text-accent">
                 <User className={cn("h-5 w-5", loggedIn && "text-accent")} />
@@ -148,6 +155,30 @@ export function Navbar({ navData }: NavbarProps) {
             </div>
           </div>
         </Container>
+
+        {/* mobile search row — the desktop pill is hidden < md, so the search
+            icon expands the SAME autocomplete (text + image search) here */}
+        <AnimatePresence>
+          {mobileSearchOpen && (
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="md:hidden"
+            >
+              <Container className="pb-3">
+                <SearchAutocomplete
+                  variant="mobile"
+                  divLabel={divLabel}
+                  division={division}
+                  divisions={divisions.map((d) => ({ handle: d.handle, label: d.label }))}
+                  reduce={!!reduce}
+                />
+              </Container>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* second-level category bar + full-width mega menu */}
@@ -263,17 +294,23 @@ const SUGGEST_DEBOUNCE_MS = 250;
 const SUGGEST_MIN_CHARS = 2;
 const SUGGEST_LIMIT = 6;
 
-/** Desktop search box with a product-suggestion dropdown (combobox pattern). */
+/**
+ * Search box with a product-suggestion dropdown (combobox pattern).
+ * "desktop" renders the md+ pill in the main bar; "mobile" renders the same
+ * component full-width in the expandable row under the bar (< md).
+ */
 function SearchAutocomplete({
   divLabel,
   division,
   divisions,
   reduce,
+  variant = "desktop",
 }: {
   divLabel: string;
   division: string;
   divisions: { handle: string; label: string }[];
   reduce: boolean;
+  variant?: "desktop" | "mobile";
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -369,7 +406,10 @@ function SearchAutocomplete({
       action="/products"
       role="search"
       onSubmit={close}
-      className="relative hidden h-11 items-center gap-2 rounded-full border border-border bg-card px-4 shadow-sm md:flex md:w-72 lg:w-[446px]"
+      className={cn(
+        "relative h-11 items-center gap-2 rounded-full border border-border bg-card px-4 shadow-sm",
+        variant === "mobile" ? "flex w-full md:hidden" : "hidden md:flex md:w-72 lg:w-[446px]",
+      )}
     >
       <Search className="h-4 w-4 text-muted-foreground" />
       {activeImageQuery && (
@@ -411,6 +451,9 @@ function SearchAutocomplete({
         aria-controls="search-suggestions"
         aria-autocomplete="list"
         aria-activedescendant={active >= 0 ? `search-option-${active}` : undefined}
+        // Mobile: the row only exists after an explicit "open search" tap, so
+        // focusing (which opens the discovery panel) is the expected next step.
+        autoFocus={variant === "mobile"}
         className="w-full flex-1 bg-transparent text-sm outline-none"
       />
       {enabled && isFetching && (
@@ -448,7 +491,7 @@ function SearchAutocomplete({
             animate={{ opacity: 1, y: 0, scaleY: 1, scaleX: 1 }}
             exit={reduce ? undefined : { opacity: 0, y: -6, scaleY: 0.96 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,446px)] origin-top overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+            className="absolute right-0 top-full z-50 mt-2 max-h-[70vh] w-[min(92vw,446px)] origin-top overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card shadow-2xl"
           >
             <SearchDiscoveryPanel divisions={divisions} initialDivision={division} onNavigate={close} />
           </motion.div>
