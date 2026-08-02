@@ -259,12 +259,15 @@ export function ShopSimilarModal({
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+            {/* Mobile stacks photo above results in ONE scroll column (the photo
+                is height-capped so results stay reachable); md+ keeps the
+                two-pane layout where only the grid scrolls. */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-visible">
               {/* left: image + dots + upload + size facets */}
               <aside className="shrink-0 border-b border-border p-4 md:w-64 md:border-b-0 md:border-r">
-                <div className="relative overflow-hidden rounded-md bg-muted">
+                <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-md bg-muted md:w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element -- dynamic/object-url source */}
-                  <img src={image} alt="Your item" className="block w-full" />
+                  <img src={image} alt="Your item" className="block max-h-[45vh] w-auto max-w-full md:max-h-none md:w-full" />
                   {selected && (
                     <button
                       type="button"
@@ -329,8 +332,9 @@ export function ShopSimilarModal({
                 )}
               </aside>
 
-              {/* right: results grid */}
-              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {/* right: results grid (its own scroll region on md+ only —
+                  on mobile the whole column above scrolls) */}
+              <div className="p-4 md:min-h-0 md:flex-1 md:overflow-y-auto">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {loading ? "Finding matches…" : `${products.length} item${products.length === 1 ? "" : "s"}`}
                   {selected ? ` · ${PART_NAMES[selected.label] ?? selected.label}` : ""}
