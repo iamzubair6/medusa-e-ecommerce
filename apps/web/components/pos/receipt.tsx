@@ -14,7 +14,16 @@ const METHOD_LABELS: Record<string, string> = {
  * 80mm thermal receipt. On screen it previews inside a card; on print, the
  * embedded rules hide everything else and size the page to the roll.
  */
-export function Receipt({ sale, cashierName }: { sale: FinishedSale; cashierName: string }) {
+export function Receipt({
+  sale,
+  cashierName,
+  cash,
+}: {
+  sale: FinishedSale;
+  cashierName: string;
+  /** Cash tender, when the cashier used the change calculator (cash sales only). */
+  cash?: { received: number; change: number };
+}) {
   const orderNo = `MSN-${String(sale.result.displayId).padStart(5, "0")}`;
   const itemCount = sale.lines.reduce((n, l) => n + l.quantity, 0);
 
@@ -69,6 +78,12 @@ export function Receipt({ sale, cashierName }: { sale: FinishedSale; cashierName
             (sale.payment.txnId ? ` (${sale.payment.txnId})` : "")
           }
         />
+        {cash && (
+          <>
+            <Row left="Cash received" right={posMoney(cash.received)} />
+            <Row left="Change" right={posMoney(cash.change)} />
+          </>
+        )}
 
         <Hr />
         <p className="text-center">Thank you for shopping with Maison.</p>

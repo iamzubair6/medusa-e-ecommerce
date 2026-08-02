@@ -127,26 +127,34 @@ export function PosCounter({ cashier, isAdmin }: Props) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-muted">
-      <header className="flex items-center justify-between border-b bg-background px-4 py-2">
+    <div className="flex h-dvh flex-col bg-muted">
+      <header className="flex items-center justify-between gap-2 border-b bg-background px-3 py-2 sm:px-4">
         <div className="flex items-baseline gap-3">
           <span className="font-display text-lg font-medium">Maison</span>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Point of sale</span>
+          <span className="hidden text-xs uppercase tracking-widest text-muted-foreground sm:inline">
+            Point of sale
+          </span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/pos/orders" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <div className="flex items-center gap-1 sm:gap-3">
+          <Link
+            href="/pos/orders"
+            className="inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
             Orders
           </Link>
           {isAdmin && (
-            <Link href="/pos/day" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            <Link
+              href="/pos/day"
+              className="inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
               Day report
             </Link>
           )}
-          <span className="text-sm text-muted-foreground">
+          <span className="hidden text-sm text-muted-foreground lg:inline">
             {cashier.name}
             {isAdmin && <Badge className="ml-2">Admin</Badge>}
           </span>
-          <Button variant="ghost" size="sm" onClick={logout} aria-label="Log out">
+          <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
@@ -154,7 +162,7 @@ export function PosCounter({ cashier, isAdmin }: Props) {
 
       <div className="flex min-h-0 flex-1">
         {/* Left: search + results + picker */}
-        <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+        <main className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4">
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -176,7 +184,8 @@ export function PosCounter({ cashier, isAdmin }: Props) {
             />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* Bottom padding on phone keeps the last grid row above the fixed cart bar. */}
+          <div className="min-h-0 flex-1 overflow-y-auto pb-24 md:pb-0">
             {q.length === 0 && (
               <EmptyHint text="Type a product name or scan a barcode to start a sale." />
             )}
@@ -299,8 +308,8 @@ function SizePicker({
       aria-label={`Pick colour and size — ${product.title}`}
       onClick={onClose}
     >
-      <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <CardContent className="p-5">
+      <Card className="max-h-[85dvh] w-full max-w-lg overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <CardContent className="p-4 sm:p-5">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-medium">{product.title}</h2>
@@ -320,7 +329,7 @@ function SizePicker({
                   type="button"
                   onClick={() => setColorName(c.name)}
                   className={cn(
-                    "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm",
+                    "flex min-h-11 items-center gap-2 rounded-full border px-4 py-1.5 text-sm md:min-h-0 md:px-3",
                     c.name === color?.name ? "border-foreground bg-foreground text-background" : "bg-background",
                   )}
                 >
@@ -378,8 +387,17 @@ function SaleDone({
   cashierName: string;
   onNewSale: () => void;
 }) {
+  const isCash = sale.payment.method === "cash";
+  const total = Math.round(sale.result.total);
+  // Cash-change calculator — pure client math, printed on the receipt when used.
+  const [receivedInput, setReceivedInput] = useState("");
+  const received = Number.parseInt(receivedInput, 10) || 0;
+  const change = received - total;
+  // Printed only once the tender actually covers the total.
+  const cash = isCash && received > 0 && change >= 0 ? { received, change } : undefined;
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-muted p-6 print:bg-white print:p-0">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-muted p-4 py-8 sm:gap-6 sm:p-6 print:bg-white print:p-0">
       <div className="text-center print:hidden">
         <p className="text-sm uppercase tracking-widest text-muted-foreground">Sale complete</p>
         <p className="mt-1 font-display text-4xl font-medium">{posMoney(sale.result.total)}</p>
@@ -389,8 +407,63 @@ function SaleDone({
           </p>
         )}
       </div>
-      <Receipt sale={sale} cashierName={cashierName} />
-      <div className="flex gap-3 print:hidden">
+
+      {isCash && (
+        <div className="w-full max-w-[300px] rounded-lg border bg-background p-4 print:hidden">
+          <label
+            htmlFor="pos-cash-received"
+            className="text-xs font-medium uppercase tracking-widest text-muted-foreground"
+          >
+            Cash received
+          </label>
+          <input
+            id="pos-cash-received"
+            value={receivedInput}
+            onChange={(e) => setReceivedInput(e.target.value.replace(/\D/g, "").slice(0, 7))}
+            inputMode="numeric"
+            autoFocus
+            placeholder="0"
+            className="mt-1.5 h-14 w-full rounded-md border bg-background px-3 text-right font-display text-3xl tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {[
+              { label: "Exact", value: total },
+              { label: "৳500", value: 500 },
+              { label: "৳1,000", value: 1000 },
+              { label: "৳2,000", value: 2000 },
+            ].map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                onClick={() => setReceivedInput(String(q.value))}
+                className="h-11 rounded-md border bg-background text-xs font-medium tabular-nums transition-colors hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+          {received > 0 &&
+            (change >= 0 ? (
+              <div className="mt-3 flex items-baseline justify-between gap-3 border-t pt-3">
+                <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                  Change due
+                </span>
+                <span className="font-display text-4xl font-medium tabular-nums">
+                  {posMoney(change)}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3 border-t pt-3 text-right">
+                <span className="font-display text-2xl font-medium tabular-nums text-destructive">
+                  {posMoney(-change)} short
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      <Receipt sale={sale} cashierName={cashierName} cash={cash} />
+      <div className="flex w-full max-w-[300px] flex-col gap-3 print:hidden sm:w-auto sm:max-w-none sm:flex-row">
         <Button variant="outline" size="lg" onClick={() => window.print()}>
           Print receipt
         </Button>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Minus, Plus, Tag, Trash2, UserRound, X } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Tag, Trash2, UserRound, X } from "lucide-react";
 import { Badge, Button, ConfirmDialog, cn } from "@ecom/ui";
 import { useToast } from "@/components/admin/toast";
 import type { FinishedSale } from "./counter";
@@ -42,6 +42,9 @@ const TXN_PLACEHOLDER: Record<Exclude<PosPaymentMethod, "cash">, string> = {
 
 export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
   const toast = useToast();
+  // Phone (< md): the panel is a slide-up sheet opened from a bottom summary
+  // bar. Desktop (md+): it is the always-visible right pane; `open` is ignored.
+  const [open, setOpen] = useState(false);
   const [method, setMethod] = useState<PosPaymentMethod>("cash");
   const [txnId, setTxnId] = useState("");
   const [promoInput, setPromoInput] = useState("");
@@ -153,20 +156,62 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
   };
 
   const needsTxn = method !== "cash" && !txnId.trim();
+  const itemCount = cart.reduce((n, l) => n + l.quantity, 0);
 
   return (
-    <aside className="flex w-[380px] shrink-0 flex-col border-l bg-background">
-      <div className="border-b px-4 py-3">
+    <>
+      {/* Phone-only bottom summary bar — opens the cart sheet. */}
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-30 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden",
+          open && "hidden",
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex h-14 w-full items-center justify-between rounded-lg bg-foreground px-5 text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={`Open cart — ${itemCount} item${itemCount === 1 ? "" : "s"}, ${posMoney(estimated)}`}
+        >
+          <span className="flex items-center gap-2.5 text-sm font-medium">
+            <ShoppingBag className="h-5 w-5" aria-hidden />
+            {itemCount === 0 ? "Cart empty" : `${itemCount} item${itemCount === 1 ? "" : "s"}`}
+          </span>
+          <span className="font-display text-lg font-medium tabular-nums">{posMoney(estimated)}</span>
+        </button>
+      </div>
+
+      <aside
+        className={cn(
+          "flex flex-col bg-background",
+          // Desktop: exactly the original static right pane (no transform, so
+          // fixed-position children keep the viewport as containing block).
+          "md:w-[380px] md:shrink-0 md:border-l",
+          // Phone: full-screen sheet sliding up from the bottom bar.
+          "max-md:fixed max-md:inset-0 max-md:z-40 max-md:transition-transform max-md:duration-300 motion-reduce:max-md:transition-none",
+          open ? "max-md:translate-y-0" : "max-md:translate-y-full",
+        )}
+      >
+      <div className="flex items-center justify-between border-b px-4 py-2 md:py-3">
         <h2 className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
           Current sale
         </h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => setOpen(false)}
+          aria-label="Close cart"
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Lines */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {cart.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            No items yet — pick a product on the left.
+            No items yet — search or scan a product to start.
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -179,22 +224,22 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(l.variantId, -1)} aria-label="Less">
-                    <Minus className="h-3 w-3" />
+                  <Button variant="outline" size="icon" className="h-11 w-11 md:h-7 md:w-7" onClick={() => updateQty(l.variantId, -1)} aria-label="Less">
+                    <Minus className="h-4 w-4 md:h-3 md:w-3" />
                   </Button>
-                  <span className="w-6 text-center text-sm tabular-nums">{l.quantity}</span>
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(l.variantId, 1)} aria-label="More">
-                    <Plus className="h-3 w-3" />
+                  <span className="w-7 text-center text-sm tabular-nums md:w-6">{l.quantity}</span>
+                  <Button variant="outline" size="icon" className="h-11 w-11 md:h-7 md:w-7" onClick={() => updateQty(l.variantId, 1)} aria-label="More">
+                    <Plus className="h-4 w-4 md:h-3 md:w-3" />
                   </Button>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground"
+                  className="h-11 w-11 text-muted-foreground md:h-7 md:w-7"
                   onClick={() => setCart((prev) => prev.filter((x) => x.variantId !== l.variantId))}
                   aria-label="Remove line"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
                 </Button>
               </li>
             ))}
@@ -203,7 +248,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
       </div>
 
       {/* Adjustments + payment */}
-      <div className="flex flex-col gap-3 border-t px-4 py-3">
+      <div className="flex flex-col gap-3 border-t px-4 py-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {/* Customer attach */}
         <div>
           <div className="flex gap-2">
@@ -216,11 +261,12 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
               }}
               placeholder="Customer phone (optional)"
               inputMode="tel"
-              className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9"
             />
             <Button
               variant="outline"
               size="sm"
+              className="h-11 md:h-9"
               onClick={() => phone.trim().length >= 6 && lookup.mutate(phone.trim())}
               loading={lookup.isPending}
               disabled={phone.trim().length < 6}
@@ -258,9 +304,9 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
               onChange={(e) => setPromoInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addPromo()}
               placeholder="Promo code"
-              className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm uppercase outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm uppercase outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9"
             />
-            <Button variant="outline" size="sm" onClick={addPromo} disabled={!promoInput.trim()}>
+            <Button variant="outline" size="sm" className="h-11 md:h-9" onClick={addPromo} disabled={!promoInput.trim()}>
               <Tag className="mr-1 h-3.5 w-3.5" /> Apply
             </Button>
           </div>
@@ -291,7 +337,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
               onChange={(e) => setManualPct(e.target.value.replace(/\D/g, "").slice(0, 2))}
               placeholder="0"
               inputMode="numeric"
-              className="h-8 w-14 rounded-md border bg-background px-2 text-right text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-11 w-16 rounded-md border bg-background px-2 text-right text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-8 md:w-14"
             />
             <span className="text-muted-foreground">%</span>
           </label>
@@ -305,7 +351,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
               type="button"
               onClick={() => setMethod(m.id)}
               className={cn(
-                "h-10 rounded-md border text-sm font-medium transition-colors",
+                "h-12 rounded-md border text-sm font-medium transition-colors md:h-10",
                 method === m.id ? "border-foreground bg-foreground text-background" : "bg-background",
               )}
             >
@@ -318,7 +364,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
             value={txnId}
             onChange={(e) => setTxnId(e.target.value)}
             placeholder={TXN_PLACEHOLDER[method]}
-            className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-11 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9"
           />
         )}
 
@@ -339,6 +385,7 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
           Charge {METHODS.find((m) => m.id === method)?.label}
         </Button>
       </div>
+      </aside>
 
       <ConfirmDialog
         open={warnings !== null}
@@ -358,6 +405,6 @@ export function CartPanel({ cart, setCart, isAdmin, onComplete }: Props) {
         }}
         onCancel={() => setWarnings(null)}
       />
-    </aside>
+    </>
   );
 }
