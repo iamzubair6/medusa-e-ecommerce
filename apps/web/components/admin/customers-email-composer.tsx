@@ -34,10 +34,17 @@ export function CustomersEmailComposer({
   adminEmail: string;
 }) {
   const toast = useToast();
+  // Collapsed by default (#175) — the customers list is the page's main job;
+  // campaigns are an explicit action.
+  const [open, setOpen] = useState(false);
   const [presetId, setPresetId] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [testTo, setTestTo] = useState(adminEmail);
   const [testing, setTesting] = useState(false);
+  // Audience: everyone with a real email, or a hand-picked set (#175).
+  const [audienceMode, setAudienceMode] = useState<"all" | "pick">("all");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [pickFilter, setPickFilter] = useState("");
 
   const {
     register,
@@ -63,6 +70,7 @@ export function CustomersEmailComposer({
 
   const audience = useQuery({
     queryKey: ["bulk-email-audience"],
+    enabled: open,
     queryFn: async () => {
       const res = await fetch("/api/admin/customers/email");
       const d = (await res.json()) as { recipients?: number; error?: string };
@@ -72,12 +80,34 @@ export function CustomersEmailComposer({
     staleTime: 60_000,
   });
 
+  const pickable = useQuery({
+    queryKey: ["bulk-email-pickable"],
+    enabled: open && audienceMode === "pick",
+    queryFn: async () => {
+      const res = await fetch("/api/admin/customers/email?list=1");
+      const d = (await res.json()) as {
+        customers?: { email: string; name: string }[];
+        truncated?: boolean;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(d.error ?? "Could not load customers");
+      return { customers: d.customers ?? [], truncated: d.truncated ?? false };
+    },
+    staleTime: 60_000,
+  });
+
+  const count = audienceMode === "all" ? (audience.data ?? 0) : picked.size;
+
   const send = useMutation({
     mutationFn: async (values: CampaignSend) => {
       const res = await fetch("/api/admin/customers/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, expectedRecipients: audience.data ?? 0 }),
+        body: JSON.stringify({
+          ...values,
+          expectedRecipients: count,
+          audience: audienceMode === "all" ? "all" : [...picked],
+        }),
       });
       const d = (await res.json().catch(() => ({}))) as { sent?: number; error?: string };
       if (!res.ok) throw new Error(d.error ?? "Send failed");
@@ -119,17 +149,139 @@ export function CustomersEmailComposer({
   ];
   const bodyOptions = bodyTemplates.templates.map((t) => ({ value: t.id, label: t.name }));
 
-  const count = audience.data ?? 0;
   const confirmed = confirmText.trim() === `SEND ${count}`;
+
+  if (!open) {
+    return (
+      <Card className="mb-6 flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="flex items-center gap-2">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <h3 className="font-display text-lg font-bold">Email campaign</h3>
+            <p className="text-xs text-muted-foreground">
+              Send an announcement to all customers — or a hand-picked few.
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" onClick={() => setOpen(true)}>
+          Compose email
+        </Button>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-6 flex flex-col gap-4 p-6">
-      <div className="flex items-center gap-2">
-        <Mail className="h-4 w-4 text-muted-foreground" />
-        <h3 className="font-display text-lg font-bold">Email campaign</h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-display text-lg font-bold">Email campaign</h3>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+          Close
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit((v) => send.mutate(v))} className="flex flex-col gap-4">
+        {/* Audience (#175): everyone, or hand-picked customers. */}
+        <div className="flex flex-col gap-2">
+          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Audience
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-sm border border-border p-0.5">
+              {(
+                [
+                  ["all", "All customers"],
+                  ["pick", "Choose customers"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setAudienceMode(mode)}
+                  aria-pressed={audienceMode === mode}
+                  className={
+                    audienceMode === mode
+                      ? "rounded-[2px] bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
+                      : "rounded-[2px] px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {audienceMode === "all" ? (
+                audience.isPending ? (
+                  "Counting the audience…"
+                ) : audience.isError ? (
+                  <span className="text-destructive">{(audience.error as Error).message}</span>
+                ) : (
+                  <span>
+                    <strong className="text-foreground">{count}</strong> customer{count === 1 ? "" : "s"} with an email
+                  </span>
+                )
+              ) : (
+                <span>
+                  <strong className="text-foreground">{picked.size}</strong> selected
+                </span>
+              )}
+            </span>
+          </div>
+          {audienceMode === "pick" && (
+            <div className="rounded-sm border border-border">
+              <input
+                value={pickFilter}
+                onChange={(e) => setPickFilter(e.target.value)}
+                placeholder="Filter by name or email…"
+                className="h-10 w-full border-b border-border bg-transparent px-3 text-sm outline-none"
+              />
+              <div className="max-h-56 overflow-y-auto p-1">
+                {pickable.isPending && <p className="p-3 text-sm text-muted-foreground">Loading customers…</p>}
+                {pickable.isError && (
+                  <p className="p-3 text-sm text-destructive">{(pickable.error as Error).message}</p>
+                )}
+                {pickable.data?.customers.length === 0 && (
+                  <p className="p-3 text-sm text-muted-foreground">No customers with an email yet.</p>
+                )}
+                {pickable.data?.customers
+                  .filter(
+                    (c) =>
+                      !pickFilter.trim() ||
+                      `${c.name} ${c.email}`.toLowerCase().includes(pickFilter.trim().toLowerCase()),
+                  )
+                  .map((c) => (
+                    <label
+                      key={c.email}
+                      className="flex cursor-pointer items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm hover:bg-muted/50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={picked.has(c.email)}
+                        onChange={(e) =>
+                          setPicked((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(c.email);
+                            else next.delete(c.email);
+                            return next;
+                          })
+                        }
+                      />
+                      <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{c.email}</span>
+                    </label>
+                  ))}
+              </div>
+              {pickable.data?.truncated && (
+                <p className="border-t border-border p-2 text-xs text-muted-foreground">
+                  Showing the first 300 (the per-campaign cap).
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Combobox
             label="Start from a preset (optional)"
@@ -139,16 +291,6 @@ export function CustomersEmailComposer({
             placeholder={presets.length === 0 ? "No presets saved yet" : "Blank campaign"}
             clearable
           />
-          <div className="flex flex-col justify-end pb-1 text-sm text-muted-foreground">
-            {audience.isPending && "Counting the audience…"}
-            {audience.isError && <span className="text-destructive">{(audience.error as Error).message}</span>}
-            {audience.isSuccess && (
-              <span>
-                Audience: <strong className="text-foreground">{count}</strong> customer{count === 1 ? "" : "s"} with an
-                email
-              </span>
-            )}
-          </div>
         </div>
         {presets.length === 0 && (
           <p className="-mt-2 text-xs text-muted-foreground">

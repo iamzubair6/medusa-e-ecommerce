@@ -19,14 +19,24 @@ const MAX_RECIPIENTS = 300;
 const bodySchema = campaignSendSchema.extend({
   /** Must match the server-resolved audience so a stale client can't over-send. */
   expectedRecipients: z.number().int().positive(),
+  /** "all" (default) or a hand-picked list of customer emails (#175). */
+  audience: z.union([z.literal("all"), z.array(z.string().email()).min(1).max(MAX_RECIPIENTS)]).default("all"),
 });
 
-/** Recipient count for the "all customers with an email" audience (ADMIN-only by middleware). */
-export async function GET() {
+/** Audience for campaigns (ADMIN-only by middleware): count, or the pickable
+ *  list (?list=1) for the hand-picked mode — capped at the send cap. */
+export async function GET(request: Request) {
   if (!adminConfigured()) {
     return NextResponse.json({ error: "Medusa admin API is not configured." }, { status: 503 });
   }
   const recipients = await listAllCustomerEmails();
+  if (new URL(request.url).searchParams.get("list")) {
+    return NextResponse.json({
+      recipients: recipients.length,
+      customers: recipients.slice(0, MAX_RECIPIENTS),
+      truncated: recipients.length > MAX_RECIPIENTS,
+    });
+  }
   return NextResponse.json({ recipients: recipients.length });
 }
 
@@ -50,7 +60,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 422 });
   }
 
-  const recipients = await listAllCustomerEmails();
+  const everyone = await listAllCustomerEmails();
+  // Hand-picked mode: only emails that are REAL current customers survive —
+  // the client can never make this endpoint mail an arbitrary address.
+  const recipients =
+    parsed.data.audience === "all"
+      ? everyone
+      : everyone.filter((r) =>
+          (parsed.data.audience as string[]).some((e) => e.toLowerCase() === r.email.toLowerCase()),
+        );
   if (recipients.length === 0) return NextResponse.json({ error: "No customers with an email." }, { status: 409 });
   if (recipients.length !== parsed.data.expectedRecipients) {
     return NextResponse.json(
