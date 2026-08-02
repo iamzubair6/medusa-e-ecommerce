@@ -18,7 +18,14 @@ barcode labels) AND dynamic email (#162–#164) built, code-reviewed AND
 machine-E2E-tested (real browser vs local Medusa: sales, stock, refunds,
 Z-report all verified; found+fixed: Medusa order reads MUST use `*items` —
 partial items.* selection returns quantity undefined/totals 0). Owner rule:
-complete + fully test everything BEFORE real in-store use.** Pending:
+complete + fully test everything BEFORE real in-store use.**
+**Owner phone-test round (#168–#177) all fixed same day**: fulfilment 400
+(the `*items` quirk AGAIN — grep for partial `items.` selections in any new
+Medusa read), POS paid-at-counter labels, phone-responsive POS + cash change
+calculator, mobile search/Shop-Similar (search form was hidden below md),
+landing-mode ISR revalidation, collapsed composer + audience picker, field
+alignment, card heights. NEXT ROUND owner-approved: **#178 full mobile
+responsive + E2E audit across storefront/admin/POS.** Pending:
 1. **Live one-offs at deploy**: cms `db push` on live (adds `STAFF` to
    `AdminRole`) BEFORE creating a staff user in /admin/users; older items:
    `NEXT_PUBLIC_SITE_URL` in Vercel, "Free over ৳X" live shipping rates.
