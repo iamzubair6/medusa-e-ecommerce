@@ -18,11 +18,15 @@ function Field({
   className?: string;
 }) {
   return (
-    <label className={cn("flex flex-col gap-2", className)}>
+    // h-full + flex-1 label: in a multi-column grid, a long label that wraps
+    // grows UPWARD instead of pushing its input below the neighbour's (#176).
+    <label className={cn("flex h-full flex-col gap-2", className)}>
       {label && (
-        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          {label}
-          {required && <span className="text-destructive"> *</span>}
+        <span className="flex flex-1 items-end text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span>
+            {label}
+            {required && <span className="text-destructive"> *</span>}
+          </span>
         </span>
       )}
       {children}

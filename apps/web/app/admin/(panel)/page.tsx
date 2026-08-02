@@ -70,9 +70,9 @@ export default async function AdminDashboard() {
             {commerceCards.map((c) => {
               const Icon = c.icon;
               return (
-                <Link key={c.label} href={c.href}>
-                  <Card className="transition-colors hover:border-gold">
-                    <CardContent className="flex flex-col gap-1">
+                <Link key={c.label} href={c.href} className="h-full">
+                  <Card className="h-full transition-colors hover:border-gold">
+                    <CardContent className="flex h-full flex-col gap-1">
                       <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         <Icon className="h-3.5 w-3.5" /> {c.label}
                       </span>
