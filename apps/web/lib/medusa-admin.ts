@@ -816,10 +816,15 @@ export async function cancelOrder(id: string): Promise<void> {
 }
 
 async function orderLineItems(id: string): Promise<{ id: string; quantity: number }[]> {
+  // *items (wildcard) — selecting item subfields makes Medusa return
+  // quantity: undefined, which 400s the fulfillment create ("quantity is
+  // required"). Same quirk as lib/stock.ts / lib/pos.ts.
   const data = await adminFetch<{ order?: { items?: { id: string; quantity: number }[] } }>(
-    `/admin/orders/${id}?fields=items.id,items.quantity`,
+    `/admin/orders/${id}?fields=id,*items`,
   );
-  return (data?.order?.items ?? []).map((i) => ({ id: i.id, quantity: i.quantity }));
+  return (data?.order?.items ?? [])
+    .filter((i) => Number.isFinite(i.quantity))
+    .map((i) => ({ id: i.id, quantity: i.quantity }));
 }
 
 /** Create a fulfillment for all items in the order. */
