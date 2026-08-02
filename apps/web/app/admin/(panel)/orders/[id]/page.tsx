@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatOrderId } from "@/lib/order-id";
+import { isPosPaid, paymentLabel } from "@/lib/payment-label";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -38,8 +39,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <div className="flex flex-col gap-6">
           <Card className="p-5">
             <div className="mb-4 flex gap-2">
-              <Badge variant={order.paymentMethod === "cod" ? "outline" : "muted"}>
-                {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentStatus}
+              <Badge
+                variant={
+                  order.paymentMethod === "cod" ? "outline" : isPosPaid(order.paymentMethod) ? "gold" : "muted"
+                }
+              >
+                {order.paymentMethod === "cod" ? "Cash on Delivery" : paymentLabel(order.paymentMethod, order.paymentStatus)}
               </Badge>
               <Badge variant={order.fulfilled ? "gold" : "outline"}>
                 {order.fulfillmentStatus.replace(/_/g, " ")}

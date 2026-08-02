@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatOrderId } from "@/lib/order-id";
+import { isPosPaid, paymentBadge } from "@/lib/payment-label";
 import { Badge, Card } from "@ecom/ui";
 import { listOrders } from "@/lib/medusa-admin";
 import { AdminHeader } from "@/components/admin/page-header";
@@ -50,8 +51,16 @@ export default async function AdminOrdersPage({
                   <td className="text-muted-foreground">{o.itemCount}</td>
                   <td className="font-semibold">{o.total}</td>
                   <td>
-                    <Badge variant={o.paymentMethod === "cod" ? "outline" : statusVariant(o.paymentStatus)}>
-                      {o.paymentMethod === "cod" ? "COD" : o.paymentStatus}
+                    <Badge
+                      variant={
+                        o.paymentMethod === "cod"
+                          ? "outline"
+                          : isPosPaid(o.paymentMethod)
+                            ? "gold"
+                            : statusVariant(o.paymentStatus)
+                      }
+                    >
+                      {paymentBadge(o.paymentMethod, o.paymentStatus)}
                     </Badge>
                   </td>
                   <td>
