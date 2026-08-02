@@ -95,7 +95,7 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
   });
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-2xl p-4 sm:p-6">
       <div className="mb-6 flex items-center justify-between">
         <Link href="/pos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
           <ArrowLeft className="mr-1 h-4 w-4" /> Counter
@@ -155,7 +155,7 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
               {order.items.map((i) => {
                 const qty = returnQty[i.itemId] ?? 0;
                 return (
-                  <li key={i.itemId} className="flex items-center gap-3">
+                  <li key={i.itemId} className="flex flex-wrap items-center gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{i.title}</p>
                       <p className="text-xs text-muted-foreground">
@@ -163,12 +163,12 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
                       </p>
                     </div>
                     {isAdmin && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <div className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                         Return
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-11 w-11 md:h-7 md:w-7"
                           disabled={qty <= 0}
                           onClick={() =>
                             setReturnQty((prev) => ({ ...prev, [i.itemId]: qty - 1 }))
@@ -183,7 +183,7 @@ export function OrdersLookup({ isAdmin }: { isAdmin: boolean }) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-11 w-11 md:h-7 md:w-7"
                           disabled={qty >= returnableFor(i)}
                           onClick={() =>
                             setReturnQty((prev) => ({ ...prev, [i.itemId]: qty + 1 }))

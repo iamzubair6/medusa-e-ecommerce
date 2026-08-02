@@ -36,8 +36,8 @@ export default async function PosDayPage({
   ];
 
   return (
-    <div className="mx-auto max-w-3xl p-6 print:p-0" id="pos-day-report">
-      <div className="mb-6 flex items-center justify-between gap-3 print:hidden">
+    <div className="mx-auto max-w-3xl p-4 sm:p-6 print:p-0" id="pos-day-report">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href="/pos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
           <ArrowLeft className="mr-1 h-4 w-4" /> Counter
         </Link>
@@ -47,7 +47,7 @@ export default async function PosDayPage({
             name="date"
             defaultValue={date}
             max={today}
-            className="h-9 rounded-md border bg-background px-3 text-sm"
+            className="h-11 rounded-md border bg-background px-3 text-sm sm:h-9"
           />
           <button type="submit" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             View
@@ -78,7 +78,8 @@ export default async function PosDayPage({
       {report.rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No counter sales this day.</p>
       ) : (
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto print:overflow-visible">
+        <table className="w-full min-w-[520px] text-sm">
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
               <th className="py-2">Order</th>
@@ -109,6 +110,7 @@ export default async function PosDayPage({
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {report.refunds.length > 0 && (
@@ -116,7 +118,8 @@ export default async function PosDayPage({
           <h2 className="mt-8 mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Refunds
           </h2>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto print:overflow-visible">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2">Order</th>
@@ -138,6 +141,7 @@ export default async function PosDayPage({
               ))}
             </tbody>
           </table>
+          </div>
         </>
       )}
 
