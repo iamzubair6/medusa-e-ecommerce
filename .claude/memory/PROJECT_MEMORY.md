@@ -19,7 +19,7 @@ machine-E2E-tested (real browser vs local Medusa: sales, stock, refunds,
 Z-report all verified; found+fixed: Medusa order reads MUST use `*items` —
 partial items.* selection returns quantity undefined/totals 0). Owner rule:
 complete + fully test everything BEFORE real in-store use.**
-**Owner phone-test round (#168–#177) all fixed same day**: fulfilment 400
+**Owner phone-test round (#168–#177, fixed 2026-08-03)**: fulfilment 400
 (the `*items` quirk AGAIN — grep for partial `items.` selections in any new
 Medusa read), POS paid-at-counter labels, phone-responsive POS + cash change
 calculator, mobile search/Shop-Similar (search form was hidden below md),
@@ -31,8 +31,10 @@ responsive + E2E audit across storefront/admin/POS.** Pending:
    `NEXT_PUBLIC_SITE_URL` in Vercel, "Free over ৳X" live shipping rates.
 2. Owner smoke checks: NEW `153-161-pos.md` + `162-164-dynamic-email.md`,
    then the backlog `126-128` → `129-137` → `138-143` → `144-147`.
-3. POS phase 3 later (subdomain rewrite, barcode printing, PWA) — POS_PLAN §7
-   decisions (receipt printer model, subdomain) still open with the owner.
+3. NEXT BUILD on owner "go": **#178 full mobile round** (see status doc
+   Current standing). Later: POS phase 3 leftovers (pos. subdomain, PWA;
+   labels + scanning already shipped) — POS_PLAN §7 decisions (receipt
+   printer model, subdomain) still open with the owner.
 
 ## Non-obvious facts a fresh session needs
 - Stock lives in product `metadata.sizeStock` — Medusa inventory is UNMANAGED
