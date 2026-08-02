@@ -29,10 +29,15 @@ complete everything with proper testing BEFORE real in-store use.
    §14 live-check steps are the owner-only parts) and `162-164-dynamic-email.md`,
    plus the older queue:
    `126-128-promotions.md` → `129-137-round6.md` → `138-143-round7.md` → `144-147-round8.md`.
-3. **POS phase 3 (later, owner call):** `pos.<domain>` subdomain rewrite,
-   printed SKU barcodes, PWA/offline. Open POS decisions (receipt printer
-   model, subdomain name) in `POS_PLAN.md` §7.
-4. Older open item: #109 brand/theme audit follow-ups pending owner priority.
+3. **NEXT BUILD (owner-approved 2026-08-03, start on "go"): #178 — full
+   mobile round.** Complete responsive pass over storefront + admin + POS,
+   then an end-to-end re-check of every flow at phone size (real device +
+   390px browser), fixing everything found. The #168–#177 fixes were spot
+   repairs; #178 is the systematic sweep.
+4. **POS phase 3 (later, owner call):** `pos.<domain>` subdomain rewrite
+   (labels + scanning already shipped in #166/#167), PWA/offline. Open POS
+   decisions (receipt printer model, subdomain name) in `POS_PLAN.md` §7.
+5. Older open item: #109 brand/theme audit follow-ups pending owner priority.
 
 ---
 
